@@ -1,42 +1,20 @@
-# Null Sec OS 3.4 Classic
+# Null Sec OS 3.7
 
-This build is structured as a real Node.js web server for Vercel.
+This build uses physical Vercel Function files instead of a root Express server.
 
-## Vercel deployment
+Important paths:
 
-- Framework Preset: Node.js
-- Root Directory: repository root
-- Install Command: `npm install` (default is fine)
-- Build Command: leave empty
-- Output Directory: leave empty
-- Node.js version: 22 or newer
+- `/api/proxy/index.js` -> `/api/proxy?url=https://example.com`
+- `/api/health.js` -> `/api/health`
+- `/api/qr.js` -> `/api/qr?text=hello`
+- `/api/osint/dns.js`
+- `/api/osint/rdap.js`
+- `/api/osint/ct.js`
+- `/api/osint/headers.js`
+- `/api/osint/robots.js`
+- `/lib/relay.js` contains shared server-only relay and SSRF-protection code.
 
-The root `server.js` is server-only code. Browser code lives only in `public/app.js`, so Vercel will not execute DOM code such as `document.querySelector()` inside the Node runtime.
+Deploy by pushing the contents of this folder to the repository root and redeploying on Vercel.
+Do not put the whole `null-sec-os-3.7-api-folder` directory one level below the repository root.
 
-## Local run
-
-```bash
-npm install
-npm start
-```
-
-Then open `http://localhost:3000`.
-
-Routes:
-- `/` Null Sec OS UI
-- `/api/health` Node health endpoint
-- `/api/qr?text=hello` QR generator
-- `/api/proxy?url=https%3A%2F%2Fexample.com` guarded relay
-
-
-## 3.4 Classic fixes
-- Fixed proxy resource rewriting so proxied assets always route back through this deployment, even when the remote page defines a `<base>` URL.
-- Added CORS/CORP headers for relayed resources.
-- Removed full-page Direct mode to avoid X-Frame-Options failures.
-- YouTube domains now open an in-OS compatibility panel; watch URLs use the official privacy-enhanced embed player.
-- Refreshed the Null Sec visual theme.
-- `contentscript.js` ObjectMultiplex/MaxListeners warnings come from injected browser extensions, not this app.
-
-
-## UI
-The 3.4 Classic build restores the pre-3.3 Null Sec visual theme while retaining the newer Node relay and browser compatibility fixes.
+The relay intentionally blocks localhost, private IP space, credentialed URLs, non-HTTP protocols, oversized responses, and unsupported content types.

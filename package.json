@@ -1,17 +1,13 @@
 {
   "name": "null-sec-os",
-  "version": "3.3.0",
+  "version": "3.7.0",
   "private": true,
-  "description": "Null Sec OS with a real Node.js server for Vercel",
+  "description": "Null Sec OS Classic with physical Vercel API route folders",
   "type": "commonjs",
   "engines": {
     "node": ">=22"
   },
-  "scripts": {
-    "start": "node server.js"
-  },
   "dependencies": {
-    "express": "^5.1.0",
     "qrcode": "^1.5.4"
   }
 }
