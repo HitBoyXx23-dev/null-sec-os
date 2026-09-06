@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#020506" />
+  <meta name="description" content="Null Sec OS, a browser based cyber desktop." />
+  <title>NULL SEC OS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="boot" class="boot-screen">
+    <div class="boot-logo"><span>NULL</span><b>SEC</b><small>OS</small></div>
+    <pre id="boot-log" class="boot-log"></pre>
+    <div class="boot-progress"><i></i></div>
+    <div class="boot-hint">ZERO TRUST WEB DESKTOP</div>
+  </div>
+
+  <main id="desktop" class="desktop hidden" aria-label="Null Sec OS desktop">
+    <canvas id="matrix-bg"></canvas>
+    <div class="scanlines"></div><div class="noise"></div>
+    <header class="top-hud">
+      <div><b>NULL SEC OS</b><span>NODE WEB-01</span></div>
+      <div class="hud-center">SYSTEM // <span id="hud-status">NOMINAL</span></div>
+      <div class="hud-right"><b id="hud-time"></b><span>BUILD 3.0</span></div>
+    </header>
+
+    <section id="desktop-icons" class="desktop-icons"></section>
+    <section id="window-layer" class="window-layer"></section>
+
+    <aside id="start-menu" class="start-menu hidden">
+      <div class="start-head"><div class="hex">N</div><div><b>NULL SEC OS</b><small>Operator: hitboyxx23</small></div></div>
+      <div class="start-search"><input id="app-search" placeholder="Search 50+ apps and games..." /></div>
+      <div class="start-tabs"><button class="active" data-cat="all">ALL</button><button data-cat="system">SYSTEM</button><button data-cat="tools">TOOLS</button><button data-cat="games">GAMES</button><button data-cat="media">MEDIA</button></div>
+      <div id="app-grid" class="app-grid"></div>
+      <div class="start-foot"><span><i class="status-dot"></i> SESSION SECURE</span><button data-open="about">ABOUT</button><button id="restart-btn">REBOOT</button></div>
+    </aside>
+
+    <footer class="taskbar">
+      <button id="start-btn" class="start-btn">N</button>
+      <div class="brand">NULL/SEC</div>
+      <div id="task-buttons" class="task-buttons"></div>
+      <div class="tray"><span id="api-status">RELAY ...</span><span id="net-status">NET ...</span><span id="clock"></span></div>
+    </footer>
+  </main>
+
+  <template id="window-template">
+    <article class="window">
+      <header class="titlebar"><div class="title-wrap"><span class="title-led"></span><div class="title"></div></div><div class="window-controls"><button data-action="minimize">_</button><button data-action="maximize">□</button><button data-action="close">×</button></div></header>
+      <div class="window-body"></div><div class="resize-handle"></div>
+    </article>
+  </template>
+  <script src="app.js"></script>
+</body>
+</html>

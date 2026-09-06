@@ -1,12 +1,17 @@
 {
   "name": "null-sec-os",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "private": true,
-  "description": "Null Sec OS browser desktop with Node-powered Vercel functions",
+  "description": "Null Sec OS with a real Node.js server for Vercel",
+  "type": "commonjs",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js"
   },
   "dependencies": {
+    "express": "^5.1.0",
     "qrcode": "^1.5.4"
   }
 }

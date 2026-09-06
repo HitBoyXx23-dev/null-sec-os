@@ -1,27 +1,29 @@
-# Null Sec OS 3.1
+# Null Sec OS 3.2
 
-Null Sec OS is a browser desktop designed for GitHub to Vercel deployment with Node.js serverless functions.
+This build is structured as a real Node.js web server for Vercel.
 
-## Deploy on Vercel
+## Vercel deployment
 
-1. Push every file in this folder to the root of a GitHub repository.
-2. Import the repository into Vercel.
-3. Use the Node.js / Other Node-compatible framework preset you selected.
-4. Vercel installs the dependency from `package.json` and exposes the files in `api/` as Node functions.
-5. Deploy. No separate backend host is required.
+- Framework Preset: Node.js
+- Root Directory: repository root
+- Install Command: `npm install` (default is fine)
+- Build Command: leave empty
+- Output Directory: leave empty
+- Node.js version: 22 or newer
 
-## Node backend
+The root `server.js` is server-only code. Browser code lives only in `public/app.js`, so Vercel will not execute DOM code such as `document.querySelector()` inside the Node runtime.
 
-- `/api/health` reports backend status.
-- `/api/proxy?url=...` is Null Browser's guarded public-web relay.
-- `/api/qr?text=...` generates QR PNGs with the Node `qrcode` package.
+## Local run
 
-The relay only accepts public HTTP/HTTPS targets and blocks localhost, private networks, credentialed URLs and oversized responses. Some websites still cannot work through a relay because they depend on DRM, anti-bot systems, login state, service workers, WebSockets or browser security policies.
+```bash
+npm install
+npm start
+```
 
-## In-OS navigation
+Then open `http://localhost:3000`.
 
-Null Sec OS 3.1 removes new-tab launchers from its apps. Media collections and radio directories route into Null Browser. QR Forge generates inside its own window. Supported YouTube watch links use YouTube's official embedded player inside the OS.
-
-## Local testing
-
-For frontend-only testing, use any static server. Vercel Functions require the Vercel runtime or a compatible local environment.
+Routes:
+- `/` Null Sec OS UI
+- `/api/health` Node health endpoint
+- `/api/qr?text=hello` QR generator
+- `/api/proxy?url=https%3A%2F%2Fexample.com` guarded relay
