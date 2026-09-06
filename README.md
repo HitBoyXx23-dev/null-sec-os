@@ -1,45 +1,27 @@
-# Null Sec OS 3.0
+# Null Sec OS 3.1
 
-Null Sec OS is a cyber themed browser desktop designed to deploy directly from GitHub to Vercel.
+Null Sec OS is a browser desktop designed for GitHub to Vercel deployment with Node.js serverless functions.
 
-## Highlights
+## Deploy on Vercel
 
-- 50+ built-in apps and games
-- Dark Null Sec desktop, boot sequence, HUD, launcher search, taskbar and draggable windows
-- Null Browser with Smart, Relay and Direct modes
-- YouTube watch links use the official privacy-enhanced YouTube embed player
-- Node.js Vercel relay at `/api/proxy`
-- Relay supports compatible HTML, CSS, scripts, JSON, SVG, images, fonts and audio
-- SSRF defenses block localhost, private networks, credentialed URLs and non-HTTP protocols
-- Null Media hub with legal public-domain and official media sources
-- NullSH terminal, Vault, Ops Center, Scratchpad and Config
-- Utilities including Calculator, Paint, JSON Lab, Base64, URL Codec, UUID, Password Forge, SHA-256, Regex, Color Lab, Text Lab, units and more
-- Games including Snake, Pong, Breakout, Tic Tac Toe, Memory, Mines, Simon, 2048, Lights Out and more
-- No frontend framework and no build command
+1. Push every file in this folder to the root of a GitHub repository.
+2. Import the repository into Vercel.
+3. Use the Node.js / Other Node-compatible framework preset you selected.
+4. Vercel installs the dependency from `package.json` and exposes the files in `api/` as Node functions.
+5. Deploy. No separate backend host is required.
 
-## Deploy from GitHub to Vercel
+## Node backend
 
-1. Create a GitHub repository.
-2. Put the contents of this project in the repository root, including `api/`.
-3. Import the repository into Vercel.
-4. Choose the **Other** framework preset.
-5. Leave the build command and output directory empty.
-6. Deploy.
+- `/api/health` reports backend status.
+- `/api/proxy?url=...` is Null Browser's guarded public-web relay.
+- `/api/qr?text=...` generates QR PNGs with the Node `qrcode` package.
 
-Vercel serves the static frontend and turns `api/*.js` into Node.js Functions.
+The relay only accepts public HTTP/HTTPS targets and blocks localhost, private networks, credentialed URLs and oversized responses. Some websites still cannot work through a relay because they depend on DRM, anti-bot systems, login state, service workers, WebSockets or browser security policies.
 
-## Local development
+## In-OS navigation
 
-Install the Vercel CLI and run:
+Null Sec OS 3.1 removes new-tab launchers from its apps. Media collections and radio directories route into Null Browser. QR Forge generates inside its own window. Supported YouTube watch links use YouTube's official embedded player inside the OS.
 
-```bash
-npx vercel dev
-```
+## Local testing
 
-Opening `index.html` directly will run the desktop, but the relay endpoints need `vercel dev` or a Vercel deployment.
-
-## Browser compatibility notes
-
-A server relay cannot turn an iframe into a full browser engine. Sites can depend on login cookies, anti-bot systems, service workers, DRM, WebSockets, complex CORS behavior, or explicit embedding restrictions. Null Browser uses an official YouTube embed bridge for normal YouTube video URLs because relaying the full YouTube site is not reliable. For incompatible pages, Direct mode or opening the site in a normal browser tab is the correct fallback.
-
-Null Media intentionally links to legal public-domain and official media collections. It does not bundle pirated movie or TV streams.
+For frontend-only testing, use any static server. Vercel Functions require the Vercel runtime or a compatible local environment.
