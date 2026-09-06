@@ -9,6 +9,7 @@ const rdap = require('./api/osint/rdap');
 const ct = require('./api/osint/ct');
 const headers = require('./api/osint/headers');
 const robots = require('./api/osint/robots');
+const username = require('./api/osint/username');
 
 const app = express();
 app.disable('x-powered-by');
@@ -27,6 +28,22 @@ app.get('/api/osint/rdap', rdap);
 app.get('/api/osint/ct', ct);
 app.get('/api/osint/headers', headers);
 app.get('/api/osint/robots', robots);
+app.get('/api/osint/username', username);
+
+function decodeProxyPath(raw) {
+  try {
+    const b64 = String(raw || '').replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+    return Buffer.from(padded, 'base64').toString('utf8');
+  } catch { return null; }
+}
+
+app.get('/uvproxy/:encoded', (req, res) => {
+  const target = decodeProxyPath(req.params.encoded);
+  if (!target) return res.status(400).send('Null Proxy: invalid encoded URL');
+  req.query.url = target;
+  return proxy(req, res);
+});
 
 const publicDir = path.join(__dirname, 'public');
 app.use(express.static(publicDir, {

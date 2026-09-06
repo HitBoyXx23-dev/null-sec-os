@@ -1,35 +1,28 @@
-# Null Sec OS 4.0 Node Preset Fix
+# Null Sec OS 4.1
 
-This build is intentionally structured for the Vercel Node.js preset.
+Classic Null Sec OS UI with a UV-style browser route and Username OSINT.
 
-## Critical fix
+## Proxy architecture
 
-The root `app.js` is now SERVER code only. It contains no `window`, `document`, DOM selectors, or browser APIs.
+Null Browser now navigates to encoded same-origin paths:
 
-The old browser code was renamed to:
+`/uvproxy/<encoded-target>`
 
-`public/client.js`
+`public/null-sw.js` intercepts those routes and sends them through the Node `/api/proxy` relay. The root Node server also provides a `/uvproxy/:encoded` fallback for the first navigation before the service worker controls the page.
 
-So if Vercel compiles the root app into `/var/task/app.cjs`, it will compile the Express server, not the browser UI.
+This is UV-style architecture rather than a vendored copy of Ultraviolet. It keeps the Vercel-compatible HTTP relay and avoids requiring a Wisp/WebSocket transport.
+
+## Username OSINT
+
+`/api/osint/username?username=...` passively checks public profile URLs on selected services and classifies responses as found, not found, or uncertain. It does not attempt logins, password checks, private APIs, or authenticated enumeration.
 
 ## Deploy
 
-1. Delete the existing repository contents first, especially any old root `app.js`, `app.cjs`, `server.js`, and old `public/app.js`.
-2. Copy the CONTENTS of this ZIP into the repository root.
-3. Commit the deletions and additions to GitHub.
-4. In Vercel, keep Framework Preset set to Node.js.
-5. Make sure Root Directory points to the folder containing this `package.json` and root `app.js`.
-6. Redeploy the latest commit.
+Keep the Vercel Node.js preset. Delete old repo files, put the contents of this ZIP at repo root, commit, and redeploy.
 
-API routes:
-- `/api/proxy?url=https://example.com`
-- `/api/health`
-- `/api/qr?text=hello`
-- `/api/osint/dns`
-- `/api/osint/rdap`
-- `/api/osint/ct`
-- `/api/osint/headers`
-- `/api/osint/robots`
-
-## Express 5 fix
-The invalid `app.get('*', ...)` wildcard was replaced with a catch-all `app.use(...)` middleware, which is compatible with Express 5 and avoids the `Missing parameter name at index 1: *` crash.
+Important files:
+- `app.js` server-only Express entry
+- `public/client.js` browser-only OS code
+- `public/null-sw.js` Null Proxy service worker
+- `api/proxy/index.js` Node relay
+- `api/osint/username.js` public Username OSINT
