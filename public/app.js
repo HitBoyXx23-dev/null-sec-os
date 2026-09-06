@@ -3,7 +3,7 @@ const desktop=$('#desktop'),boot=$('#boot'),layer=$('#window-layer'),tpl=$('#win
 let z=20,seq=0;const wins=new Map();
 const state={notes:localStorage.getItem('nullsec.notes')||'[ NULL SEC SCRATCHPAD ]\n\nOperator notes are stored locally in this browser.',browserMode:(localStorage.getItem('nullsec.browserMode')==='relay'?'relay':'smart')};
 
-const bootLines=['NULL SEC BOOTLOADER 3.3','[OK] verifying browser runtime','[OK] mounting local vault','[OK] loading 50+ application manifests','[OK] binding Vercel relay','[OK] initializing media bridge','[OK] operator: hitboyxx23','[OK] desktop ready'];
+const bootLines=['NULL SEC BOOTLOADER 3.4 CLASSIC','[OK] verifying browser runtime','[OK] mounting local vault','[OK] loading 50+ application manifests','[OK] binding Vercel relay','[OK] initializing media bridge','[OK] operator: hitboyxx23','[OK] desktop ready'];
 let bi=0;const bootLog=$('#boot-log');const bt=setInterval(()=>{if(bi<bootLines.length)bootLog.textContent+=bootLines[bi++]+'\n';else clearInterval(bt)},120);
 setTimeout(()=>{boot.classList.add('hidden');desktop.classList.remove('hidden');openApp('dashboard')},1650);
 

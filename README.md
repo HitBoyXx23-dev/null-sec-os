@@ -1,4 +1,4 @@
-# Null Sec OS 3.3
+# Null Sec OS 3.4 Classic
 
 This build is structured as a real Node.js web server for Vercel.
 
@@ -29,10 +29,14 @@ Routes:
 - `/api/proxy?url=https%3A%2F%2Fexample.com` guarded relay
 
 
-## 3.3 fixes
+## 3.4 Classic fixes
 - Fixed proxy resource rewriting so proxied assets always route back through this deployment, even when the remote page defines a `<base>` URL.
 - Added CORS/CORP headers for relayed resources.
 - Removed full-page Direct mode to avoid X-Frame-Options failures.
 - YouTube domains now open an in-OS compatibility panel; watch URLs use the official privacy-enhanced embed player.
 - Refreshed the Null Sec visual theme.
 - `contentscript.js` ObjectMultiplex/MaxListeners warnings come from injected browser extensions, not this app.
+
+
+## UI
+The 3.4 Classic build restores the pre-3.3 Null Sec visual theme while retaining the newer Node relay and browser compatibility fixes.
