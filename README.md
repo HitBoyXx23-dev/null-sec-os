@@ -1,4 +1,4 @@
-# Null Sec OS 3.9 Node Preset Fix
+# Null Sec OS 4.0 Node Preset Fix
 
 This build is intentionally structured for the Vercel Node.js preset.
 
@@ -30,3 +30,6 @@ API routes:
 - `/api/osint/ct`
 - `/api/osint/headers`
 - `/api/osint/robots`
+
+## Express 5 fix
+The invalid `app.get('*', ...)` wildcard was replaced with a catch-all `app.use(...)` middleware, which is compatible with Express 5 and avoids the `Missing parameter name at index 1: *` crash.

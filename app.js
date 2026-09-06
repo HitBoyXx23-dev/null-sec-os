@@ -36,8 +36,9 @@ app.use(express.static(publicDir, {
   }
 }));
 
-app.get('*', (req, res, next) => {
+app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
