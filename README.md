@@ -1,4 +1,4 @@
-# Null Sec OS 3.2
+# Null Sec OS 3.3
 
 This build is structured as a real Node.js web server for Vercel.
 
@@ -27,3 +27,12 @@ Routes:
 - `/api/health` Node health endpoint
 - `/api/qr?text=hello` QR generator
 - `/api/proxy?url=https%3A%2F%2Fexample.com` guarded relay
+
+
+## 3.3 fixes
+- Fixed proxy resource rewriting so proxied assets always route back through this deployment, even when the remote page defines a `<base>` URL.
+- Added CORS/CORP headers for relayed resources.
+- Removed full-page Direct mode to avoid X-Frame-Options failures.
+- YouTube domains now open an in-OS compatibility panel; watch URLs use the official privacy-enhanced embed player.
+- Refreshed the Null Sec visual theme.
+- `contentscript.js` ObjectMultiplex/MaxListeners warnings come from injected browser extensions, not this app.

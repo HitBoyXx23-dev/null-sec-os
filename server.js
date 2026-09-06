@@ -18,6 +18,7 @@ const TEXT_TYPES = [
 const BINARY_PREFIX = ['image/', 'font/', 'audio/'];
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -84,29 +85,29 @@ function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
-function relayUrl(raw, base) {
+function relayUrl(raw, base, proxyOrigin) {
   try {
     if (!raw || /^(data:|blob:|javascript:|mailto:|tel:|#)/i.test(raw)) return raw;
-    return '/api/proxy?url=' + encodeURIComponent(new URL(raw, base).href);
+    return proxyOrigin + '/api/proxy?url=' + encodeURIComponent(new URL(raw, base).href);
   } catch {
     return raw;
   }
 }
 
-function rewriteCss(css, base) {
+function rewriteCss(css, base, proxyOrigin) {
   return css
-    .replace(/url\((['"]?)(.*?)\1\)/gi, (m, q, u) => `url(${q}${relayUrl(u, base)}${q})`)
-    .replace(/@import\s+(['"])(.*?)\1/gi, (m, q, u) => `@import ${q}${relayUrl(u, base)}${q}`);
+    .replace(/url\((['"]?)(.*?)\1\)/gi, (m, q, u) => `url(${q}${relayUrl(u, base, proxyOrigin)}${q})`)
+    .replace(/@import\s+(['"])(.*?)\1/gi, (m, q, u) => `@import ${q}${relayUrl(u, base, proxyOrigin)}${q}`);
 }
 
-function injectRelay(html, finalUrl) {
+function injectRelay(html, finalUrl, proxyOrigin) {
   html = html.replace(/<meta[^>]+http-equiv=["']?content-security-policy["']?[^>]*>/gi, '');
   html = html.replace(/\s(src|href|poster|action)=(['"])(.*?)\2/gi,
-    (m, a, q, u) => ` ${a}=${q}${relayUrl(u, finalUrl)}${q}`);
+    (m, a, q, u) => ` ${a}=${q}${relayUrl(u, finalUrl, proxyOrigin)}${q}`);
   html = html.replace(/\ssrcset=(['"])(.*?)\1/gi, (m, q, v) => {
     const mapped = v.split(',').map((part) => {
       const p = part.trim().split(/\s+/);
-      p[0] = relayUrl(p[0], finalUrl);
+      p[0] = relayUrl(p[0], finalUrl, proxyOrigin);
       return p.join(' ');
     }).join(', ');
     return ` srcset=${q}${mapped}${q}`;
@@ -114,7 +115,7 @@ function injectRelay(html, finalUrl) {
 
   const base = `<base href="${esc(finalUrl.href)}">`;
   const bridge = `<script>(function(){
-    function route(u){try{var x=new URL(u,document.baseURI);if(!/^https?:$/.test(x.protocol))return u;return '/api/proxy?url='+encodeURIComponent(x.href)}catch(e){return u}}
+    function route(u){try{var x=new URL(u,document.baseURI);if(!/^https?:$/.test(x.protocol))return u;return ${JSON.stringify(proxyOrigin)}+'/api/proxy?url='+encodeURIComponent(x.href)}catch(e){return u}}
     document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href]');if(!a||e.defaultPrevented||e.button!==0)return;var h=a.getAttribute('href');if(!h||/^(#|javascript:|mailto:|tel:)/i.test(h))return;e.preventDefault();location.href=route(h)},true);
     document.addEventListener('submit',function(e){var f=e.target;if(!f||String(f.method||'get').toLowerCase()!=='get')return;e.preventDefault();var u=new URL(f.action||document.baseURI,document.baseURI);new FormData(f).forEach(function(v,k){u.searchParams.append(k,v)});location.href=route(u.href)},true);
   })();<\/script>`;
@@ -144,6 +145,8 @@ app.get('/api/qr', async (req, res) => {
 
 app.get('/api/proxy', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Referrer-Policy', 'no-referrer');
   const target = Array.isArray(req.query.url) ? req.query.url[0] : req.query.url;
   if (!target) return res.status(400).send('Null Relay: missing ?url= target');
@@ -164,11 +167,13 @@ app.get('/api/proxy', async (req, res) => {
     res.setHeader('X-Null-Relay-Target', finalUrl.origin);
 
     if (type.includes('text/html') || type.includes('application/xhtml+xml')) {
-      res.type('html').send(injectRelay(buffer.toString('utf8'), finalUrl));
+      const proxyOrigin = `${req.protocol}://${req.get('host')}`;
+      res.type('html').send(injectRelay(buffer.toString('utf8'), finalUrl, proxyOrigin));
       return;
     }
     if (type.includes('text/css')) {
-      res.type('css').send(rewriteCss(buffer.toString('utf8'), finalUrl));
+      const proxyOrigin = `${req.protocol}://${req.get('host')}`;
+      res.type('css').send(rewriteCss(buffer.toString('utf8'), finalUrl, proxyOrigin));
       return;
     }
 
