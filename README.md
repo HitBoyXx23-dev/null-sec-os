@@ -1,27 +1,32 @@
-# Null Sec OS 3.8 Vercel Safe
+# Null Sec OS 3.9 Node Preset Fix
 
-This build fixes `ReferenceError: document is not defined`.
+This build is intentionally structured for the Vercel Node.js preset.
 
-## Why the crash happened
-Vercel's Node.js framework preset was treating a root-level browser `app.js` as server code. Browser globals such as `document` do not exist in Node.
+## Critical fix
 
-## New structure
-- `public/index.html` browser UI
-- `public/app.js` browser-only JavaScript
-- `public/styles.css` browser-only CSS
-- `api/proxy/index.js` Node Vercel Function
-- `api/health.js` Node Vercel Function
-- `api/qr.js` Node Vercel Function
-- `api/osint/*.js` Node Vercel Functions
-- `lib/relay.js` shared server-only code
-- no root `app.js`
-- no root `server.js`
+The root `app.js` is now SERVER code only. It contains no `window`, `document`, DOM selectors, or browser APIs.
+
+The old browser code was renamed to:
+
+`public/client.js`
+
+So if Vercel compiles the root app into `/var/task/app.cjs`, it will compile the Express server, not the browser UI.
 
 ## Deploy
-Push the CONTENTS of this folder to the repository root.
 
-For Vercel, the safest preset for this build is **Other**, because `/api/*.js` are still Node.js Vercel Functions automatically while the frontend is static.
+1. Delete the existing repository contents first, especially any old root `app.js`, `app.cjs`, `server.js`, and old `public/app.js`.
+2. Copy the CONTENTS of this ZIP into the repository root.
+3. Commit the deletions and additions to GitHub.
+4. In Vercel, keep Framework Preset set to Node.js.
+5. Make sure Root Directory points to the folder containing this `package.json` and root `app.js`.
+6. Redeploy the latest commit.
 
-If you keep the **Node.js** preset, this build is still structured to avoid the old crash because there is no browser JavaScript at the repository root.
-
-Do not copy an older root `app.js` back into the repo.
+API routes:
+- `/api/proxy?url=https://example.com`
+- `/api/health`
+- `/api/qr?text=hello`
+- `/api/osint/dns`
+- `/api/osint/rdap`
+- `/api/osint/ct`
+- `/api/osint/headers`
+- `/api/osint/robots`

@@ -1,13 +1,18 @@
 {
   "name": "null-sec-os",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "private": true,
-  "description": "Null Sec OS Vercel-safe static frontend plus Node API functions",
+  "description": "Null Sec OS for Vercel Node.js preset",
+  "main": "app.js",
   "type": "commonjs",
   "engines": {
     "node": ">=22"
   },
+  "scripts": {
+    "start": "node app.js"
+  },
   "dependencies": {
+    "express": "^5.1.0",
     "qrcode": "^1.5.4"
   }
 }
