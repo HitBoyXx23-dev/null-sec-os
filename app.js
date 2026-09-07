@@ -42,53 +42,46 @@ app.use(express.static(publicDir, {
   }
 }));
 
-let uvStatic = null;
-let epoxyStatic = null;
-let baremuxStatic = null;
+let scramjetStatic = null;
+let controllerStatic = null;
+let libcurlStatic = null;
 let wisp = null;
 
 const vendorReady = (async () => {
-  const uvMod = await import("@titaniumnetwork-dev/ultraviolet");
-  const epoxyMod = await import("@mercuryworkshop/epoxy-transport");
-  const baremuxMod = await import("@mercuryworkshop/bare-mux/node");
-  const wispMod = await import("wisp-server-node");
+  const pathMod = require("node:path");
+  const scramjetPathMod = await import("@mercuryworkshop/scramjet/path");
+  const controllerEntry = require.resolve("@mercuryworkshop/scramjet-controller");
+  const libcurlEntry = require.resolve("@mercuryworkshop/libcurl-transport");
 
-  uvStatic = express.static(uvMod.uvPath);
-  epoxyStatic = express.static(epoxyMod.epoxyPath);
-  baremuxStatic = express.static(baremuxMod.baremuxPath);
-  wisp = wispMod.default || wispMod;
+  const scramjetPath = scramjetPathMod.scramjetPath || scramjetPathMod.default;
+  const controllerPath = pathMod.dirname(controllerEntry);
+  const libcurlPath = pathMod.dirname(libcurlEntry);
+
+  scramjetStatic = express.static(scramjetPath);
+  controllerStatic = express.static(controllerPath);
+  libcurlStatic = express.static(libcurlPath);
+
+  const wispMod = await import("@mercuryworkshop/wisp-js/server");
+  wisp = wispMod.server;
 })();
 
-app.use("/uv/", async (req, res, next) => {
-  try {
-    await vendorReady;
-    uvStatic(req, res, next);
-  } catch (e) {
-    next(e);
-  }
+app.use("/scramjet/", async (req, res, next) => {
+  try { await vendorReady; return scramjetStatic(req, res, next); }
+  catch (e) { return next(e); }
 });
-
-app.use("/epoxy/", async (req, res, next) => {
-  try {
-    await vendorReady;
-    epoxyStatic(req, res, next);
-  } catch (e) {
-    next(e);
-  }
+app.use("/controller/", async (req, res, next) => {
+  try { await vendorReady; return controllerStatic(req, res, next); }
+  catch (e) { return next(e); }
 });
-
-app.use("/baremux/", async (req, res, next) => {
-  try {
-    await vendorReady;
-    baremuxStatic(req, res, next);
-  } catch (e) {
-    next(e);
-  }
+app.use("/libcurl/", async (req, res, next) => {
+  try { await vendorReady; return libcurlStatic(req, res, next); }
+  catch (e) { return next(e); }
 });
 
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/") || req.path.startsWith("/uv/") ||
-      req.path.startsWith("/epoxy/") || req.path.startsWith("/baremux/")) {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/scramjet/") ||
+      req.path.startsWith("/controller/") || req.path.startsWith("/libcurl/") ||
+      req.path.startsWith("/~/sj/")) {
     return next();
   }
   if (req.method !== "GET" && req.method !== "HEAD") return next();
@@ -198,23 +191,23 @@ chatWss.on("connection", (ws) => {
 /* ---------------- Wisp + chat upgrades ---------------- */
 server.on("upgrade", async (req, socket, head) => {
   try {
-    const u = new URL(req.url, "http://null.local");
-    if (u.pathname === "/chat/" || u.pathname === "/chat") {
+    const pathname = new URL(req.url || "/", "http://localhost").pathname;
+
+    if (pathname === "/chat/" || pathname === "/chat") {
       chatWss.handleUpgrade(req, socket, head, (ws) => chatWss.emit("connection", ws, req));
       return;
     }
 
-    if (u.pathname.endsWith("/wisp/")) {
+    if (pathname === "/wisp/") {
       await vendorReady;
-      if (wisp && typeof wisp.routeRequest === "function") {
-        wisp.routeRequest(req, socket, head);
-        return;
-      }
+      req.url = pathname;
+      wisp.routeRequest(req, socket, head);
+      return;
     }
   } catch (e) {
     console.error("upgrade error", e);
   }
-  socket.destroy();
+  socket.end();
 });
 
 if (require.main === module) {

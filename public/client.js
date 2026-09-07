@@ -37,56 +37,110 @@ function renderDashboard(b){b.innerHTML=`<div class="app-pad"><div class="sectio
 
 function normalizeTarget(raw){raw=(raw||'').trim();if(!raw)return'';if(/^https?:\/\//i.test(raw))return raw;if(raw.includes('.')&&!raw.includes(' '))return'https://'+raw;return'https://www.google.com/search?q='+encodeURIComponent(raw)}
 function youtubeId(u){try{const x=new URL(u);if(x.hostname.includes('youtu.be'))return x.pathname.split('/')[1]||'';if(x.hostname.includes('youtube.com'))return x.searchParams.get('v')||((x.pathname.match(/\/shorts\/([^/?]+)/)||[])[1]||'')}catch{}return''}
-let nullUvConnection=null;
-async function ensureRealUV(){
-  if(!window.BareMux||!window.__uv$config)throw new Error('Ultraviolet assets did not load');
-  if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
-  await navigator.serviceWorker.register('/uv/sw.js',{scope:'/uv/'});
-  await navigator.serviceWorker.ready;
-  if(!nullUvConnection)nullUvConnection=new BareMux.BareMuxConnection('/baremux/worker.js');
-  const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
-  if((await nullUvConnection.getTransport())!=='/epoxy/index.mjs'){
-    await nullUvConnection.setTransport('/epoxy/index.mjs',[{wisp}]);
-  }
+let nullSjController=null;
+let nullSjTransport=null;
+
+async function waitForServiceWorkerControl(){
+  if(navigator.serviceWorker.controller)return navigator.serviceWorker.controller;
+  const reg=await navigator.serviceWorker.ready;
+  if(navigator.serviceWorker.controller)return navigator.serviceWorker.controller;
+  return await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(new Error('Service worker did not take control. Reload once after deployment.')),10000);
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      clearTimeout(timer);
+      resolve(navigator.serviceWorker.controller||reg.active);
+    },{once:true});
+  });
 }
+
+async function ensureScramjet(){
+  if(!window.$scramjetController)throw new Error('Scramjet controller assets did not load');
+  if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable in this browser');
+
+  await navigator.serviceWorker.register('/sw.js',{scope:'/'});
+  const sw=await waitForServiceWorkerControl();
+
+  if(!nullSjController){
+    const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
+    const mod=await import('/libcurl/index.mjs');
+    const LibcurlClient=mod.default;
+    nullSjTransport=new LibcurlClient({wisp});
+    if(typeof nullSjTransport.init==='function')await nullSjTransport.init();
+
+    nullSjController=new $scramjetController.Controller({
+      serviceworker:sw,
+      transport:nullSjTransport,
+      config:{
+        prefix:'/~/sj/',
+        scramjetPath:'/scramjet/scramjet.js',
+        injectPath:'/controller/controller.inject.js',
+        wasmPath:'/scramjet/scramjet.wasm'
+      }
+    });
+    await nullSjController.wait();
+  }
+  return nullSjController;
+}
+
 function renderBrowser(b){
   b.innerHTML=`<div class="browser">
     <div class="browser-bar">
       <button class="back" title="Back">←</button><button class="home" title="Home">⌂</button><button class="reload" title="Reload">↻</button>
-      <div class="browser-address"><span>UV</span><input class="url" placeholder="URL or search"></div>
+      <div class="browser-address"><span>SJ</span><input class="url" placeholder="URL or search"></div>
       <button class="go">CONNECT</button>
     </div>
     <div class="browser-view">
       <div class="browser-home"><div class="browser-card">
-        <div class="browser-kicker">ULTRAVIOLET SERVICE WORKER</div><div class="glyph">◎</div><h1>NULL BROWSER</h1>
-        <p>Real Ultraviolet client rewriting with BareMux, Epoxy transport and an in-project Wisp endpoint.</p>
+        <div class="browser-kicker">SCRAMJET 2 CONTROLLER</div><div class="glyph">◎</div><h1>NULL BROWSER</h1>
+        <p>Scramjet rewrites and loads the remote page through its controller-managed frame. The iframe is not pointed at the remote website directly.</p>
         <form><input placeholder="Search or enter address"><button>CONNECT</button></form>
         <div class="quick-sites"><button data-url="https://www.google.com">GOOGLE</button><button data-url="https://www.youtube.com">YOUTUBE</button><button data-url="https://www.wikipedia.org">WIKIPEDIA</button><button data-url="https://archive.org">ARCHIVE</button></div>
       </div></div>
-      <iframe class="frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera"></iframe>
-      <div class="browser-error"><div><b>ULTRAVIOLET CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
+      <div class="sj-host"></div>
+      <div class="browser-error"><div><b>SCRAMJET CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
     </div>
-    <div class="browser-note"><span>ENGINE: <b>REAL UV 3</b></span><span>TRANSPORT: EPOXY / WISP</span><span>SERVICE WORKER: /uv/sw.js</span></div>
+    <div class="browser-note"><span>ENGINE: <b>SCRAMJET 2.x</b></span><span>TRANSPORT: LIBCURL / WISP</span><span>FRAME: CONTROLLER-MANAGED</span></div>
   </div>`;
-  const frame=b.querySelector('.frame'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error');
-  let current='';
+
+  const host=b.querySelector('.sj-host'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error');
+  let current='',sjFrame=null;
+
+  function frameElement(){
+    return sjFrame?.element||null;
+  }
+
+  async function ensureFrame(){
+    const controller=await ensureScramjet();
+    if(!sjFrame){
+      const iframe=document.createElement('iframe');
+      iframe.className='frame sj-frame';
+      iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');
+      host.replaceChildren(iframe);
+      sjFrame=controller.createFrame(iframe);
+    }
+    return sjFrame;
+  }
+
   async function go(raw){
-    const t=normalizeTarget(raw||url.value); if(!t)return;
-    current=t;url.value=t;home.style.display='none';frame.style.display='block';err.style.display='none';
+    const t=normalizeTarget(raw||url.value);if(!t)return;
+    current=t;url.value=t;home.style.display='none';host.style.display='block';err.style.display='none';
     try{
-      await ensureRealUV();
-      frame.src=__uv$config.prefix+__uv$config.encodeUrl(t);
+      const frame=await ensureFrame();
+      frame.go(t);
     }catch(e){
       err.style.display='grid';
-      err.querySelector('span').textContent=e.message;
+      err.querySelector('span').textContent=e?.message||String(e);
     }
   }
+
   b.querySelector('.go').onclick=()=>go();
   url.onkeydown=e=>{if(e.key==='Enter')go()};
   b.querySelector('form').onsubmit=e=>{e.preventDefault();go(e.target.querySelector('input').value)};
   b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>go(x.dataset.url));
-  b.querySelector('.home').onclick=()=>{frame.src='about:blank';home.style.display='grid';current='';url.value=''};
-  b.querySelector('.back').onclick=()=>{try{frame.contentWindow.history.back()}catch{}};
+  b.querySelector('.home').onclick=()=>{
+    current='';url.value='';host.style.display='none';home.style.display='grid';err.style.display='none';
+  };
+  b.querySelector('.back').onclick=()=>{try{frameElement()?.contentWindow?.history.back()}catch{}};
   b.querySelector('.reload').onclick=()=>current&&go(current);
   b.querySelector('.retry').onclick=()=>current&&go(current);
 }
@@ -101,8 +155,8 @@ function renderTerminal(b){b.innerHTML=`<div class="terminal"><div class="term-o
 function renderFiles(b){b.innerHTML=`<div class="file-layout"><aside class="file-sidebar">${['/home','/apps','/media','/notes','/system','/relay','/logs'].map(x=>`<button>${x}</button>`).join('')}</aside><main class="file-main"><div class="section-tag">VIRTUAL VAULT</div><h3>/home/operator</h3><div class="file-cards">${['README.NFO','notes/','apps/','media/','relay.cfg','session.log','preferences.json','games/'].map((x,i)=>`<div class="file-card">${i%2?'▦':'▤'}<br><br><b>${x}</b></div>`).join('')}</div></main></div>`}
 function renderOps(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TELEMETRY</div><h2>Ops Center</h2><p class="muted">Visual system telemetry only. No remote scanning is performed.</p><div class="ops-grid"><div class="metric"><label>APP COUNT</label><strong>${appDefs.length}</strong></div><div class="metric"><label>OPEN WINDOWS</label><strong id="ow">${wins.size+1}</strong></div><div class="metric"><label>MEMORY EST.</label><strong>${performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576)+'MB':'N/A'}</strong></div><div class="metric"><label>ONLINE</label><strong>${navigator.onLine?'YES':'NO'}</strong></div><div class="metric"><label>CORES</label><strong>${navigator.hardwareConcurrency||'?'}</strong></div><div class="metric"><label>LANG</label><strong>${navigator.language}</strong></div></div><div class="panel" style="margin-top:10px"><pre id="oplog">[OK] desktop compositor\n[OK] local vault\n[OK] app registry\n[OK] media bridge\n[OK] relay health probe queued</pre></div></div>`;fetch('/api/health').then(r=>b.querySelector('#oplog').textContent+=r.ok?'\n[OK] relay online':'\n[WARN] relay unavailable').catch(()=>b.querySelector('#oplog').textContent+='\n[LOCAL] static preview mode')}
 function renderNotes(b){b.innerHTML=`<textarea class="notes-area"></textarea>`;const t=b.querySelector('textarea');t.value=state.notes;t.oninput=()=>{state.notes=t.value;localStorage.setItem('nullsec.notes',state.notes)}}
-function renderSettings(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SYSTEM CONFIG</div><h2>Null Sec Preferences</h2><div class="settings-list"><div class="setting"><div><b>Default Browser Mode</b><div class="muted">Ultraviolet is the built-in browser engine</div></div><select class="field mode"><option value="smart">SMART</option><option value="relay">RELAY</option><option value="direct">DIRECT</option></select></div><div class="setting"><div><b>Local Data</b><div class="muted">Notes and preferences stored in this browser</div></div><button class="btn clear">CLEAR LOCAL DATA</button></div><div class="setting"><div><b>Relay Health</b><div class="muted">Check backend function</div></div><button class="btn health">CHECK</button></div></div></div>`;const m=b.querySelector('.mode');m.value=state.browserMode;m.onchange=()=>{state.browserMode=m.value;localStorage.setItem('nullsec.browserMode',m.value)};b.querySelector('.clear').onclick=()=>{localStorage.clear();alert('Local Null Sec data cleared.')};b.querySelector('.health').onclick=async e=>{try{const r=await fetch('/api/health');e.target.textContent=r.ok?'ONLINE':'FAILED'}catch{e.target.textContent='OFFLINE'}}}
-function renderAbout(b){b.innerHTML=`<div class="app-pad"><div class="about-logo">NULL SEC</div><h2>OS 3.0</h2><p class="muted">A browser-native cyber desktop with ${appDefs.length} built-in apps and games, local storage, real Ultraviolet browsing, realtime username chat, E2EE private DMs, OSINT tools, media apps, and games.</p><div class="panel"><b>Operator</b><p>hitboyxx23</p><b>Runtime</b><p>HTML + CSS + JavaScript + Node.js Vercel Functions</p><b>Deployment</b><p>GitHub to Vercel</p></div></div>`}
+function renderSettings(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SYSTEM CONFIG</div><h2>Null Sec Preferences</h2><div class="settings-list"><div class="setting"><div><b>Default Browser Mode</b><div class="muted">Scramjet 2 is the built-in browser engine</div></div><select class="field mode"><option value="smart">SMART</option><option value="relay">RELAY</option><option value="direct">DIRECT</option></select></div><div class="setting"><div><b>Local Data</b><div class="muted">Notes and preferences stored in this browser</div></div><button class="btn clear">CLEAR LOCAL DATA</button></div><div class="setting"><div><b>Relay Health</b><div class="muted">Check backend function</div></div><button class="btn health">CHECK</button></div></div></div>`;const m=b.querySelector('.mode');m.value=state.browserMode;m.onchange=()=>{state.browserMode=m.value;localStorage.setItem('nullsec.browserMode',m.value)};b.querySelector('.clear').onclick=()=>{localStorage.clear();alert('Local Null Sec data cleared.')};b.querySelector('.health').onclick=async e=>{try{const r=await fetch('/api/health');e.target.textContent=r.ok?'ONLINE':'FAILED'}catch{e.target.textContent='OFFLINE'}}}
+function renderAbout(b){b.innerHTML=`<div class="app-pad"><div class="about-logo">NULL SEC</div><h2>OS 3.0</h2><p class="muted">A browser-native cyber desktop with ${appDefs.length} built-in apps and games, local storage, Scramjet 2 browsing, realtime username chat, E2EE private DMs, OSINT tools, media apps, and games.</p><div class="panel"><b>Operator</b><p>hitboyxx23</p><b>Runtime</b><p>HTML + CSS + JavaScript + Node.js Vercel Functions</p><b>Deployment</b><p>GitHub to Vercel</p></div></div>`}
 
 function renderCalculator(b){b.innerHTML=`<div class="app-pad"><input class="field calc-display" value="0"><div class="calc-grid">${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+','(',')','%','='].map(x=>`<button class="btn">${x}</button>`).join('')}</div></div>`;const d=b.querySelector('.calc-display');b.querySelectorAll('.calc-grid button').forEach(x=>x.onclick=()=>{const v=x.textContent;if(v==='C')d.value='0';else if(v==='='){try{if(!/^[0-9+\-*/().%\s]+$/.test(d.value))throw 0;d.value=Function(`"use strict";return (${d.value})`)()}catch{d.value='ERR'}}else d.value=d.value==='0'?v:d.value+v})}
 function renderClock(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TIME</div><div class="clock-big"></div><h2 class="date"></h2><div class="panel muted">Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}</div></div>`;const f=()=>{const d=new Date();b.querySelector('.clock-big').textContent=d.toLocaleTimeString();b.querySelector('.date').textContent=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})};f();const i=setInterval(f,1000);b.closest('.window')?.querySelector('[data-action=close]')?.addEventListener('click',()=>clearInterval(i),{once:true})}
