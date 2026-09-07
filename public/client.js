@@ -46,7 +46,7 @@ async function ensureRealUV(){
   if(!window.BareMux||!window.__uv$config)throw new Error('Ultraviolet assets did not load');
   if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
 
-  const swUrl=__uv$config.sw||'/uv/uv.sw.js';
+  const swUrl='/uv/sw.js';
   const scope=__uv$config.prefix||'/uv/service/';
   let reg=await navigator.serviceWorker.getRegistration(scope);
 
@@ -328,14 +328,191 @@ function renderCinema(b){
 
 function renderMovies(b){renderCatalogApp(b,'movie')}
 function renderSeries(b){renderCatalogApp(b,'series')}
+
 function renderCatalogApp(b,type){
   const label=type==='movie'?'MOVIES':'SERIES';
-  b.innerHTML=`<div class="catalog-app"><div class="catalog-toolbar"><b>${label}</b><input class="field catalog-q" placeholder="Search ${label.toLowerCase()}"><button class="btn catalog-go">SEARCH</button></div><div class="catalog-status">LOADING...</div><div class="catalog-grid"></div><div class="catalog-modal hidden"><button class="catalog-close">×</button><div class="catalog-detail"></div></div></div>`;
-  const q=b.querySelector('.catalog-q'),grid=b.querySelector('.catalog-grid'),status=b.querySelector('.catalog-status'),modal=b.querySelector('.catalog-modal'),detail=b.querySelector('.catalog-detail');
-  async function load(){status.textContent='LOADING';grid.innerHTML='';try{const r=await fetch('/null-data/catalog?type='+type+'&q='+encodeURIComponent(q.value.trim()),{cache:'no-store'});const text=await r.text();let d;try{d=JSON.parse(text)}catch{throw new Error('Catalog returned non-JSON')}if(!r.ok||!d.ok)throw new Error(d.error||'Catalog failed');status.textContent=d.items.length+' RESULTS';grid.innerHTML=d.items.map((x,i)=>`<button class="catalog-card" data-i="${i}"><div class="catalog-poster">${x.poster?`<img loading="lazy" src="${x.poster}" alt="">`:'<span>NO ART</span>'}</div><b>${escapeHtml(x.title)}</b><small>${escapeHtml([x.year,x.genre].filter(Boolean).join(' // '))}</small></button>`).join('')||'<div class="panel muted">No results.</div>';grid.querySelectorAll('[data-i]').forEach(el=>el.onclick=()=>openItem(d.items[Number(el.dataset.i)]))}catch(e){status.textContent='ERROR';grid.innerHTML='<div class="panel bad">'+escapeHtml(e.message)+'</div>'}}
-  function openItem(x){modal.classList.remove('hidden');detail.innerHTML=`<div class="catalog-detail-grid">${x.poster?`<img src="${x.poster}" alt="">`:''}<div><div class="section-tag">${label}</div><h2>${escapeHtml(x.title)}</h2><div class="catalog-facts">${escapeHtml([x.year,x.genre].filter(Boolean).join(' // '))}</div><p>${escapeHtml(x.description||'No description available.')}</p><div class="catalog-actions">${x.preview?'<button class="btn preview">PLAY PREVIEW</button>':''}${x.store?'<button class="btn store">OFFICIAL PAGE</button>':''}<button class="btn trailer">YOUTUBE TRAILER</button></div>${x.preview?'<video class="catalog-preview hidden" controls playsinline></video>':''}</div></div>`;const pv=detail.querySelector('.preview');if(pv)pv.onclick=()=>{const v=detail.querySelector('.catalog-preview');v.classList.remove('hidden');v.src=x.preview;v.play().catch(()=>{})};const st=detail.querySelector('.store');if(st)st.onclick=()=>openInNullBrowser(x.store);detail.querySelector('.trailer').onclick=()=>openInNullBrowser('https://www.youtube.com/results?search_query='+encodeURIComponent(x.title+' official trailer'))}
-  b.querySelector('.catalog-go').onclick=load;q.onkeydown=e=>{if(e.key==='Enter')load()};b.querySelector('.catalog-close').onclick=()=>{modal.classList.add('hidden');detail.innerHTML=''};load();
+  let page=1,currentQuery='',lastItems=[];
+
+  b.innerHTML=`<div class="catalog-app hbs-catalog">
+    <div class="catalog-toolbar">
+      <div class="catalog-titlebox"><b>${label}</b><small>TMDB // HITBOYSTREAM CATALOG METHOD</small></div>
+      <input class="field catalog-q" placeholder="Search ${label.toLowerCase()}">
+      <button class="btn catalog-go">SEARCH</button>
+      <button class="btn catalog-trending">TRENDING</button>
+    </div>
+    <div class="catalog-subbar">
+      <span class="catalog-status">LOADING...</span>
+      <div><button class="btn catalog-prev">←</button><span class="catalog-page">PAGE 1</span><button class="btn catalog-next">→</button></div>
+    </div>
+    <div class="catalog-grid"></div>
+    <div class="catalog-modal hidden">
+      <button class="catalog-close">×</button>
+      <div class="catalog-detail"></div>
+    </div>
+  </div>`;
+
+  const q=b.querySelector('.catalog-q'),grid=b.querySelector('.catalog-grid'),status=b.querySelector('.catalog-status'),
+        modal=b.querySelector('.catalog-modal'),detail=b.querySelector('.catalog-detail'),pageLabel=b.querySelector('.catalog-page');
+
+  async function fetchJson(url){
+    const r=await fetch(url,{cache:'no-store'});
+    const text=await r.text();
+    let data;
+    try{data=JSON.parse(text)}catch{throw new Error('Media backend returned non-JSON')}
+    if(!r.ok||!data.ok)throw new Error(data.error||'Media request failed');
+    return data;
+  }
+
+  function stars(n){return Number(n||0).toFixed(1)}
+
+  function draw(items){
+    lastItems=items;
+    grid.innerHTML=items.map((x,i)=>`<button class="catalog-card hbs-card" data-i="${i}">
+      <div class="catalog-poster">
+        ${x.poster?`<img loading="lazy" src="${x.poster}" alt="">`:'<span>NO POSTER</span>'}
+        <div class="hbs-rating">★ ${stars(x.rating)}</div>
+        ${x.year?`<div class="hbs-year">${escapeHtml(x.year)}</div>`:''}
+        <div class="catalog-hoverplay">${type==='movie'?'▶':'→'}</div>
+      </div>
+      <b>${escapeHtml(x.title)}</b>
+      <small>${escapeHtml(x.description||'').slice(0,130)}</small>
+    </button>`).join('')||'<div class="panel muted">No results.</div>';
+
+    grid.querySelectorAll('[data-i]').forEach(el=>{
+      el.onclick=()=>openItem(items[Number(el.dataset.i)]);
+    });
+  }
+
+  async function load(){
+    status.textContent='LOADING '+label;
+    grid.innerHTML='<div class="panel muted">FETCHING TMDB...</div>';
+    try{
+      const url='/null-data/catalog?type='+type+'&q='+encodeURIComponent(currentQuery)+'&page='+page;
+      const d=await fetchJson(url);
+      pageLabel.textContent='PAGE '+page;
+      status.textContent=(currentQuery?'SEARCH':'TRENDING')+' // '+d.items.length+' TITLES';
+      draw(d.items);
+    }catch(e){
+      status.textContent='ERROR';
+      grid.innerHTML='<div class="panel bad">'+escapeHtml(e.message)+'</div>';
+    }
+  }
+
+  async function openItem(x){
+    modal.classList.remove('hidden');
+    detail.innerHTML='<div class="catalog-loading">LOADING DETAILS...</div>';
+    try{
+      const d=await fetchJson('/null-data/catalog/details?type='+type+'&id='+encodeURIComponent(x.id));
+      const item=d.item;
+      const providerNames=[
+        ...(item.providers?.flatrate||[]),
+        ...(item.providers?.rent||[]),
+        ...(item.providers?.buy||[])
+      ];
+      const providers=[...new Map(providerNames.map(p=>[p.name,p])).values()];
+
+      detail.innerHTML=`<div class="hbs-detail">
+        <div class="hbs-backdrop" ${item.backdrop?`style="background-image:linear-gradient(90deg,rgba(0,5,2,.96),rgba(0,5,2,.48)),url('${item.backdrop}')"`:''}></div>
+        <div class="catalog-detail-grid hbs-detail-grid">
+          ${item.poster?`<img class="hbs-detail-poster" src="${item.poster}" alt="">`:''}
+          <div class="hbs-detail-copy">
+            <div class="section-tag">${label} // TMDB ${escapeHtml(item.id)}</div>
+            <h2>${escapeHtml(item.title)}</h2>
+            <div class="catalog-facts">${escapeHtml([
+              item.year,
+              item.genres?.join(' / '),
+              item.rating?('★ '+stars(item.rating)):null,
+              type==='movie'&&item.runtime?item.runtime+' MIN':null,
+              type==='series'&&item.numberOfSeasons?item.numberOfSeasons+' SEASONS':null
+            ].filter(Boolean).join(' // '))}</div>
+            <p>${escapeHtml(item.description||'No description available.')}</p>
+
+            <div class="catalog-actions">
+              ${item.trailer?'<button class="btn hbs-trailer">PLAY TRAILER</button>':''}
+              ${item.providers?.link?'<button class="btn hbs-watch">WHERE TO WATCH</button>':''}
+              ${item.homepage?'<button class="btn hbs-home">OFFICIAL SITE</button>':''}
+            </div>
+
+            ${item.trailer?'<div class="hbs-trailer-stage hidden"><iframe allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>':''}
+
+            ${providers.length?`<div class="hbs-providers"><b>PROVIDERS</b><div>${providers.map(p=>`<span>${p.logo?`<img src="${p.logo}" alt="">`:''}${escapeHtml(p.name)}</span>`).join('')}</div></div>`:''}
+
+            ${type==='series'?`<div class="hbs-seasons">
+              <div class="hbs-season-head"><b>SEASONS</b><select class="field hbs-season-select">
+                ${(item.seasons||[]).map(s=>`<option value="${s.seasonNumber}">${escapeHtml(s.name)} // ${s.episodeCount} EP</option>`).join('')}
+              </select></div>
+              <div class="hbs-episodes"><div class="panel muted">Select a season.</div></div>
+            </div>`:''}
+          </div>
+        </div>
+      </div>`;
+
+      const trailerBtn=detail.querySelector('.hbs-trailer');
+      if(trailerBtn&&item.trailer?.key){
+        trailerBtn.onclick=()=>{
+          const stage=detail.querySelector('.hbs-trailer-stage'),frame=stage.querySelector('iframe');
+          frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(item.trailer.key)+'?autoplay=1&rel=0&playsinline=1';
+          stage.classList.remove('hidden');
+        };
+      }
+      const watchBtn=detail.querySelector('.hbs-watch');
+      if(watchBtn)watchBtn.onclick=()=>openInNullBrowser(item.providers.link);
+      const homeBtn=detail.querySelector('.hbs-home');
+      if(homeBtn)homeBtn.onclick=()=>openInNullBrowser(item.homepage);
+
+      if(type==='series'){
+        const select=detail.querySelector('.hbs-season-select');
+        const eps=detail.querySelector('.hbs-episodes');
+
+        async function loadSeason(){
+          if(!select||select.value==='')return;
+          eps.innerHTML='<div class="panel muted">LOADING EPISODES...</div>';
+          try{
+            const sd=await fetchJson('/null-data/catalog/season?id='+encodeURIComponent(item.id)+'&season='+encodeURIComponent(select.value));
+            const season=sd.season;
+            eps.innerHTML=(season.episodes||[]).map(ep=>`<div class="hbs-episode">
+              <div class="hbs-episode-img">${ep.still?`<img loading="lazy" src="${ep.still}" alt="">`:'<span>EP '+ep.episodeNumber+'</span>'}</div>
+              <div><b>E${String(ep.episodeNumber).padStart(2,'0')} // ${escapeHtml(ep.title)}</b>
+              <small>${escapeHtml([ep.airDate,ep.runtime?ep.runtime+' min':'',ep.rating?'★ '+stars(ep.rating):''].filter(Boolean).join(' // '))}</small>
+              <p>${escapeHtml(ep.description||'No episode description.')}</p></div>
+            </div>`).join('')||'<div class="panel muted">No episodes found.</div>';
+          }catch(e){
+            eps.innerHTML='<div class="panel bad">'+escapeHtml(e.message)+'</div>';
+          }
+        }
+
+        if(select){
+          select.onchange=loadSeason;
+          if(select.options.length)loadSeason();
+        }
+      }
+    }catch(e){
+      detail.innerHTML='<div class="panel bad">'+escapeHtml(e.message)+'</div>';
+    }
+  }
+
+  b.querySelector('.catalog-go').onclick=()=>{
+    currentQuery=q.value.trim();
+    page=1;
+    load();
+  };
+  q.onkeydown=e=>{if(e.key==='Enter')b.querySelector('.catalog-go').click()};
+  b.querySelector('.catalog-trending').onclick=()=>{
+    currentQuery='';
+    q.value='';
+    page=1;
+    load();
+  };
+  b.querySelector('.catalog-prev').onclick=()=>{if(page>1){page--;load()}};
+  b.querySelector('.catalog-next').onclick=()=>{page++;load()};
+  b.querySelector('.catalog-close').onclick=()=>{
+    modal.classList.add('hidden');
+    detail.innerHTML='';
+  };
+
+  load();
 }
+
 function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="media-el" controls playsinline></video><div class="video-tools"><input class="field media-url" placeholder="Direct .mp4, .webm, .mp3, .ogg or stream URL"><button class="btn media-load">LOAD</button></div></div>`;b.querySelector('.media-load').onclick=()=>{b.querySelector('.media-el').src=b.querySelector('.media-url').value.trim();b.querySelector('.media-el').play().catch(()=>{})}}
 function renderRadio(b){
   const stations=[

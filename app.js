@@ -59,6 +59,12 @@ function getUvVendorReady() {
   return uvVendorReady;
 }
 
+app.get("/uv/sw.js", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.type("application/javascript");
+  res.sendFile(path.join(__dirname, "public", "uv", "sw.js"));
+});
+
 app.use("/uv/", async (req, res, next) => {
   try { await getUvVendorReady(); uvStatic(req, res, next); } catch (e) { next(e); }
 });
@@ -79,7 +85,7 @@ app.get("/api/uv-status", async (req, res) => {
     res.json({
       ok:true,
       staticBase:"/uv/",
-      expectedWorker:"/uv/uv.sw.js",
+      expectedWorker:"/uv/sw.js",
       expectedPrefix:"/uv/service/",
       assets:checks,
       baremux:"/baremux/",
@@ -238,45 +244,191 @@ app.get("/null-data/rtc-config", (req, res) => {
   res.json({ ok:true, iceServers, turnConfigured:Boolean(turnUrl && turnUsername && turnCredential) });
 });
 
+const HITBOYSTREAM_TMDB_FALLBACK = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyYmYwZmFlZWIzZjc3OWRhZDdkOWM3MjY4ZGM0NmNmNiIsIm5iZiI6MTcyMzkzMjM1MS4xNDEyNzIsInN1YiI6IjY2YzExZTJmOTk5ZmYwYTFjNTE2YWRhNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.vwZW4D57fT-wlqLgHt_4vhnfTbuIwFOOrWE2DBlRHMQ";
+
+async function tmdbFetch(pathname, params = {}) {
+  const token = process.env.TMDB_TOKEN || HITBOYSTREAM_TMDB_FALLBACK;
+  const url = new URL("https://api.themoviedb.org/3/" + String(pathname || "").replace(/^\/+/, ""));
+  for (const [k,v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && String(v) !== "") url.searchParams.set(k, String(v));
+  }
+  const r = await fetch(url, {
+    headers: {
+      "Accept": "application/json",
+      "Authorization": "Bearer " + token,
+      "User-Agent": "Null-Sec-OS/6.7"
+    },
+    signal: AbortSignal.timeout(12000)
+  });
+  if (!r.ok) throw new Error("TMDB HTTP " + r.status);
+  return r.json();
+}
+
+function tmdbImage(pathname, size="w500") {
+  return pathname ? `https://image.tmdb.org/t/p/${size}${pathname}` : "";
+}
+
+function mapTmdbItem(x, type) {
+  const isMovie = type === "movie";
+  const date = isMovie ? x.release_date : x.first_air_date;
+  return {
+    id: String(x.id || ""),
+    type,
+    title: String(isMovie ? (x.title || x.original_title || "") : (x.name || x.original_name || "")),
+    originalTitle: String(isMovie ? (x.original_title || "") : (x.original_name || "")),
+    year: String(date || "").slice(0,4),
+    date: String(date || ""),
+    poster: tmdbImage(x.poster_path, "w500"),
+    backdrop: tmdbImage(x.backdrop_path, "w1280"),
+    description: String(x.overview || "").slice(0,1600),
+    rating: Number(x.vote_average || 0),
+    votes: Number(x.vote_count || 0),
+    popularity: Number(x.popularity || 0),
+    language: String(x.original_language || "")
+  };
+}
+
 app.get("/null-data/catalog", async (req, res) => {
   try {
     const type = req.query.type === "series" ? "series" : "movie";
-    const raw = String(req.query.q || "").trim().slice(0,80);
-    const term = raw || (type === "movie" ? "action" : "drama");
-    const params = new URLSearchParams({
-      term,
-      country: "US",
-      limit: "60",
-      media: type === "movie" ? "movie" : "tvShow",
-      entity: type === "movie" ? "movie" : "tvSeason",
-      explicit: "No"
-    });
-    const r = await fetch("https://itunes.apple.com/search?" + params, {
-      headers:{"User-Agent":"Null-Sec-OS/6.6"}, signal:AbortSignal.timeout(12000)
-    });
-    if(!r.ok) return res.status(502).json({ok:false,error:"Catalog source unavailable"});
-    const data=await r.json();
-    const seen=new Set();
-    const items=(Array.isArray(data.results)?data.results:[]).map(x=>{
-      const title=type === "movie" ? x.trackName : (x.collectionName || x.trackName);
-      const id=String(type === "movie" ? (x.trackId||title) : (x.collectionId||x.trackId||title));
-      return {
-        id,title:String(title||"Untitled"),
-        year:String(x.releaseDate||"").slice(0,4),
-        genre:String(x.primaryGenreName||""),
-        poster:String(x.artworkUrl100||"").replace(/100x100bb/g,"600x600bb"),
-        description:String(x.longDescription||x.shortDescription||x.description||"").slice(0,900),
-        preview:String(x.previewUrl||""),
-        store:String(x.trackViewUrl||x.collectionViewUrl||""),
-        season:type === "series" ? Number(x.discNumber||0) : 0
-      };
-    }).filter(x=>x.title && !seen.has(x.id) && seen.add(x.id));
-    res.setHeader("Cache-Control","public,max-age=120,s-maxage=300");
-    res.json({ok:true,type,query:raw,items});
-  } catch(e) {
-    res.status(500).json({ok:false,error:e?.name === "TimeoutError" ? "Catalog timed out" : "Catalog failed"});
+    const media = type === "movie" ? "movie" : "tv";
+    const q = String(req.query.q || "").trim().slice(0,100);
+    const page = Math.max(1, Math.min(20, Number(req.query.page || 1) || 1));
+    const language = String(req.query.language || "en-US").slice(0,12);
+
+    const data = q
+      ? await tmdbFetch(`search/${media}`, {
+          query:q, include_adult:"false", language, page
+        })
+      : await tmdbFetch(`trending/${media}/week`, {
+          language, page
+        });
+
+    const now = Date.now();
+    const items = (Array.isArray(data.results) ? data.results : [])
+      .filter(x => {
+        const date = type === "movie" ? x.release_date : x.first_air_date;
+        return !date || new Date(date).getTime() <= now;
+      })
+      .map(x => mapTmdbItem(x, type))
+      .filter(x => x.id && x.title);
+
+    res.setHeader("Cache-Control", q ? "public,max-age=60,s-maxage=120" : "public,max-age=300,s-maxage=900");
+    res.json({ok:true,type,query:q,page,totalPages:Number(data.total_pages||1),items});
+  } catch (e) {
+    res.status(502).json({ok:false,error:e?.name==="TimeoutError" ? "TMDB timed out" : (e.message || "TMDB catalog failed")});
   }
 });
+
+app.get("/null-data/catalog/details", async (req, res) => {
+  try {
+    const type = req.query.type === "series" ? "series" : "movie";
+    const media = type === "movie" ? "movie" : "tv";
+    const id = String(req.query.id || "");
+    if (!/^\d{1,12}$/.test(id)) return res.status(400).json({ok:false,error:"Invalid title id"});
+    const language = String(req.query.language || "en-US").slice(0,12);
+
+    const data = await tmdbFetch(`${media}/${id}`, {
+      language,
+      append_to_response:"videos,watch/providers,external_ids"
+    });
+
+    const trailerCandidates = data?.videos?.results || [];
+    const trailer = trailerCandidates.find(v => v.site==="YouTube" && v.type==="Trailer" && v.official)
+      || trailerCandidates.find(v => v.site==="YouTube" && v.type==="Trailer")
+      || trailerCandidates.find(v => v.site==="YouTube");
+
+    const base = mapTmdbItem({
+      ...data,
+      title:data.title,
+      name:data.name,
+      poster_path:data.poster_path,
+      backdrop_path:data.backdrop_path,
+      overview:data.overview,
+      release_date:data.release_date,
+      first_air_date:data.first_air_date,
+      vote_average:data.vote_average,
+      vote_count:data.vote_count,
+      popularity:data.popularity,
+      original_language:data.original_language
+    }, type);
+
+    const providers = data?.["watch/providers"]?.results?.US || null;
+    res.setHeader("Cache-Control","public,max-age=300,s-maxage=900");
+    res.json({
+      ok:true,
+      item:{
+        ...base,
+        runtime:type==="movie" ? Number(data.runtime||0) : 0,
+        status:String(data.status||""),
+        genres:(data.genres||[]).map(g=>g.name).filter(Boolean),
+        homepage:String(data.homepage||""),
+        imdbId:String(data.imdb_id || data?.external_ids?.imdb_id || ""),
+        seasons:type==="series" ? (data.seasons||[]).filter(s=>Number(s.season_number)>=0).map(s=>({
+          id:String(s.id||""),
+          seasonNumber:Number(s.season_number||0),
+          name:String(s.name||`Season ${s.season_number}`),
+          episodeCount:Number(s.episode_count||0),
+          airDate:String(s.air_date||""),
+          poster:tmdbImage(s.poster_path,"w500")
+        })) : [],
+        numberOfSeasons:Number(data.number_of_seasons||0),
+        numberOfEpisodes:Number(data.number_of_episodes||0),
+        trailer:trailer ? {
+          key:String(trailer.key||""),
+          name:String(trailer.name||"Trailer"),
+          url:"https://www.youtube.com/watch?v="+encodeURIComponent(String(trailer.key||""))
+        } : null,
+        providers:providers ? {
+          link:String(providers.link||""),
+          flatrate:(providers.flatrate||[]).map(p=>({name:String(p.provider_name||""),logo:tmdbImage(p.logo_path,"w92")})),
+          rent:(providers.rent||[]).map(p=>({name:String(p.provider_name||""),logo:tmdbImage(p.logo_path,"w92")})),
+          buy:(providers.buy||[]).map(p=>({name:String(p.provider_name||""),logo:tmdbImage(p.logo_path,"w92")}))
+        } : null
+      }
+    });
+  } catch (e) {
+    res.status(502).json({ok:false,error:e?.name==="TimeoutError" ? "TMDB timed out" : (e.message || "TMDB details failed")});
+  }
+});
+
+app.get("/null-data/catalog/season", async (req, res) => {
+  try {
+    const id = String(req.query.id || "");
+    const season = Number(req.query.season);
+    if (!/^\d{1,12}$/.test(id) || !Number.isInteger(season) || season < 0 || season > 200)
+      return res.status(400).json({ok:false,error:"Invalid season request"});
+
+    const data = await tmdbFetch(`tv/${id}/season/${season}`, {language:"en-US"});
+    const episodes = (data.episodes||[]).map(ep=>({
+      id:String(ep.id||""),
+      episodeNumber:Number(ep.episode_number||0),
+      seasonNumber:Number(ep.season_number||season),
+      title:String(ep.name||`Episode ${ep.episode_number}`),
+      description:String(ep.overview||"").slice(0,1000),
+      airDate:String(ep.air_date||""),
+      runtime:Number(ep.runtime||0),
+      rating:Number(ep.vote_average||0),
+      still:tmdbImage(ep.still_path,"w780")
+    }));
+
+    res.setHeader("Cache-Control","public,max-age=300,s-maxage=900");
+    res.json({
+      ok:true,
+      season:{
+        id:String(data.id||""),
+        name:String(data.name||`Season ${season}`),
+        seasonNumber:Number(data.season_number||season),
+        description:String(data.overview||"").slice(0,1400),
+        poster:tmdbImage(data.poster_path,"w500"),
+        episodes
+      }
+    });
+  } catch (e) {
+    res.status(502).json({ok:false,error:e?.name==="TimeoutError" ? "TMDB timed out" : (e.message || "TMDB season failed")});
+  }
+});
+
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {

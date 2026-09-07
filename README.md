@@ -1,4 +1,4 @@
-# Null Sec OS 6.6
+# Null Sec OS 6.7
 
 ## Changes
 
@@ -12,3 +12,36 @@
 ### Voice note
 
 STUN-only WebRTC cannot guarantee calls across every NAT/firewall. For reliable calls on restrictive networks, configure a TURN server using the environment variables above.
+
+
+## 6.7 fixes
+
+### Ultraviolet
+
+6.6 registered `/uv/uv.sw.js` directly. That file is Ultraviolet's core service-worker implementation, not the complete stock registration script.
+
+6.7 adds `public/uv/sw.js` which imports, in order:
+
+1. `/uv/uv.bundle.js`
+2. `/uv/uv.config.js`
+3. `/uv/uv.sw.js`
+
+It then creates `UVServiceWorker` and handles only routes matching the UV service prefix. Null Browser registers this wrapper under `/uv/service/`, while Scramjet keeps its own root worker.
+
+### Movies and Series
+
+The iTunes catalog fallback has been removed.
+
+Movies and Series now follow the HitBoyStream catalog pattern:
+
+- TMDB `trending/movie/week`
+- TMDB `trending/tv/week`
+- TMDB movie search
+- TMDB TV search
+- posters/backdrops from TMDB
+- ratings, year, overview
+- movie runtime and trailers
+- series seasons and episode metadata
+- provider metadata / official pages where TMDB exposes them
+
+The browser UI stays native to Null Sec OS. Unauthorized third-party movie/episode embed mirrors are not bundled.
