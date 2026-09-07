@@ -11,15 +11,15 @@ function updateNet(){const e=$('#net-status');e.textContent=navigator.onLine?'NE
 async function checkApi(){const e=$('#api-status');try{const r=await fetch('/api/health',{cache:'no-store'});if(!r.ok)throw 0;e.textContent='RELAY ●';e.className='ok'}catch{e.textContent='RELAY ○';e.className='bad'}} checkApi();
 
 const appDefs=[
-['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Virtual files'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
+['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Encrypted local secrets and notes'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
 ['media','Null Media','media','▶','Media hub'],['player','Media Player','media','▷','Direct media URL player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
 ['calculator','Calculator','tools','∑','Fast calculator'],['clock','World Clock','tools','◷','Clock and date'],['calendar','Calendar','tools','▣','Monthly calendar'],['stopwatch','Stopwatch','tools','⏱','Time laps'],['timer','Timer','tools','⌛','Countdown timer'],['paint','Null Paint','tools','✣','Canvas sketchpad'],['markdown','Markdown Pad','tools','M↓','Markdown preview'],['json','JSON Lab','tools','{}','Format JSON'],['base64','Base64','tools','64','Encode and decode'],['urlcodec','URL Codec','tools','%','URL encode/decode'],['uuid','UUID Forge','tools','ID','Generate UUIDs'],['password','Password Forge','tools','***','Generate passwords'],['hash','Hash Lab','tools','#','SHA-256 digest'],['regex','Regex Lab','tools','.*','Test patterns'],['color','Color Lab','tools','◈','Color converter'],['text','Text Lab','tools','Aa','Case and stats'],['ascii','ASCII Studio','tools','A#','Text banners'],['unit','Unit Convert','tools','⇄','Common conversions'],['random','Random Lab','tools','?','Random values'],['clipboard','Clipboard','tools','▤','Copy helper'],['systemmon','System Monitor','tools','▥','Browser runtime info'],['storage','Storage Inspector','tools','◧','LocalStorage viewer'],['network','Network Tools','tools','⌁','URL and connection info'],['qrcode','QR Forge','tools','QR','Node-powered QR generator'],
 ['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['nullcrypt','Null Chat','comms','◈','Public chat + E2EE private DMs by username'],
-['nullvoice','Null Voice','comms','◉','Encrypted peer-to-peer voice call'],['dnsintel','DNS Lens','intel','DNS','Public DNS records'],['rdapintel','RDAP Lens','intel','R','Domain and IP registration'],['ctintel','Cert Lens','intel','CRT','Certificate transparency'],['headerintel','Header Scope','intel','HDR','Security header inspector'],['robotsintel','Robots Viewer','intel','BOT','Public robots.txt viewer'],['urlclean','URL Sanitizer','intel','URL','Strip tracking parameters'],['leakscan','Leak Scanner','intel','LS','Local text exposure scan'],['fileintel','File Intel','intel','FILE','Local file metadata and hash'],['jwtscope','JWT Peek','intel','JWT','Decode JWT locally'],['passaudit','Password Audit','intel','KEY','Local entropy estimate'],['privacycheck','OPSEC Checklist','intel','OP','Privacy hygiene checklist'],
+['dnsintel','DNS Lens','intel','DNS','Public DNS records'],['rdapintel','RDAP Lens','intel','R','Domain and IP registration'],['ctintel','Cert Lens','intel','CRT','Certificate transparency'],['headerintel','Header Scope','intel','HDR','Security header inspector'],['robotsintel','Robots Viewer','intel','BOT','Public robots.txt viewer'],['urlclean','URL Sanitizer','intel','URL','Strip tracking parameters'],['leakscan','Leak Scanner','intel','LS','Local text exposure scan'],['fileintel','File Intel','intel','FILE','Local file metadata and hash'],['jwtscope','JWT Peek','intel','JWT','Decode JWT locally'],['passaudit','Password Audit','intel','KEY','Local entropy estimate'],['privacycheck','OPSEC Checklist','intel','OP','Privacy hygiene checklist'],
 ['snake','Snake','games','S','Classic snake'],['pong','Pong','games','P','Arcade pong'],['breakout','Breakout','games','B','Brick breaker'],['tictactoe','Tic Tac Toe','games','XO','3x3 game'],['memory','Memory','games','◇','Match cards'],['mines','Mines','games','✹','Mine puzzle'],['clicker','Null Clicker','games','+1','Score clicker'],['reaction','Reaction Test','games','!','Reaction speed'],['typing','Typing Test','games','⌨','Typing speed'],['guess','Number Guess','games','?','Guess 1 to 100'],['dice','Dice','games','⚄','Dice roller'],['coin','Coin Flip','games','◐','Heads or tails'],['rps','Rock Paper Scissors','games','RPS','Play CPU'],['lights','Lights Out','games','▦','Toggle grid'],['simon','Simon','games','●','Memory sequence'],['maze','Maze Runner','games','⌗','Keyboard maze'],['2048','2048','games','2K','Number merge']
 ];
 const apps={};appDefs.forEach(([id,title,cat,icon,desc])=>apps[id]={id,title,cat,icon,desc,render:resolveRenderer(id)});
-function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,nullvoice:renderNullVoice,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
+function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
 
 function buildLaunchers(){const favorites=['browser','osintcenter','terminal','files','ops','media','snake','calculator'];$('#desktop-icons').innerHTML=favorites.map(id=>`<button class="desktop-icon" data-open="${id}"><span class="ico">${apps[id].icon}</span><small>${apps[id].title}</small></button>`).join('');renderAppGrid()}
 function renderAppGrid(filter='',cat='all'){const q=filter.toLowerCase();$('#app-grid').innerHTML=appDefs.filter(([id,title,c,,desc])=>(cat==='all'||c===cat)&&(`${title} ${desc}`.toLowerCase().includes(q))).map(([id,title,,icon,desc])=>`<button class="app-tile" data-open="${id}"><b>${icon}</b><span>${title}</span><small>${desc}</small></button>`).join('')}
@@ -97,6 +97,52 @@ async function ensureScramjet(){
   return nullSjController;
 }
 
+
+function installNullBrowserShield(iframe){
+  const apply=()=>{
+    try{
+      const w=iframe.contentWindow,d=iframe.contentDocument;
+      if(!w||!d)return;
+
+      try{
+        Object.defineProperty(w,'open',{
+          configurable:true,
+          value:function(url){
+            if(url){
+              try{
+                const a=d.createElement('a');
+                a.href=String(url);
+                a.target='_self';
+                a.rel='noopener noreferrer';
+                d.body?.append(a);
+                a.click();
+                a.remove();
+              }catch{}
+            }
+            return w;
+          }
+        });
+      }catch{}
+
+      d.addEventListener('click',e=>{
+        const a=e.target?.closest?.('a');
+        if(!a)return;
+        const target=(a.getAttribute('target')||'').toLowerCase();
+        if(target==='_blank'||target==='_new'){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          const href=a.href;
+          if(href)w.location.href=href;
+        }
+      },true);
+
+      d.querySelectorAll('a[target="_blank"],a[target="_new"]').forEach(a=>a.setAttribute('target','_self'));
+    }catch{}
+  };
+  iframe.addEventListener('load',()=>setTimeout(apply,50));
+  setTimeout(apply,100);
+}
+
 function renderBrowser(b){
   b.innerHTML=`<div class="browser">
     <div class="browser-bar">
@@ -114,7 +160,7 @@ function renderBrowser(b){
       <div class="sj-host"></div>
       <div class="browser-error"><div><b>SCRAMJET CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
     </div>
-    <div class="browser-note"><span>ENGINE: <b>SCRAMJET 2.x</b></span><span>TRANSPORT: LIBCURL / WISP</span><span>FRAME: CONTROLLER-MANAGED</span></div>
+    <div class="browser-note"><span>ENGINE: <b>SCRAMJET 2.x</b></span><span>SHIELD: ADS/TRACKERS + POPUPS</span><span>FRAME: CONTROLLER-MANAGED</span></div>
   </div>`;
 
   const host=b.querySelector('.sj-host'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error');
@@ -131,6 +177,7 @@ function renderBrowser(b){
       iframe.className='frame sj-frame';
       iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');
       host.replaceChildren(iframe);
+      installNullBrowserShield(iframe);
       sjFrame=controller.createFrame(iframe);
     }
     return sjFrame;
@@ -167,7 +214,137 @@ function renderYouTube(b){b.innerHTML=`<div class="video-shell"><iframe class="y
 function renderRadio(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SIGNAL RADIO</div><h2>In-OS Radio Browser</h2><p class="muted">Radio directories stay inside Null Browser. No new-tab launchers.</p><div class="grid3"><button class="panel btn" data-link="https://radio.garden">RADIO GARDEN</button><button class="panel btn" data-link="https://www.internet-radio.com">INTERNET RADIO</button><button class="panel btn" data-link="https://archive.org/details/audio">ARCHIVE AUDIO</button></div></div>`;b.querySelectorAll('[data-link]').forEach(x=>x.onclick=()=>openInNullBrowser(x.dataset.link))}
 
 function renderTerminal(b){b.innerHTML=`<div class="terminal"><div class="term-output">NULLSH\nType help for commands.\n\n</div><div class="term-line"><span class="term-prompt">hitboyxx23@nullsec:~$</span><input class="term-input" autofocus></div></div>`;const out=b.querySelector('.term-output'),inp=b.querySelector('.term-input');function run(s){const [c,...a]=s.trim().split(/\s+/);const m={help:'help clear date echo whoami uname ls pwd status apps open [app] neofetch',date:()=>new Date().toString(),whoami:'hitboyxx23',uname:'Null Sec OS / browser runtime',pwd:'/home/operator',ls:'README.NFO notes/ apps/ media/ relay.cfg',status:()=>`network: ${navigator.onLine?'online':'offline'}\nrelay: /api/proxy\napps: ${appDefs.length}`,apps:appDefs.map(x=>x[0]).join('  '),neofetch:`NULL SEC OS\napps: ${appDefs.length}\nruntime: browser + Vercel Functions\noperator: hitboyxx23`};if(c==='clear'){out.textContent='';return''}if(c==='echo')return a.join(' ');if(c==='open'){openApp(a[0]||'browser');return`opened ${a[0]||'browser'}`};return typeof m[c]==='function'?m[c]():m[c]??`nullsh: command not found: ${c}`};inp.onkeydown=e=>{if(e.key==='Enter'){const s=inp.value;out.textContent+=`hitboyxx23@nullsec:~$ ${s}\n${run(s)}\n`;inp.value='';b.scrollTop=b.scrollHeight}}}
-function renderFiles(b){b.innerHTML=`<div class="file-layout"><aside class="file-sidebar">${['/home','/apps','/media','/notes','/system','/relay','/logs'].map(x=>`<button>${x}</button>`).join('')}</aside><main class="file-main"><div class="section-tag">VIRTUAL VAULT</div><h3>/home/operator</h3><div class="file-cards">${['README.NFO','notes/','apps/','media/','relay.cfg','session.log','preferences.json','games/'].map((x,i)=>`<div class="file-card">${i%2?'▦':'▤'}<br><br><b>${x}</b></div>`).join('')}</div></main></div>`}
+function vaultB64(bytes){
+  let s='';bytes.forEach(v=>s+=String.fromCharCode(v));
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function vaultUnb64(s){
+  s=String(s).replace(/-/g,'+').replace(/_/g,'/');
+  s+='='.repeat((4-s.length%4)%4);
+  return Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+}
+async function vaultKey(password,salt){
+  const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},
+    material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']
+  );
+}
+async function vaultEncrypt(password,data,saltInput=null){
+  const salt=saltInput||crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await vaultKey(password,salt);
+  const plain=new TextEncoder().encode(JSON.stringify(data));
+  const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain));
+  return {v:1,salt:vaultB64(salt),iv:vaultB64(iv),ct:vaultB64(cipher)};
+}
+async function vaultDecrypt(password,box){
+  const salt=vaultUnb64(box.salt),iv=vaultUnb64(box.iv),ct=vaultUnb64(box.ct);
+  const key=await vaultKey(password,salt);
+  const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+  return JSON.parse(new TextDecoder().decode(raw));
+}
+function renderFiles(b){
+  const STORE='nullsec.vault.v1';
+  let password='',items=[];
+
+  b.innerHTML=`<div class="vault-app">
+    <div class="vault-lock">
+      <div class="section-tag">LOCAL AES-GCM VAULT</div>
+      <h2>VAULT</h2>
+      <p class="muted">Encrypted locally in this browser. Your password is never sent to the server.</p>
+      <input class="field vault-pass" type="password" autocomplete="current-password" placeholder="Vault password">
+      <div class="vault-actions"><button class="btn unlock">UNLOCK / CREATE</button><button class="btn import">IMPORT</button></div>
+      <textarea class="field vault-import" style="display:none;height:100px" placeholder="Paste encrypted vault export"></textarea>
+      <div class="vault-status"></div>
+    </div>
+    <div class="vault-open" style="display:none">
+      <div class="vault-toolbar"><div><div class="section-tag">ENCRYPTED LOCAL STORAGE</div><h2>VAULT // UNLOCKED</h2></div><div><button class="btn export">EXPORT</button> <button class="btn lock">LOCK</button></div></div>
+      <div class="vault-editor">
+        <input class="field item-name" maxlength="80" placeholder="Entry name">
+        <textarea class="field item-value" placeholder="Secret, note, recovery code, or other text"></textarea>
+        <button class="btn save">SAVE ENTRY</button>
+      </div>
+      <div class="vault-list"></div>
+    </div>
+  </div>`;
+
+  const lockView=b.querySelector('.vault-lock'),openView=b.querySelector('.vault-open'),status=b.querySelector('.vault-status');
+  const pass=b.querySelector('.vault-pass'),list=b.querySelector('.vault-list');
+
+  function draw(){
+    list.innerHTML='';
+    if(!items.length){
+      list.innerHTML='<div class="panel muted">Vault is empty.</div>';
+      return;
+    }
+    items.slice().reverse().forEach((item,revIndex)=>{
+      const index=items.length-1-revIndex;
+      const row=document.createElement('div');row.className='vault-entry';
+      const meta=document.createElement('div');
+      const name=document.createElement('b');name.textContent=item.name;
+      const value=document.createElement('pre');value.textContent=item.value;
+      meta.append(name,value);
+      const del=document.createElement('button');del.className='btn';del.textContent='DELETE';
+      del.onclick=async()=>{items.splice(index,1);await persist();draw()};
+      row.append(meta,del);list.append(row);
+    });
+  }
+  async function persist(){
+    const box=await vaultEncrypt(password,{items,updatedAt:Date.now()});
+    localStorage.setItem(STORE,JSON.stringify(box));
+  }
+  async function unlock(){
+    password=pass.value;
+    if(password.length<8){status.textContent='Use at least 8 characters.';return}
+    try{
+      const raw=localStorage.getItem(STORE);
+      if(raw){
+        const data=await vaultDecrypt(password,JSON.parse(raw));
+        items=Array.isArray(data.items)?data.items:[];
+      }else{
+        items=[];
+        await persist();
+      }
+      pass.value='';
+      lockView.style.display='none';openView.style.display='block';draw();
+    }catch{
+      password='';status.textContent='Wrong password or damaged vault.';
+    }
+  }
+  b.querySelector('.unlock').onclick=unlock;
+  pass.onkeydown=e=>{if(e.key==='Enter')unlock()};
+  b.querySelector('.save').onclick=async()=>{
+    const name=b.querySelector('.item-name').value.trim();
+    const value=b.querySelector('.item-value').value;
+    if(!name||!value)return;
+    items.push({name,value,createdAt:Date.now()});
+    await persist();
+    b.querySelector('.item-name').value='';b.querySelector('.item-value').value='';draw();
+  };
+  b.querySelector('.lock').onclick=()=>{
+    password='';items=[];openView.style.display='none';lockView.style.display='block';status.textContent='Vault locked.';
+  };
+  b.querySelector('.export').onclick=()=>{
+    const raw=localStorage.getItem(STORE)||'';
+    const blob=new Blob([raw],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='null-sec-vault.enc.json';a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  };
+  b.querySelector('.import').onclick=()=>{
+    const t=b.querySelector('.vault-import');t.style.display=t.style.display==='none'?'block':'none';
+    if(t.style.display==='block'){
+      t.onchange=t.onblur=()=>{
+        const raw=t.value.trim();if(!raw)return;
+        try{
+          const parsed=JSON.parse(raw);
+          if(!parsed.salt||!parsed.iv||!parsed.ct)throw 0;
+          localStorage.setItem(STORE,JSON.stringify(parsed));status.textContent='Encrypted vault imported. Enter its password to unlock.';
+        }catch{status.textContent='Invalid encrypted vault export.'}
+      };
+    }
+  };
+}
 function renderOps(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TELEMETRY</div><h2>Ops Center</h2><p class="muted">Visual system telemetry only. No remote scanning is performed.</p><div class="ops-grid"><div class="metric"><label>APP COUNT</label><strong>${appDefs.length}</strong></div><div class="metric"><label>OPEN WINDOWS</label><strong id="ow">${wins.size+1}</strong></div><div class="metric"><label>MEMORY EST.</label><strong>${performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576)+'MB':'N/A'}</strong></div><div class="metric"><label>ONLINE</label><strong>${navigator.onLine?'YES':'NO'}</strong></div><div class="metric"><label>CORES</label><strong>${navigator.hardwareConcurrency||'?'}</strong></div><div class="metric"><label>LANG</label><strong>${navigator.language}</strong></div></div><div class="panel" style="margin-top:10px"><pre id="oplog">[OK] desktop compositor\n[OK] local vault\n[OK] app registry\n[OK] media bridge\n[OK] relay health probe queued</pre></div></div>`;fetch('/api/health').then(r=>b.querySelector('#oplog').textContent+=r.ok?'\n[OK] relay online':'\n[WARN] relay unavailable').catch(()=>b.querySelector('#oplog').textContent+='\n[LOCAL] static preview mode')}
 function renderNotes(b){b.innerHTML=`<textarea class="notes-area"></textarea>`;const t=b.querySelector('textarea');t.value=state.notes;t.oninput=()=>{state.notes=t.value;localStorage.setItem('nullsec.notes',state.notes)}}
 function renderSettings(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SYSTEM CONFIG</div><h2>Null Sec Preferences</h2><div class="settings-list"><div class="setting"><div><b>Default Browser Mode</b><div class="muted">Scramjet 2 is the built-in browser engine</div></div><select class="field mode"><option value="smart">SMART</option><option value="relay">RELAY</option><option value="direct">DIRECT</option></select></div><div class="setting"><div><b>Local Data</b><div class="muted">Notes and preferences stored in this browser</div></div><button class="btn clear">CLEAR LOCAL DATA</button></div><div class="setting"><div><b>Relay Health</b><div class="muted">Check backend function</div></div><button class="btn health">CHECK</button></div></div></div>`;const m=b.querySelector('.mode');m.value=state.browserMode;m.onchange=()=>{state.browserMode=m.value;localStorage.setItem('nullsec.browserMode',m.value)};b.querySelector('.clear').onclick=()=>{localStorage.clear();alert('Local Null Sec data cleared.')};b.querySelector('.health').onclick=async e=>{try{const r=await fetch('/api/health');e.target.textContent=r.ok?'ONLINE':'FAILED'}catch{e.target.textContent='OFFLINE'}}}
@@ -275,30 +452,65 @@ function renderNullCrypt(b){
       <div class="peer-list"></div>
     </aside>
     <main class="chat-main">
-      <header class="chat-head"><div><b class="chat-target"># PUBLIC</b><small class="chat-security">WSS transport encrypted</small></div><span class="chat-state">OFFLINE</span></header>
+      <header class="chat-head">
+        <div><b class="chat-target"># PUBLIC</b><small class="chat-security">WSS transport encrypted</small></div>
+        <div class="chat-callbar">
+          <button class="btn call" disabled>CALL</button>
+          <button class="btn answer" style="display:none">ANSWER</button>
+          <button class="btn mute" disabled>MUTE</button>
+          <button class="btn hang" disabled>HANG UP</button>
+          <span class="chat-state">OFFLINE</span>
+        </div>
+      </header>
       <div class="chat-log"><div class="chat-system">Choose a username to join.</div></div>
       <div class="chat-compose"><input class="field message" placeholder="Message" disabled><button class="btn send" disabled>SEND</button></div>
+      <audio class="chat-audio" autoplay></audio>
     </main>
   </div>`;
 
   let ws=null,keypair=null,myPub='',me='',target='public';
+  let pc=null,micStream=null,pendingOffer=null,pendingCaller='',muted=false;
   const peers=new Map();
   const side=b.querySelector('.peer-list'),log=b.querySelector('.chat-log'),stateEl=b.querySelector('.chat-state');
   const targetEl=b.querySelector('.chat-target'),secEl=b.querySelector('.chat-security');
   const input=b.querySelector('.message'),sendBtn=b.querySelector('.send');
+  const callBtn=b.querySelector('.call'),answerBtn=b.querySelector('.answer'),muteBtn=b.querySelector('.mute'),hangBtn=b.querySelector('.hang');
+  const audio=b.querySelector('.chat-audio');
 
-  function add(kind,from,text){
+  const historyKey=()=>me?'nullsec.chat.history.'+me:null;
+  function savedHistory(){
+    try{return JSON.parse(localStorage.getItem(historyKey())||'[]')}catch{return[]}
+  }
+  function remember(kind,from,text){
+    if(!me||kind==='system')return;
+    const arr=savedHistory();
+    arr.push({kind,from,text,at:Date.now()});
+    localStorage.setItem(historyKey(),JSON.stringify(arr.slice(-100)));
+  }
+  function clearRenderedMessages(){
+    log.innerHTML='';
+  }
+  function add(kind,from,text,save=true){
     const row=document.createElement('div');row.className='chat-msg '+kind;
     const who=document.createElement('b');who.textContent=from;
     const body=document.createElement('span');body.textContent=text;
     row.append(who,body);log.append(row);log.scrollTop=log.scrollHeight;
+    if(save)remember(kind,from,text);
   }
-  function system(t){add('system','SYSTEM',t)}
+  function system(t){add('system','SYSTEM',t,false)}
+  function restoreLocal(){
+    const arr=savedHistory();
+    if(!arr.length)return;
+    system('LOCAL RECENT HISTORY');
+    arr.forEach(x=>add(x.kind,x.from,x.text,false));
+  }
   function choose(next){
     target=next;
     b.querySelectorAll('.chat-peer').forEach(x=>x.classList.toggle('active',(next==='public'&&x.dataset.public)||(x.dataset.user===next)));
+    const isPeer=next!=='public'&&peers.has(next);
+    callBtn.disabled=!isPeer||!ws||ws.readyState!==1;
     if(next==='public'){
-      targetEl.textContent='# PUBLIC';secEl.textContent='Public channel, encrypted in transit with WSS';
+      targetEl.textContent='# PUBLIC';secEl.textContent='Public channel, WSS transport encrypted';
     }else{
       targetEl.textContent='@'+next;
       const p=peers.get(next);
@@ -306,8 +518,7 @@ function renderNullCrypt(b){
     }
   }
   async function redrawUsers(list){
-    peers.clear();
-    side.innerHTML='';
+    peers.clear();side.innerHTML='';
     for(const u of list){
       if(u.username===me)continue;
       const fp=await chatFingerprint(u.pub).catch(()=>'?');
@@ -318,25 +529,88 @@ function renderNullCrypt(b){
       btn.onclick=()=>choose(u.username);
       side.append(btn);
     }
-    if(target!=='public'&&!peers.has(target))choose('public');
+    if(target!=='public'&&!peers.has(target))choose('public');else choose(target);
   }
+
+  async function ensureMic(){
+    if(micStream)return micStream;
+    micStream=await navigator.mediaDevices.getUserMedia({
+      audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},
+      video:false
+    });
+    return micStream;
+  }
+  async function makePeer(peerName){
+    if(pc){try{pc.close()}catch{}}
+    const stream=await ensureMic();
+    pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.cloudflare.com:3478'}]});
+    stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+    pc.ontrack=e=>{audio.srcObject=e.streams[0];system('VOICE CONNECTED WITH @'+peerName)};
+    pc.onicecandidate=e=>{
+      if(e.candidate&&ws?.readyState===1)ws.send(JSON.stringify({type:'voice_ice',to:peerName,candidate:e.candidate}));
+    };
+    pc.onconnectionstatechange=()=>{
+      if(!pc)return;
+      stateEl.textContent=pc.connectionState==='connected'?'VOICE':'ONLINE';
+      if(['failed','closed','disconnected'].includes(pc.connectionState))system('VOICE '+pc.connectionState.toUpperCase());
+    };
+    muteBtn.disabled=false;hangBtn.disabled=false;
+    return pc;
+  }
+  async function startCall(){
+    if(target==='public'||!peers.has(target))return;
+    try{
+      const peer=await makePeer(target);
+      const offer=await peer.createOffer();
+      await peer.setLocalDescription(offer);
+      ws.send(JSON.stringify({type:'voice_offer',to:target,sdp:peer.localDescription}));
+      system('CALLING @'+target);
+    }catch(e){system('VOICE ERROR: '+e.message)}
+  }
+  async function answerCall(){
+    if(!pendingOffer||!pendingCaller)return;
+    try{
+      choose(pendingCaller);
+      const peer=await makePeer(pendingCaller);
+      await peer.setRemoteDescription(pendingOffer);
+      const answer=await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      ws.send(JSON.stringify({type:'voice_answer',to:pendingCaller,sdp:peer.localDescription}));
+      pendingOffer=null;pendingCaller='';answerBtn.style.display='none';
+    }catch(e){system('VOICE ERROR: '+e.message)}
+  }
+  function hangup(notify=true){
+    if(notify&&target!=='public'&&ws?.readyState===1)ws.send(JSON.stringify({type:'voice_hangup',to:target}));
+    try{pc?.close()}catch{} pc=null;
+    audio.srcObject=null;muteBtn.disabled=true;hangBtn.disabled=true;muted=false;muteBtn.textContent='MUTE';
+    if(ws?.readyState===1)stateEl.textContent='ONLINE';
+  }
+
   async function connect(){
     const name=b.querySelector('.username').value.trim();
     if(!/^[A-Za-z0-9_]{3,20}$/.test(name)){system('Username must be 3-20 letters, numbers, or underscore.');return}
     try{
       keypair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
       myPub=await chatExportPub(keypair.publicKey);me=name;
+      clearRenderedMessages();restoreLocal();
       const proto=location.protocol==='https:'?'wss':'ws';
       ws=new WebSocket(`${proto}://${location.host}/chat/`);
       stateEl.textContent='CONNECTING';
       ws.onopen=()=>ws.send(JSON.stringify({type:'hello',username:me,pub:myPub}));
-      ws.onclose=()=>{stateEl.textContent='OFFLINE';input.disabled=true;sendBtn.disabled=true;system('Connection closed.')};
+      ws.onclose=()=>{stateEl.textContent='OFFLINE';input.disabled=true;sendBtn.disabled=true;callBtn.disabled=true;hangup(false);system('Connection closed.')};
       ws.onerror=()=>system('Realtime chat connection error.');
       ws.onmessage=async e=>{
         let m;try{m=JSON.parse(e.data)}catch{return}
         if(m.type==='ready'){
           stateEl.textContent='ONLINE';b.querySelector('.chat-me').textContent='@'+me;
-          input.disabled=false;sendBtn.disabled=false;system('Connected as @'+me);
+          input.disabled=false;sendBtn.disabled=false;choose(target);system('Connected as @'+me);
+          return;
+        }
+        if(m.type==='history'){
+          if(Array.isArray(m.messages)&&m.messages.length){
+            system('SERVER PUBLIC RECENT');
+            m.messages.forEach(x=>add('public','@'+x.from,x.text,false));
+          }
           return;
         }
         if(m.type==='presence'){await redrawUsers(m.users||[]);return}
@@ -349,11 +623,29 @@ function renderNullCrypt(b){
             const text=await chatDecrypt(key,m.iv,m.ct);
             add('private','@'+m.from,text);
           }catch{system('Could not decrypt DM from @'+m.from)}
+          return;
+        }
+        if(m.type==='voice_offer'){
+          pendingOffer=m.sdp;pendingCaller=m.from;answerBtn.style.display='inline-block';
+          system('INCOMING VOICE CALL FROM @'+m.from+' • press ANSWER');
+          return;
+        }
+        if(m.type==='voice_answer'){
+          try{if(pc)await pc.setRemoteDescription(m.sdp)}catch(e){system('VOICE ANSWER ERROR: '+e.message)}
+          return;
+        }
+        if(m.type==='voice_ice'){
+          try{if(pc)await pc.addIceCandidate(m.candidate)}catch{}
+          return;
+        }
+        if(m.type==='voice_hangup'){
+          hangup(false);system('@'+m.from+' ENDED THE CALL');return;
         }
       };
     }catch(e){system('ERROR: '+e.message)}
   }
-  async function send(){
+
+  async function sendMessage(){
     const text=input.value.trim();if(!text||!ws||ws.readyState!==1)return;
     if(target==='public'){
       ws.send(JSON.stringify({type:'public',text}));
@@ -368,65 +660,24 @@ function renderNullCrypt(b){
       input.value='';
     }catch(e){system('Encryption failed: '+e.message)}
   }
+
   b.querySelector('.connect').onclick=connect;
   b.querySelector('.chat-peer[data-public]').onclick=()=>choose('public');
-  sendBtn.onclick=send;input.onkeydown=e=>{if(e.key==='Enter')send()};
+  sendBtn.onclick=sendMessage;input.onkeydown=e=>{if(e.key==='Enter')sendMessage()};
+  callBtn.onclick=startCall;answerBtn.onclick=answerCall;
+  muteBtn.onclick=()=>{
+    if(!micStream)return;
+    muted=!muted;micStream.getAudioTracks().forEach(t=>t.enabled=!muted);
+    muteBtn.textContent=muted?'UNMUTE':'MUTE';
+  };
+  hangBtn.onclick=()=>hangup(true);
+
   const close=b.closest('.window')?.querySelector('[data-action=close]');
-  close?.addEventListener('click',()=>{try{ws&&ws.close()}catch{}},{once:true});
-}
-
-function renderNullVoice(b){
-  b.innerHTML=`<div class="intel-shell">
-    <div class="intel-head"><div><div class="section-tag">NULL COMMUNICATIONS</div><h2>Null Voice</h2></div><span class="intel-badge">WEBRTC DTLS-SRTP</span></div>
-    <p class="intel-note">Direct browser-to-browser voice using WebRTC encrypted media transport. This build uses manual offer/answer codes and no third-party signaling service. Microphone permission is required.</p>
-    <div class="intel-row"><button class="btn mic">ENABLE MIC</button><button class="btn host">CREATE CALL</button><button class="btn answer">ANSWER CALL</button><button class="btn apply">APPLY ANSWER</button><button class="btn hang">HANG UP</button></div>
-    <textarea class="field signalin" style="height:92px;width:100%;margin-top:8px" placeholder="Paste the other peer's call code here"></textarea>
-    <textarea class="field signalout" style="height:92px;width:100%;margin-top:8px" readonly placeholder="Your call code appears here"></textarea>
-    <div class="intel-out log" style="height:150px;overflow:auto">MIC OFFLINE.</div>
-    <audio class="remoteaudio" autoplay></audio>
-  </div>`;
-
-  let pc=null,stream=null;
-  const log=b.querySelector('.log'), inp=b.querySelector('.signalin'), out=b.querySelector('.signalout'), audio=b.querySelector('.remoteaudio');
-  const add=t=>{log.textContent+='\n'+t;log.scrollTop=log.scrollHeight};
-  async function mic(){
-    if(stream) return stream;
-    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
-    add('[MIC] READY');return stream;
-  }
-  async function base(){
-    await mic();
-    pc=new RTCPeerConnection(nullRtcConfig());
-    stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-    pc.ontrack=e=>{audio.srcObject=e.streams[0];add('[AUDIO] REMOTE STREAM CONNECTED')};
-    pc.onconnectionstatechange=()=>add('[RTC] '+pc.connectionState.toUpperCase());
-  }
-  b.querySelector('.mic').onclick=()=>mic().catch(e=>add('[ERR] '+e.message));
-  b.querySelector('.host').onclick=async()=>{
-    try{
-      await base();const offer=await pc.createOffer();await pc.setLocalDescription(offer);await waitIce(pc);
-      out.value=encodeSignal({sdp:pc.localDescription});
-      add('[READY] SEND CALL CODE TO PEER');
-    }catch(e){add('[ERR] '+e.message)}
-  };
-  b.querySelector('.answer').onclick=async()=>{
-    try{
-      const remote=decodeSignal(inp.value);await base();await pc.setRemoteDescription(remote.sdp);
-      const ans=await pc.createAnswer();await pc.setLocalDescription(ans);await waitIce(pc);
-      out.value=encodeSignal({sdp:pc.localDescription});
-      add('[READY] SEND ANSWER CODE BACK');
-    }catch(e){add('[ERR] '+e.message)}
-  };
-  b.querySelector('.apply').onclick=async()=>{
-    try{
-      if(!pc)throw new Error('Create a call first');
-      const remote=decodeSignal(inp.value);await pc.setRemoteDescription(remote.sdp);add('[READY] ANSWER APPLIED');
-    }catch(e){add('[ERR] '+e.message)}
-  };
-  b.querySelector('.hang').onclick=()=>{
-    try{pc&&pc.close();stream&&stream.getTracks().forEach(t=>t.stop())}catch{}
-    pc=null;stream=null;audio.srcObject=null;add('[CALL] ENDED');
-  };
+  close?.addEventListener('click',()=>{
+    try{ws&&ws.close()}catch{}
+    hangup(false);
+    try{micStream?.getTracks().forEach(t=>t.stop())}catch{}
+  },{once:true});
 }
 function renderUsernameIntel(b){
   b.innerHTML=`<div class="intel-shell">
