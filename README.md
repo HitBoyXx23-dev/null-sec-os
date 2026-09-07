@@ -1,4 +1,4 @@
-# Null Sec OS 5.2 Scramjet Asset Fix
+# Null Sec OS 5.3 Scramjet Export Fix
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -39,3 +39,26 @@ and serves the directory containing `controller.api.js`, `controller.inject.js`,
 The older build resolved the package entrypoint instead, which could expose the wrong directory and make `/controller/controller.api.js` return 404.
 
 Open `/api/scramjet-status` after deployment to verify that the runtime resolved all Scramjet assets successfully. Null Browser also preflights every required asset and reports the exact HTTP failure instead of only saying that the controller did not load.
+
+
+## 5.3 package exports fix
+
+Version 5.2 incorrectly called:
+
+`require.resolve("@mercuryworkshop/scramjet-controller/dist/controller.api.js")`
+
+The published package does not export that subpath, so Node 24 correctly throws `ERR_PACKAGE_PATH_NOT_EXPORTED`.
+
+5.3 never resolves a private `dist/*` subpath. It resolves the package's legal entrypoint:
+
+`require.resolve("@mercuryworkshop/scramjet-controller")`
+
+then walks upward to the package root and checks these on-disk candidates:
+
+- `<package root>/dist/controller.api.js`
+- `<entrypoint directory>/controller.api.js`
+- `<package root>/controller.api.js`
+
+The same export-safe strategy is used for Libcurl.
+
+Vendor discovery is now lazy. A Scramjet asset problem no longer executes during module startup and can no longer take down the entire Node app before `/api/scramjet-status` is reachable.

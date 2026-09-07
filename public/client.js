@@ -60,7 +60,7 @@ async function ensureScramjet(){
       const r=await fetch('/api/scramjet-status',{cache:'no-store'});
       const d=await r.json();
       if(!r.ok||!d.ok)detail=d.error||detail;
-      else detail='server assets are present, but /controller/controller.api.js did not initialize';
+      else detail='server resolved Scramjet assets, but /controller/controller.api.js did not initialize in the page';
     }catch{}
     throw new Error('Scramjet controller assets did not load: '+detail);
   }

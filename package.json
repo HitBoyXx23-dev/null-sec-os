@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "5.2.0",
+  "version": "5.3.0",
   "private": true,
-  "description": "Null Sec OS with Scramjet 2.x controller proxy, Wisp transport, username chat and E2EE private DMs",
+  "description": "Null Sec OS Scramjet 2 with export-safe lazy runtime asset discovery, Wisp, realtime username chat and E2EE DMs",
   "main": "app.js",
   "type": "commonjs",
   "engines": {
