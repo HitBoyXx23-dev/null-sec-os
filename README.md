@@ -1,4 +1,4 @@
-# Null Sec OS 5.7
+# Null Sec OS 5.8
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -111,14 +111,18 @@ Each browser also keeps the latest 100 displayed public/private messages per use
 Vault now stores actual entries. It derives an AES-256-GCM key from the user's vault password with PBKDF2-SHA-256 and 250,000 iterations. The encrypted blob stays in browser localStorage. It supports create, unlock, add/delete entries, lock, and encrypted export/import.
 
 
-## 5.7 YouTube stability fix
+## 5.8 Scramjet-only frame routing
 
-5.6 modified `window.open` inside the Scramjet-controlled page. Scramjet already virtualizes navigation/browser APIs, so that extra monkey patch could destabilize large applications.
+5.7 used a raw cross-origin iframe for the lightweight YouTube fallback:
 
-5.7 removes that monkey patch. New-tab anchors are handled with a capture-phase click listener and routed back through Null Browser.
+`iframe.src = https://www.youtube-nocookie.com/embed/...`
 
-The service-worker shield now backs off for YouTube, YouTube-Nocookie, Googlevideo, YTImg, GGPHT, and Googleusercontent traffic so it cannot accidentally terminate YouTube runtime or media requests.
+That bypassed Scramjet and could be refused by browser cross-origin isolation / embedding policy.
 
-For `youtube.com/watch?v=...`, `youtu.be/...`, Shorts, and watch-page clicks, Null Browser switches to YouTube Stability Mode and uses the official `youtube-nocookie.com/embed/VIDEO_ID` player. Search and browse pages can still use Scramjet.
+5.8 removes that path. Null Browser's main browsing iframe is always created by `controller.createFrame(...)`, and all remote navigation goes through `frame.go(...)`.
 
-This is a stability fix, not a guarantee of ad-free playback.
+YouTube watch/Shorts/youtu.be URLs still use the lighter `youtube-nocookie.com/embed/...` target for stability, but that target is now itself routed through Scramjet.
+
+The dedicated YouTube app no longer creates a separate raw iframe. It sends the URL to Null Browser.
+
+Some remote sites can still block or break their own nested media frames through anti-embedding, DRM, authentication, or browser-integrity mechanisms. This build does not add site-specific bypasses for those protections.

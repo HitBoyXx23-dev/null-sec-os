@@ -161,14 +161,14 @@ function renderBrowser(b){
     <div class="browser-view">
       <div class="browser-home"><div class="browser-card">
         <div class="browser-kicker">SCRAMJET 2 CONTROLLER</div><div class="glyph">◎</div><h1>NULL BROWSER</h1>
-        <p>Scramjet rewrites and loads the remote page through its controller-managed frame. The iframe is not pointed at the remote website directly.</p>
+        <p>All external navigation stays inside Scramjet. Null Browser never points its main iframe directly at a remote website.</p>
         <form><input placeholder="Search or enter address"><button>CONNECT</button></form>
         <div class="quick-sites"><button data-url="https://www.google.com">GOOGLE</button><button data-url="https://www.youtube.com">YOUTUBE</button><button data-url="https://www.wikipedia.org">WIKIPEDIA</button><button data-url="https://archive.org">ARCHIVE</button></div>
       </div></div>
       <div class="sj-host"></div>
       <div class="browser-error"><div><b>SCRAMJET CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
     </div>
-    <div class="browser-note"><span>ENGINE: <b>SCRAMJET 2.x</b></span><span>YOUTUBE: STABILITY MODE</span><span>POPUPS: STAY IN NULL BROWSER</span></div>
+    <div class="browser-note"><span>ENGINE: <b>SCRAMJET 2.x</b></span><span>EXTERNAL PAGES: SCRAMJET ONLY</span><span>POPUPS: STAY IN NULL BROWSER</span></div>
   </div>`;
 
   const host=b.querySelector('.sj-host'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error');
@@ -206,18 +206,15 @@ function renderBrowser(b){
     url.value=videoId?'https://www.youtube.com/watch?v='+videoId:directToken;
     home.style.display='none';host.style.display='block';err.style.display='none';
     try{
+      const frame=await ensureFrame();
+
       if(videoId){
-        sjFrame=null;
-        const iframe=document.createElement('iframe');
-        iframe.className='frame sj-frame youtube-stable';
-        iframe.src=nullYoutubeEmbedUrl(videoId);
-        iframe.setAttribute('allow','autoplay; encrypted-media; picture-in-picture; fullscreen');
-        iframe.setAttribute('allowfullscreen','');
-        iframe.referrerPolicy='strict-origin-when-cross-origin';
-        host.replaceChildren(iframe);
+        // Keep the lightweight YouTube player, but route it through Scramjet.
+        // Do not assign a cross-origin youtube-nocookie URL directly to iframe.src.
+        frame.go(nullYoutubeEmbedUrl(videoId));
         return;
       }
-      const frame=await ensureFrame();
+
       frame.go(directToken);
     }catch(e){
       err.style.display='grid';
@@ -240,13 +237,25 @@ function renderBrowser(b){
 function openInNullBrowser(url){openApp('browser');setTimeout(()=>{const w=wins.get('browser');const inp=w?.el.querySelector('.url');if(inp){inp.value=url;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},40)}
 function renderMedia(b){const cards=[['Internet Archive','Public domain films, audio, software and books','https://archive.org/details/feature_films','◉'],['Prelinger Archives','Historic public domain and educational films','https://archive.org/details/prelinger','▤'],['NASA Video','Space and science video collections','https://www.nasa.gov/multimedia/','✦'],['YouTube Bridge','Paste a YouTube watch URL into the in-OS player','app:youtube','YT'],['Media Player','Play a direct video or audio URL','app:player','▷'],['Null Radio','Browse radio directories inside Null Sec OS','app:radio','◌']];b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA HUB</div><h1>Watch. Listen. Explore.</h1><p>A built-in media center for legal public-domain collections, direct media URLs, and official embedded playback. Media sources open inside Null Sec OS instead of a new browser tab.</p><div class="media-search"><input class="field media-q" placeholder="Paste YouTube or media URL"><button class="btn media-go">OPEN IN NULL</button></div></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;b.querySelectorAll('.media-card').forEach(c=>c.onclick=()=>{const d=c.dataset.dest;if(d.startsWith('app:'))openApp(d.slice(4));else openInNullBrowser(d)});b.querySelector('.media-go').onclick=()=>{const v=b.querySelector('.media-q').value.trim();if(youtubeId(v)){openApp('youtube');setTimeout(()=>{const w=wins.get('youtube');const inp=w?.el.querySelector('.yt-url');if(inp){inp.value=v;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},30)}else{openApp('player');setTimeout(()=>{const w=wins.get('player');const inp=w?.el.querySelector('.media-url');if(inp){inp.value=v;w.el.querySelector('.media-load').click()}},30)}}}
 function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="media-el" controls playsinline></video><div class="video-tools"><input class="field media-url" placeholder="Direct .mp4, .webm, .mp3, .ogg or stream URL"><button class="btn media-load">LOAD</button></div></div>`;b.querySelector('.media-load').onclick=()=>{b.querySelector('.media-el').src=b.querySelector('.media-url').value.trim();b.querySelector('.media-el').play().catch(()=>{})}}
-function renderYouTube(b){b.innerHTML=`<div class="video-shell"><iframe class="yt-frame" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe><div class="video-tools"><input class="field yt-url" placeholder="Paste a YouTube watch or youtu.be URL"><button class="btn yt-load">LOAD OFFICIAL EMBED</button></div></div>`;const load=()=>{const id=youtubeId(b.querySelector('.yt-url').value.trim());if(!id)return alert('Enter a valid YouTube video URL.');b.querySelector('.yt-frame').src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`};b.querySelector('.yt-load').onclick=load;b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')load()}}
-function renderRadio(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SIGNAL RADIO</div><h2>In-OS Radio Browser</h2><p class="muted">Radio directories stay inside Null Browser. No new-tab launchers.</p><div class="grid3"><button class="panel btn" data-link="https://radio.garden">RADIO GARDEN</button><button class="panel btn" data-link="https://www.internet-radio.com">INTERNET RADIO</button><button class="panel btn" data-link="https://archive.org/details/audio">ARCHIVE AUDIO</button></div></div>`;b.querySelectorAll('[data-link]').forEach(x=>x.onclick=()=>openInNullBrowser(x.dataset.link))}
-
-function renderTerminal(b){b.innerHTML=`<div class="terminal"><div class="term-output">NULLSH\nType help for commands.\n\n</div><div class="term-line"><span class="term-prompt">hitboyxx23@nullsec:~$</span><input class="term-input" autofocus></div></div>`;const out=b.querySelector('.term-output'),inp=b.querySelector('.term-input');function run(s){const [c,...a]=s.trim().split(/\s+/);const m={help:'help clear date echo whoami uname ls pwd status apps open [app] neofetch',date:()=>new Date().toString(),whoami:'hitboyxx23',uname:'Null Sec OS / browser runtime',pwd:'/home/operator',ls:'README.NFO notes/ apps/ media/ relay.cfg',status:()=>`network: ${navigator.onLine?'online':'offline'}\nrelay: /api/proxy\napps: ${appDefs.length}`,apps:appDefs.map(x=>x[0]).join('  '),neofetch:`NULL SEC OS\napps: ${appDefs.length}\nruntime: browser + Vercel Functions\noperator: hitboyxx23`};if(c==='clear'){out.textContent='';return''}if(c==='echo')return a.join(' ');if(c==='open'){openApp(a[0]||'browser');return`opened ${a[0]||'browser'}`};return typeof m[c]==='function'?m[c]():m[c]??`nullsh: command not found: ${c}`};inp.onkeydown=e=>{if(e.key==='Enter'){const s=inp.value;out.textContent+=`hitboyxx23@nullsec:~$ ${s}\n${run(s)}\n`;inp.value='';b.scrollTop=b.scrollHeight}}}
-function vaultB64(bytes){
-  let s='';bytes.forEach(v=>s+=String.fromCharCode(v));
-  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+function renderYouTube(b){
+  b.innerHTML=`<div class="tool-wrap">
+    <div class="tool-head"><div><div class="section-tag">SCRAMJET ROUTED MEDIA</div><h2>YOUTUBE</h2></div></div>
+    <div class="tool-form">
+      <input class="field yt-url" placeholder="Paste a YouTube watch, Shorts, or youtu.be URL">
+      <button class="btn yt-load">OPEN IN NULL BROWSER</button>
+    </div>
+    <div class="panel muted">
+      Playback is routed through Null Browser instead of a raw external iframe.
+      Watch URLs use the lighter YouTube Stability Mode automatically.
+    </div>
+  </div>`;
+  const load=()=>{
+    const raw=b.querySelector('.yt-url').value.trim();
+    if(!raw)return;
+    openInNullBrowser(raw);
+  };
+  b.querySelector('.yt-load').onclick=load;
+  b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')load()};
 }
 function vaultUnb64(s){
   s=String(s).replace(/-/g,'+').replace(/_/g,'/');
