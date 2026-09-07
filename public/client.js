@@ -12,14 +12,14 @@ async function checkApi(){const e=$('#api-status');try{const r=await fetch('/api
 
 const appDefs=[
 ['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Encrypted local secrets and notes'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
-['media','Null Media','media','▶','Media hub'],['livetv','Null Live TV','media','TV','Official free live channel hub'],['cinema','Null Cinema','media','◫','Public-domain streaming cinema'],['player','Media Player','media','▷','Direct media URL player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
+['media','Null Media','media','▶','Media'],['movies','Movies','media','M','Movie browser'],['series','Series','media','S','Series browser'],['livetv','Null Live TV','media','TV','Live channels'],['cinema','Null Cinema','media','◫','Movies and series'],['player','Media Player','media','▷','Direct player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
 ['calculator','Calculator','tools','∑','Fast calculator'],['clock','World Clock','tools','◷','Clock and date'],['calendar','Calendar','tools','▣','Monthly calendar'],['stopwatch','Stopwatch','tools','⏱','Time laps'],['timer','Timer','tools','⌛','Countdown timer'],['paint','Null Paint','tools','✣','Canvas sketchpad'],['markdown','Markdown Pad','tools','M↓','Markdown preview'],['json','JSON Lab','tools','{}','Format JSON'],['base64','Base64','tools','64','Encode and decode'],['urlcodec','URL Codec','tools','%','URL encode/decode'],['uuid','UUID Forge','tools','ID','Generate UUIDs'],['password','Password Forge','tools','***','Generate passwords'],['hash','Hash Lab','tools','#','SHA-256 digest'],['regex','Regex Lab','tools','.*','Test patterns'],['color','Color Lab','tools','◈','Color converter'],['text','Text Lab','tools','Aa','Case and stats'],['ascii','ASCII Studio','tools','A#','Text banners'],['unit','Unit Convert','tools','⇄','Common conversions'],['random','Random Lab','tools','?','Random values'],['clipboard','Clipboard','tools','▤','Copy helper'],['systemmon','System Monitor','tools','▥','Browser runtime info'],['storage','Storage Inspector','tools','◧','LocalStorage viewer'],['network','Network Tools','tools','⌁','URL and connection info'],['qrcode','QR Forge','tools','QR','Node-powered QR generator'],
 ['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['nullcrypt','Null Chat','comms','◈','Public chat + E2EE private DMs by username'],
 ['dnsintel','DNS Lens','intel','DNS','Public DNS records'],['rdapintel','RDAP Lens','intel','R','Domain and IP registration'],['ctintel','Cert Lens','intel','CRT','Certificate transparency'],['headerintel','Header Scope','intel','HDR','Security header inspector'],['robotsintel','Robots Viewer','intel','BOT','Public robots.txt viewer'],['urlclean','URL Sanitizer','intel','URL','Strip tracking parameters'],['leakscan','Leak Scanner','intel','LS','Local text exposure scan'],['fileintel','File Intel','intel','FILE','Local file metadata and hash'],['jwtscope','JWT Peek','intel','JWT','Decode JWT locally'],['passaudit','Password Audit','intel','KEY','Local entropy estimate'],['privacycheck','OPSEC Checklist','intel','OP','Privacy hygiene checklist'],
 ['snake','Snake','games','S','Classic snake'],['pong','Pong','games','P','Arcade pong'],['breakout','Breakout','games','B','Brick breaker'],['tictactoe','Tic Tac Toe','games','XO','3x3 game'],['memory','Memory','games','◇','Match cards'],['mines','Mines','games','✹','Mine puzzle'],['clicker','Null Clicker','games','+1','Score clicker'],['reaction','Reaction Test','games','!','Reaction speed'],['typing','Typing Test','games','⌨','Typing speed'],['guess','Number Guess','games','?','Guess 1 to 100'],['dice','Dice','games','⚄','Dice roller'],['coin','Coin Flip','games','◐','Heads or tails'],['rps','Rock Paper Scissors','games','RPS','Play CPU'],['lights','Lights Out','games','▦','Toggle grid'],['simon','Simon','games','●','Memory sequence'],['maze','Maze Runner','games','⌗','Keyboard maze'],['2048','2048','games','2K','Number merge']
 ];
 const apps={};appDefs.forEach(([id,title,cat,icon,desc])=>apps[id]={id,title,cat,icon,desc,render:resolveRenderer(id)});
-function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,livetv:renderLiveTV,cinema:renderCinema,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
+function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,movies:renderMovies,series:renderSeries,livetv:renderLiveTV,cinema:renderCinema,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
 
 function buildLaunchers(){const favorites=['browser','osintcenter','terminal','files','ops','media','snake','calculator'];$('#desktop-icons').innerHTML=favorites.map(id=>`<button class="desktop-icon" data-open="${id}"><span class="ico">${apps[id].icon}</span><small>${apps[id].title}</small></button>`).join('');renderAppGrid()}
 function renderAppGrid(filter='',cat='all'){const q=filter.toLowerCase();$('#app-grid').innerHTML=appDefs.filter(([id,title,c,,desc])=>(cat==='all'||c===cat)&&(`${title} ${desc}`.toLowerCase().includes(q))).map(([id,title,,icon,desc])=>`<button class="app-tile" data-open="${id}"><b>${icon}</b><span>${title}</span><small>${desc}</small></button>`).join('')}
@@ -33,7 +33,7 @@ function wireWindow(el,id){const bar=el.querySelector('.titlebar');let drag=null
 function focusWin(el){z++;el.style.zIndex=z;$$('.window').forEach(w=>w.classList.toggle('focused',w===el));for(const {el:w,task} of wins.values())task.classList.toggle('active',w===el&&!w.classList.contains('hidden'))}
 function closeWin(id){const x=wins.get(id);if(!x)return;x.el.remove();x.task.remove();wins.delete(id)}function toggleTask(id){const x=wins.get(id);if(!x)return;if(x.el.classList.contains('hidden')){x.el.classList.remove('hidden');focusWin(x.el)}else if(x.el.classList.contains('focused')){x.el.classList.add('hidden');x.task.classList.remove('active')}else focusWin(x.el)}
 
-function renderDashboard(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">NULL SEC CONTROL PLANE</div><h1>Operator Dashboard</h1><p class="muted">Browser-native desktop with ${appDefs.length} installed applications.</p><div class="ops-grid"><div class="metric"><label>APPLICATIONS</label><strong>${appDefs.length}</strong><small>loaded locally</small></div><div class="metric"><label>NETWORK</label><strong>${navigator.onLine?'ONLINE':'OFFLINE'}</strong><small>browser status</small></div><div class="metric"><label>RELAY</label><strong id="dash-relay">CHECK</strong><small>Vercel function</small></div></div><div class="grid3" style="margin-top:10px">${['browser','osintcenter','ops','terminal','snake','paint'].map(id=>`<button class="panel btn" data-open="${id}">${apps[id].icon}<br><br>${apps[id].title}</button>`).join('')}</div></div>`;fetch('/api/health').then(r=>{const e=b.querySelector('#dash-relay');e.textContent=r.ok?'READY':'DOWN'}).catch(()=>{b.querySelector('#dash-relay').textContent='LOCAL'})}
+function renderDashboard(b){b.innerHTML=`<div class="app-pad classic-dash"><div class="section-tag">SYSTEM</div><h1>NULL SEC</h1><div class="ops-grid"><div class="metric"><label>APPS</label><strong>${appDefs.length}</strong><small>INSTALLED</small></div><div class="metric"><label>NETWORK</label><strong>${navigator.onLine?'UP':'DOWN'}</strong><small>CLIENT</small></div><div class="metric"><label>RELAY</label><strong id="dash-relay">...</strong><small>SERVER</small></div></div><div class="classic-launch">${['browser','media','nullcrypt','terminal','files','osintcenter'].map(id=>`<button class="panel btn" data-open="${id}">${apps[id].icon}<span>${apps[id].title}</span></button>`).join('')}</div></div>`;fetch('/api/health').then(r=>{const e=b.querySelector('#dash-relay');e.textContent=r.ok?'UP':'DOWN'}).catch(()=>{b.querySelector('#dash-relay').textContent='DOWN'})}
 
 function normalizeTarget(raw){raw=(raw||'').trim();if(!raw)return'';if(/^https?:\/\//i.test(raw))return raw;if(raw.includes('.')&&!raw.includes(' '))return'https://'+raw;return'https://www.google.com/search?q='+encodeURIComponent(raw)}
 function youtubeId(u){try{const x=new URL(u);if(x.hostname.includes('youtu.be'))return x.pathname.split('/')[1]||'';if(x.hostname.includes('youtube.com'))return x.searchParams.get('v')||((x.pathname.match(/\/shorts\/([^/?]+)/)||[])[1]||'')}catch{}return''}
@@ -204,116 +204,36 @@ function nullYoutubeEmbedUrl(id){
 
 function renderBrowser(b){
   const storedEngine=localStorage.getItem('nullsec.proxyEngine')||'auto';
-  b.innerHTML=`<div class="browser">
+  b.innerHTML=`<div class="browser classic-browser">
     <div class="browser-bar">
-      <button class="back" title="Back">←</button><button class="home" title="Home">⌂</button><button class="reload" title="Reload">↻</button>
-      <select class="field proxy-engine" title="Proxy engine">
-        <option value="auto">AUTO</option><option value="scramjet">SCRAMJET</option><option value="uv">ULTRAVIOLET</option>
-      </select>
-      <div class="browser-address"><span class="engine-badge">AUTO</span><input class="url" placeholder="URL or search"></div>
-      <button class="go">CONNECT</button>
+      <button class="back">←</button><button class="home">⌂</button><button class="reload">↻</button>
+      <select class="field proxy-engine"><option value="auto">AUTO</option><option value="scramjet">SJ</option><option value="uv">UV</option></select>
+      <div class="browser-address"><input class="url" placeholder="Search or enter address"></div><button class="go">GO</button>
     </div>
     <div class="browser-view">
-      <div class="browser-home"><div class="browser-card">
-        <div class="browser-kicker">DUAL PROXY ROUTER</div><div class="glyph">◎</div><h1>NULL BROWSER</h1>
-        <p>Scramjet 2 + real Ultraviolet 3. Auto prefers UV for YouTube and Scramjet for general browsing. You can switch engines at any time.</p>
-        <form><input placeholder="Search or enter address"><button>CONNECT</button></form>
-        <div class="quick-sites">
-          <button data-url="https://www.google.com">GOOGLE</button>
-          <button data-url="https://www.youtube.com">YOUTUBE</button>
-          <button data-url="https://www.wikipedia.org">WIKIPEDIA</button>
-        </div>
-      </div></div>
+      <div class="browser-home"><div class="browser-card classic-browser-home"><div class="glyph">◎</div><h1>NULL BROWSER</h1><form><input placeholder="Search or enter address"><button>GO</button></form><div class="quick-sites"><button data-url="https://www.google.com">Google</button><button data-url="https://www.youtube.com">YouTube</button><button data-url="https://www.wikipedia.org">Wikipedia</button></div></div></div>
       <div class="sj-host"></div>
       <iframe class="frame uv-frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write"></iframe>
-      <div class="browser-error"><div><b>NULL BROWSER CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
+      <iframe class="frame yt-frame" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+      <div class="browser-error"><div><b>PAGE FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
     </div>
-    <div class="browser-note">
-      <span>ENGINE: <b class="engine-state">AUTO</b></span>
-      <span>SCRAMJET: <b>SJ 2.x / LIBCURL</b></span>
-      <span>UV: <b>UV 3 / EPOXY</b></span>
-    </div>
+    <div class="browser-note"><span class="engine-state">AUTO</span><span class="browser-url-state">READY</span></div>
   </div>`;
 
-  const host=b.querySelector('.sj-host'),uvFrame=b.querySelector('.uv-frame'),home=b.querySelector('.browser-home'),
-        url=b.querySelector('.url'),err=b.querySelector('.browser-error'),select=b.querySelector('.proxy-engine'),
-        badge=b.querySelector('.engine-badge'),engineState=b.querySelector('.engine-state');
-  select.value=storedEngine;
-  badge.textContent=storedEngine.toUpperCase();
-  let current='',sjFrame=null,activeEngine='';
-
-  function frameElement(){return activeEngine==='uv'?uvFrame:(sjFrame?.element||null)}
-  function showEngine(name){
-    activeEngine=name;
-    badge.textContent=name.toUpperCase();
-    engineState.textContent=name.toUpperCase();
-    host.style.display=name==='scramjet'?'block':'none';
-    uvFrame.style.display=name==='uv'?'block':'none';
-  }
-  async function ensureSjFrame(){
-    const controller=await ensureScramjet();
-    if(!sjFrame){
-      const iframe=document.createElement('iframe');
-      iframe.className='frame sj-frame';
-      iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');
-      host.replaceChildren(iframe);
-      installNullBrowserShield(iframe,(href)=>go(href));
-      sjFrame=controller.createFrame(iframe);
-    }
-    return sjFrame;
-  }
-  async function goScramjet(target){
-    const frame=await ensureSjFrame();
-    showEngine('scramjet');
-    frame.go(target);
-  }
-  async function goUv(target){
-    await ensureRealUV();
-    showEngine('uv');
-    uvFrame.src=__uv$config.prefix+__uv$config.encodeUrl(target);
-  }
-  function autoOrder(target){
-    try{
-      const h=new URL(target).hostname.toLowerCase();
-      if(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be'||h.endsWith('.googlevideo.com'))return ['uv','scramjet'];
-    }catch{}
-    return ['scramjet','uv'];
-  }
-  async function go(raw){
-    const target=normalizeTarget(raw||url.value);
-    if(!target)return;
-    current=target;url.value=target;
-    home.style.display='none';err.style.display='none';
-    const pref=select.value;
-    const order=pref==='auto'?autoOrder(target):[pref];
-    let lastErr=null;
-    for(const eng of order){
-      try{
-        if(eng==='uv')await goUv(target);else await goScramjet(target);
-        return;
-      }catch(e){lastErr=e}
-    }
-    err.style.display='grid';
-    err.querySelector('span').textContent=(lastErr?.message||String(lastErr||'Both proxy engines failed'))+' // UV SW: '+(__uv$config?.sw||'/uv/uv.sw.js')+' // UV SCOPE: '+(__uv$config?.prefix||'/uv/service/');
-  }
-
-  select.onchange=()=>{
-    localStorage.setItem('nullsec.proxyEngine',select.value);
-    badge.textContent=select.value.toUpperCase();
-    if(current)go(current);
-  };
-  b.querySelector('.go').onclick=()=>go();
-  url.onkeydown=e=>{if(e.key==='Enter')go()};
-  b.querySelector('form').onsubmit=e=>{e.preventDefault();go(e.target.querySelector('input').value)};
-  b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>go(x.dataset.url));
-  b.querySelector('.home').onclick=()=>{
-    current='';url.value='';host.style.display='none';uvFrame.style.display='none';home.style.display='grid';err.style.display='none';
-  };
-  b.querySelector('.back').onclick=()=>{try{frameElement()?.contentWindow?.history.back()}catch{}};
-  b.querySelector('.reload').onclick=()=>current&&go(current);
-  b.querySelector('.retry').onclick=()=>current&&go(current);
+  const host=b.querySelector('.sj-host'),uvFrame=b.querySelector('.uv-frame'),ytFrame=b.querySelector('.yt-frame'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error'),select=b.querySelector('.proxy-engine'),engineState=b.querySelector('.engine-state'),urlState=b.querySelector('.browser-url-state');
+  select.value=storedEngine;let current='',sjFrame=null,activeEngine='';
+  function frameElement(){return activeEngine==='uv'?uvFrame:activeEngine==='youtube'?ytFrame:(sjFrame?.element||null)}
+  function showEngine(name){activeEngine=name;engineState.textContent=name.toUpperCase();host.style.display=name==='scramjet'?'block':'none';uvFrame.style.display=name==='uv'?'block':'none';ytFrame.style.display=name==='youtube'?'block':'none'}
+  async function ensureSjFrame(){const controller=await ensureScramjet();if(!sjFrame){const iframe=document.createElement('iframe');iframe.className='frame sj-frame';iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');host.replaceChildren(iframe);installNullBrowserShield(iframe,(href)=>go(href));sjFrame=controller.createFrame(iframe)}return sjFrame}
+  async function goScramjet(target){const frame=await ensureSjFrame();showEngine('scramjet');frame.go(target)}
+  async function goUv(target){await ensureRealUV();showEngine('uv');uvFrame.src=__uv$config.prefix+__uv$config.encodeUrl(target)}
+  function goYoutube(target){const id=nullYoutubeVideoId(target)||youtubeId(target);if(!id)throw new Error('No YouTube video ID');showEngine('youtube');ytFrame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0&playsinline=1';urlState.textContent='YOUTUBE PLAYER'}
+  function autoOrder(target){try{const h=new URL(target).hostname.toLowerCase();if(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be')return ['uv','scramjet']}catch{}return ['scramjet','uv']}
+  async function go(raw){const target=normalizeTarget(raw||url.value);if(!target)return;current=target;url.value=target;urlState.textContent='LOADING';home.style.display='none';err.style.display='none';const vid=nullYoutubeVideoId(target)||youtubeId(target);if(vid){try{goYoutube(target);return}catch{}}
+    const pref=select.value,order=pref==='auto'?autoOrder(target):[pref];let lastErr=null;for(const eng of order){try{if(eng==='uv')await goUv(target);else await goScramjet(target);urlState.textContent='LOADED';return}catch(e){lastErr=e}}
+    err.style.display='grid';urlState.textContent='FAILED';err.querySelector('span').textContent=lastErr?.message||String(lastErr||'Proxy failed')}
+  select.onchange=()=>{localStorage.setItem('nullsec.proxyEngine',select.value);if(current)go(current)};b.querySelector('.go').onclick=()=>go();url.onkeydown=e=>{if(e.key==='Enter')go()};b.querySelector('form').onsubmit=e=>{e.preventDefault();go(e.target.querySelector('input').value)};b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>go(x.dataset.url));b.querySelector('.home').onclick=()=>{current='';url.value='';host.style.display='none';uvFrame.style.display='none';ytFrame.style.display='none';ytFrame.src='about:blank';home.style.display='grid';err.style.display='none';engineState.textContent=select.value.toUpperCase();urlState.textContent='READY'};b.querySelector('.back').onclick=()=>{try{frameElement()?.contentWindow?.history.back()}catch{}};b.querySelector('.reload').onclick=()=>current&&go(current);b.querySelector('.retry').onclick=()=>current&&go(current);
 }
-
 function renderTerminal(b){
   b.innerHTML=`<div class="terminal-app"><div class="term-output"></div><div class="term-line"><span>null@sec:$</span><input class="term-input" autocomplete="off" spellcheck="false" placeholder="type help"></div></div>`;
   const out=b.querySelector('.term-output'),input=b.querySelector('.term-input');
@@ -348,17 +268,9 @@ function renderTerminal(b){
 
 function openInNullBrowser(url){openApp('browser');setTimeout(()=>{const w=wins.get('browser');const inp=w?.el.querySelector('.url');if(inp){inp.value=url;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},40)}
 function renderMedia(b){
-  const cards=[
-    ['Null Live TV','Native country playlists, groups, search, favorites and HLS playback','app:livetv','TV'],
-    ['Null Cinema','Local media shell with direct player and watch history','app:cinema','◫'],
-    ['YouTube','Open with Null Browser auto proxy engine','https://www.youtube.com','YT'],
-    ['Media Player','Play a direct video or audio URL inside Null Sec','app:player','▷'],
-    ['Null Radio','Radio discovery inside Null Sec','app:radio','◌']
-  ];
-  b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA // NATIVE MODE</div><h1>MEDIA WITHOUT WEBSITE WRAPPERS.</h1><p>TV sources are parsed and rendered by Null Sec OS itself. No HitBoyStream page iframe, no direct website launcher.</p></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;
-  b.querySelectorAll('.media-card').forEach(x=>x.onclick=()=>{const d=x.dataset.dest;d.startsWith('app:')?openApp(d.slice(4)):openInNullBrowser(d)});
+  const apps2=[['movies','M','MOVIES','Browse movies'],['series','S','SERIES','Browse shows'],['livetv','TV','LIVE TV','Channels'],['youtube','YT','YOUTUBE','Video player'],['radio','R','RADIO','Radio'],['player','▷','PLAYER','Direct URL']];
+  b.innerHTML=`<div class="native-media"><div class="native-media-head"><b>NULL MEDIA</b><span>LOCAL APPS</span></div><div class="native-media-grid">${apps2.map(x=>`<button data-open="${x[0]}"><i>${x[1]}</i><strong>${x[2]}</strong><small>${x[3]}</small></button>`).join('')}</div></div>`;
 }
-
 function renderLiveTV(b){
   const FAV='nullsec.tv.favorites.v2';
   const getFav=()=>{try{return JSON.parse(localStorage.getItem(FAV)||'[]')}catch{return[]}};
@@ -411,10 +323,19 @@ function renderLiveTV(b){
 }
 
 function renderCinema(b){
-  b.innerHTML=`<div class="cinema-shell"><div class="cinema-topbar"><div class="cinema-brand"><span>NULL</span> CINEMA</div><div class="cinema-tabs"><button class="cinema-tab active">LOCAL MEDIA</button></div></div><div class="cinema-hero"><div class="cinema-shade"></div><div class="cinema-hero-content"><div class="section-tag">NULL CINEMA // NATIVE</div><h1>NO WEBSITE WRAPPERS.</h1><p>Use the native Live TV app for channel sources or the direct Media Player for your own playable URLs. Commercial third-party movie-site embeds are not bundled.</p><div class="cinema-searchbar"><input class="field cinema-url" placeholder="Paste direct MP4 / WebM / HLS URL"><button class="btn cinema-play-direct">PLAY</button></div></div></div><div class="media-grid cinema-hbs-grid"><button class="media-card cinema-live"><div class="poster">TV</div><b>LIVE TV</b><small>Native country/channel source browser</small></button><button class="media-card cinema-player"><div class="poster">▷</div><b>MEDIA PLAYER</b><small>Direct URL playback</small></button><button class="media-card cinema-browser"><div class="poster">◎</div><b>NULL BROWSER</b><small>Dual Scramjet / Ultraviolet browser</small></button></div></div>`;
-  b.querySelector('.cinema-live').onclick=()=>openApp('livetv');b.querySelector('.cinema-player').onclick=()=>openApp('player');b.querySelector('.cinema-browser').onclick=()=>openApp('browser');b.querySelector('.cinema-play-direct').onclick=()=>{const v=b.querySelector('.cinema-url').value.trim();if(!v)return;openApp('player');setTimeout(()=>{const w=wins.get('player'),inp=w?.el.querySelector('input');if(inp){inp.value=v;w.el.querySelector('button')?.click()}},50)};
+  b.innerHTML=`<div class="native-media"><div class="native-media-head"><b>NULL CINEMA</b><span>LIBRARY</span></div><div class="native-media-grid cinema-two"><button data-open="movies"><i>M</i><strong>MOVIES</strong><small>Search and previews</small></button><button data-open="series"><i>S</i><strong>SERIES</strong><small>Shows and seasons</small></button></div></div>`;
 }
 
+function renderMovies(b){renderCatalogApp(b,'movie')}
+function renderSeries(b){renderCatalogApp(b,'series')}
+function renderCatalogApp(b,type){
+  const label=type==='movie'?'MOVIES':'SERIES';
+  b.innerHTML=`<div class="catalog-app"><div class="catalog-toolbar"><b>${label}</b><input class="field catalog-q" placeholder="Search ${label.toLowerCase()}"><button class="btn catalog-go">SEARCH</button></div><div class="catalog-status">LOADING...</div><div class="catalog-grid"></div><div class="catalog-modal hidden"><button class="catalog-close">×</button><div class="catalog-detail"></div></div></div>`;
+  const q=b.querySelector('.catalog-q'),grid=b.querySelector('.catalog-grid'),status=b.querySelector('.catalog-status'),modal=b.querySelector('.catalog-modal'),detail=b.querySelector('.catalog-detail');
+  async function load(){status.textContent='LOADING';grid.innerHTML='';try{const r=await fetch('/null-data/catalog?type='+type+'&q='+encodeURIComponent(q.value.trim()),{cache:'no-store'});const text=await r.text();let d;try{d=JSON.parse(text)}catch{throw new Error('Catalog returned non-JSON')}if(!r.ok||!d.ok)throw new Error(d.error||'Catalog failed');status.textContent=d.items.length+' RESULTS';grid.innerHTML=d.items.map((x,i)=>`<button class="catalog-card" data-i="${i}"><div class="catalog-poster">${x.poster?`<img loading="lazy" src="${x.poster}" alt="">`:'<span>NO ART</span>'}</div><b>${escapeHtml(x.title)}</b><small>${escapeHtml([x.year,x.genre].filter(Boolean).join(' // '))}</small></button>`).join('')||'<div class="panel muted">No results.</div>';grid.querySelectorAll('[data-i]').forEach(el=>el.onclick=()=>openItem(d.items[Number(el.dataset.i)]))}catch(e){status.textContent='ERROR';grid.innerHTML='<div class="panel bad">'+escapeHtml(e.message)+'</div>'}}
+  function openItem(x){modal.classList.remove('hidden');detail.innerHTML=`<div class="catalog-detail-grid">${x.poster?`<img src="${x.poster}" alt="">`:''}<div><div class="section-tag">${label}</div><h2>${escapeHtml(x.title)}</h2><div class="catalog-facts">${escapeHtml([x.year,x.genre].filter(Boolean).join(' // '))}</div><p>${escapeHtml(x.description||'No description available.')}</p><div class="catalog-actions">${x.preview?'<button class="btn preview">PLAY PREVIEW</button>':''}${x.store?'<button class="btn store">OFFICIAL PAGE</button>':''}<button class="btn trailer">YOUTUBE TRAILER</button></div>${x.preview?'<video class="catalog-preview hidden" controls playsinline></video>':''}</div></div>`;const pv=detail.querySelector('.preview');if(pv)pv.onclick=()=>{const v=detail.querySelector('.catalog-preview');v.classList.remove('hidden');v.src=x.preview;v.play().catch(()=>{})};const st=detail.querySelector('.store');if(st)st.onclick=()=>openInNullBrowser(x.store);detail.querySelector('.trailer').onclick=()=>openInNullBrowser('https://www.youtube.com/results?search_query='+encodeURIComponent(x.title+' official trailer'))}
+  b.querySelector('.catalog-go').onclick=load;q.onkeydown=e=>{if(e.key==='Enter')load()};b.querySelector('.catalog-close').onclick=()=>{modal.classList.add('hidden');detail.innerHTML=''};load();
+}
 function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="media-el" controls playsinline></video><div class="video-tools"><input class="field media-url" placeholder="Direct .mp4, .webm, .mp3, .ogg or stream URL"><button class="btn media-load">LOAD</button></div></div>`;b.querySelector('.media-load').onclick=()=>{b.querySelector('.media-el').src=b.querySelector('.media-url').value.trim();b.querySelector('.media-el').play().catch(()=>{})}}
 function renderRadio(b){
   const stations=[
@@ -427,24 +348,10 @@ function renderRadio(b){
 }
 
 function renderYouTube(b){
-  b.innerHTML=`<div class="tool-wrap">
-    <div class="tool-head"><div><div class="section-tag">SCRAMJET ROUTED MEDIA</div><h2>YOUTUBE</h2></div></div>
-    <div class="tool-form">
-      <input class="field yt-url" placeholder="Paste a YouTube watch, Shorts, or youtu.be URL">
-      <button class="btn yt-load">OPEN IN NULL BROWSER</button>
-    </div>
-    <div class="panel muted">
-      Playback is routed through Null Browser instead of a raw external iframe.
-      Watch URLs use the lighter YouTube Stability Mode automatically.
-    </div>
-  </div>`;
-  const load=()=>{
-    const raw=b.querySelector('.yt-url').value.trim();
-    if(!raw)return;
-    openInNullBrowser(raw);
-  };
-  b.querySelector('.yt-load').onclick=load;
-  b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')load()};
+  b.innerHTML=`<div class="youtube-app"><div class="catalog-toolbar"><b>YOUTUBE</b><input class="field yt-url" placeholder="Paste watch / Shorts / youtu.be URL"><button class="btn yt-load">PLAY</button></div><div class="yt-stage"><div class="yt-empty">PASTE A VIDEO LINK</div><iframe class="yt-official hidden" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div><div class="yt-actions"><input class="field yt-search" placeholder="Search YouTube"><button class="btn yt-search-go">SEARCH IN BROWSER</button></div></div>`;
+  const frame=b.querySelector('.yt-official'),empty=b.querySelector('.yt-empty');
+  function play(){const raw=b.querySelector('.yt-url').value.trim();const id=nullYoutubeVideoId(raw)||youtubeId(raw);if(!id){empty.textContent='INVALID VIDEO URL';return}frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0&playsinline=1';frame.classList.remove('hidden');empty.classList.add('hidden')}
+  b.querySelector('.yt-load').onclick=play;b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')play()};b.querySelector('.yt-search-go').onclick=()=>{const q=b.querySelector('.yt-search').value.trim();if(q)openInNullBrowser('https://www.youtube.com/results?search_query='+encodeURIComponent(q))};
 }
 function vaultB64(bytes){
   let s='';
@@ -702,7 +609,9 @@ function renderNullCrypt(b){
   </div>`;
 
   let ws=null,keypair=null,myPub='',me='',target='public';
-  let pc=null,micStream=null,pendingOffer=null,pendingCaller='',muted=false;
+  let pc=null,micStream=null,pendingOffer=null,pendingCaller='',muted=false,callPeer='',remoteReady=false;
+  let pendingIce=[];let rtcConfig={iceServers:[{urls:['stun:stun.cloudflare.com:3478','stun:stun.l.google.com:19302']}]};
+  fetch('/null-data/rtc-config',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d?.ok&&Array.isArray(d.iceServers))rtcConfig={iceServers:d.iceServers}}).catch(()=>{});
   const peers=new Map();
   const side=b.querySelector('.peer-list'),log=b.querySelector('.chat-log'),stateEl=b.querySelector('.chat-state');
   const targetEl=b.querySelector('.chat-target'),secEl=b.querySelector('.chat-security');
@@ -773,50 +682,33 @@ function renderNullCrypt(b){
     });
     return micStream;
   }
+  async function flushIce(){
+    if(!pc||!pc.remoteDescription)return;
+    const queue=pendingIce.splice(0);
+    for(const cand of queue){try{await pc.addIceCandidate(cand)}catch(e){system('ICE ERROR: '+e.message)}}
+  }
   async function makePeer(peerName){
     if(pc){try{pc.close()}catch{}}
+    pendingIce=[];remoteReady=false;callPeer=peerName;
     const stream=await ensureMic();
-    pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.cloudflare.com:3478'}]});
+    pc=new RTCPeerConnection(rtcConfig);
     stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-    pc.ontrack=e=>{audio.srcObject=e.streams[0];system('VOICE CONNECTED WITH @'+peerName)};
-    pc.onicecandidate=e=>{
-      if(e.candidate&&ws?.readyState===1)ws.send(JSON.stringify({type:'voice_ice',to:peerName,candidate:e.candidate}));
-    };
-    pc.onconnectionstatechange=()=>{
-      if(!pc)return;
-      stateEl.textContent=pc.connectionState==='connected'?'VOICE':'ONLINE';
-      if(['failed','closed','disconnected'].includes(pc.connectionState))system('VOICE '+pc.connectionState.toUpperCase());
-    };
-    muteBtn.disabled=false;hangBtn.disabled=false;
-    return pc;
+    pc.ontrack=async e=>{audio.srcObject=e.streams[0]||new MediaStream([e.track]);try{await audio.play()}catch{}system('VOICE CONNECTED @'+peerName)};
+    pc.onicecandidate=e=>{if(e.candidate&&ws?.readyState===1)ws.send(JSON.stringify({type:'voice_ice',to:peerName,candidate:e.candidate}))};
+    pc.onicecandidateerror=e=>{if(e.errorText)system('ICE: '+e.errorText)};
+    pc.onconnectionstatechange=()=>{if(!pc)return;const s=pc.connectionState;stateEl.textContent=s==='connected'?'VOICE':s==='connecting'?'CALLING':'ONLINE';if(s==='connected')system('CALL ACTIVE @'+peerName);if(['failed','closed'].includes(s)){system('VOICE '+s.toUpperCase());hangup(false)}};
+    muteBtn.disabled=false;hangBtn.disabled=false;return pc;
   }
   async function startCall(){
-    if(target==='public'||!peers.has(target))return;
-    try{
-      const peer=await makePeer(target);
-      const offer=await peer.createOffer();
-      await peer.setLocalDescription(offer);
-      ws.send(JSON.stringify({type:'voice_offer',to:target,sdp:peer.localDescription}));
-      system('CALLING @'+target);
-    }catch(e){system('VOICE ERROR: '+e.message)}
+    if(target==='public'||!peers.has(target)||!ws||ws.readyState!==1)return;
+    try{const peer=await makePeer(target);const offer=await peer.createOffer({offerToReceiveAudio:true});await peer.setLocalDescription(offer);ws.send(JSON.stringify({type:'voice_offer',to:target,sdp:peer.localDescription}));stateEl.textContent='CALLING';system('CALLING @'+target)}catch(e){system('VOICE ERROR: '+e.message)}
   }
   async function answerCall(){
     if(!pendingOffer||!pendingCaller)return;
-    try{
-      choose(pendingCaller);
-      const peer=await makePeer(pendingCaller);
-      await peer.setRemoteDescription(pendingOffer);
-      const answer=await peer.createAnswer();
-      await peer.setLocalDescription(answer);
-      ws.send(JSON.stringify({type:'voice_answer',to:pendingCaller,sdp:peer.localDescription}));
-      pendingOffer=null;pendingCaller='';answerBtn.style.display='none';
-    }catch(e){system('VOICE ERROR: '+e.message)}
+    try{choose(pendingCaller);const peer=await makePeer(pendingCaller);await peer.setRemoteDescription(pendingOffer);remoteReady=true;await flushIce();const answer=await peer.createAnswer();await peer.setLocalDescription(answer);ws.send(JSON.stringify({type:'voice_answer',to:pendingCaller,sdp:peer.localDescription}));pendingOffer=null;pendingCaller='';answerBtn.style.display='none';stateEl.textContent='CONNECTING'}catch(e){system('VOICE ERROR: '+e.message)}
   }
   function hangup(notify=true){
-    if(notify&&target!=='public'&&ws?.readyState===1)ws.send(JSON.stringify({type:'voice_hangup',to:target}));
-    try{pc?.close()}catch{} pc=null;
-    audio.srcObject=null;muteBtn.disabled=true;hangBtn.disabled=true;muted=false;muteBtn.textContent='MUTE';
-    if(ws?.readyState===1)stateEl.textContent='ONLINE';
+    const peerName=callPeer||target;if(notify&&peerName&&peerName!=='public'&&ws?.readyState===1)ws.send(JSON.stringify({type:'voice_hangup',to:peerName}));try{pc?.close()}catch{}pc=null;pendingIce=[];remoteReady=false;callPeer='';audio.srcObject=null;muteBtn.disabled=true;hangBtn.disabled=true;muted=false;muteBtn.textContent='MUTE';if(ws?.readyState===1)stateEl.textContent='ONLINE';
   }
 
   async function connect(){
@@ -864,11 +756,13 @@ function renderNullCrypt(b){
           return;
         }
         if(m.type==='voice_answer'){
-          try{if(pc)await pc.setRemoteDescription(m.sdp)}catch(e){system('VOICE ANSWER ERROR: '+e.message)}
+          try{if(pc){await pc.setRemoteDescription(m.sdp);remoteReady=true;await flushIce();stateEl.textContent='CONNECTING'}}catch(e){system('VOICE ANSWER ERROR: '+e.message)}
           return;
         }
         if(m.type==='voice_ice'){
-          try{if(pc)await pc.addIceCandidate(m.candidate)}catch{}
+          if(!m.candidate)return;
+          if(!pc||!pc.remoteDescription){pendingIce.push(m.candidate);return}
+          try{await pc.addIceCandidate(m.candidate)}catch(e){system('ICE ERROR: '+e.message)}
           return;
         }
         if(m.type==='voice_hangup'){

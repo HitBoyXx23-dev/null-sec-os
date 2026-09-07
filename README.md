@@ -1,34 +1,14 @@
-# Null Sec OS 6.5
+# Null Sec OS 6.6
 
-This build fixes the Vercel TV JSON failure and removes direct HitBoyStream website wrappers from Null Media.
+## Changes
 
-## What changed
-- TV endpoints moved away from `/api/*` to `/null-data/*` so Vercel does not confuse them with filesystem API functions.
-- Country catalog is built into Null Sec OS.
-- Country M3U playlists use multiple upstream mirrors.
-- Playlist metadata includes title, logo, group, tvg id and language.
-- Native channel search, group filtering and local favorites.
-- Same-origin `/null-media/hls` gateway rewrites HLS manifests, nested playlists, keys and segment URLs for much better CORS compatibility.
-- No direct HitBoyStream page buttons in Null Media.
-- Null Cinema is now a native media router rather than an external-site wrapper.
-- Scramjet + real Ultraviolet dual browser is preserved.
+- YouTube watch/Shorts/youtu.be URLs use the official YouTube nocookie embed player inside Null Browser. Full pages still use UV/Scramjet.
+- Voice calls queue ICE candidates until remote SDP exists, use multiple STUN servers, expose RTC state, and support optional TURN through `TURN_URL`, `TURN_USERNAME`, and `TURN_CREDENTIAL`.
+- Native Movies and Series apps restored with search, artwork, descriptions, official store links and legal preview clips.
+- Null Cinema is a native Movies/Series launcher.
+- Null Media uses compact OS-style tiles instead of oversized marketing-style hero sections.
+- Existing Live TV, Vault, Null Chat, OSINT, games, UV and Scramjet remain.
 
-The source model is based on the HitBoyStream Live TV approach, which consumes country playlists from iptv-org.
+### Voice note
 
-
-## 6.5 Ultraviolet route fix
-
-Fixed the real Ultraviolet worker registration.
-
-Previous code registered `/uv/sw.js` with scope `/uv/`, but Ultraviolet's package uses `uv.sw.js` and its service worker must own the configured proxy prefix, normally `/uv/service/`.
-
-The client now:
-- reads `__uv$config.sw`
-- reads `__uv$config.prefix`
-- registers the UV worker with that exact scope
-- waits for that specific worker to activate
-- keeps BareMux + Epoxy connected to `/wisp/`
-- leaves the root Scramjet worker separate
-- exposes `/api/uv-status` for deployment diagnostics
-
-After deploying this build, clear the old site's service-worker/site data once so the stale registration from 6.4 cannot keep intercepting requests.
+STUN-only WebRTC cannot guarantee calls across every NAT/firewall. For reliable calls on restrictive networks, configure a TURN server using the environment variables above.

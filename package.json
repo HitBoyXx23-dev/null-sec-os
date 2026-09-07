@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "6.5.0",
+  "version": "6.6.0",
   "private": true,
-  "description": "Null Sec OS dual-proxy build with fixed Ultraviolet service-worker routing and native media",
+  "description": "Null Sec OS 6.6 with YouTube player fallback, improved WebRTC voice, native Movies/Series and classic media UI",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

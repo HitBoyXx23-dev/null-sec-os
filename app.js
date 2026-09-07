@@ -222,6 +222,62 @@ app.get('/null-media/hls', async (req,res)=>{
 });
 
 
+
+/* ---------------- Native media catalog + RTC config ---------------- */
+app.get("/null-data/rtc-config", (req, res) => {
+  const iceServers = [
+    { urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] }
+  ];
+  const turnUrl = process.env.TURN_URL;
+  const turnUsername = process.env.TURN_USERNAME;
+  const turnCredential = process.env.TURN_CREDENTIAL;
+  if (turnUrl && turnUsername && turnCredential) {
+    iceServers.push({ urls: turnUrl.split(",").map(x => x.trim()).filter(Boolean), username: turnUsername, credential: turnCredential });
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ ok:true, iceServers, turnConfigured:Boolean(turnUrl && turnUsername && turnCredential) });
+});
+
+app.get("/null-data/catalog", async (req, res) => {
+  try {
+    const type = req.query.type === "series" ? "series" : "movie";
+    const raw = String(req.query.q || "").trim().slice(0,80);
+    const term = raw || (type === "movie" ? "action" : "drama");
+    const params = new URLSearchParams({
+      term,
+      country: "US",
+      limit: "60",
+      media: type === "movie" ? "movie" : "tvShow",
+      entity: type === "movie" ? "movie" : "tvSeason",
+      explicit: "No"
+    });
+    const r = await fetch("https://itunes.apple.com/search?" + params, {
+      headers:{"User-Agent":"Null-Sec-OS/6.6"}, signal:AbortSignal.timeout(12000)
+    });
+    if(!r.ok) return res.status(502).json({ok:false,error:"Catalog source unavailable"});
+    const data=await r.json();
+    const seen=new Set();
+    const items=(Array.isArray(data.results)?data.results:[]).map(x=>{
+      const title=type === "movie" ? x.trackName : (x.collectionName || x.trackName);
+      const id=String(type === "movie" ? (x.trackId||title) : (x.collectionId||x.trackId||title));
+      return {
+        id,title:String(title||"Untitled"),
+        year:String(x.releaseDate||"").slice(0,4),
+        genre:String(x.primaryGenreName||""),
+        poster:String(x.artworkUrl100||"").replace(/100x100bb/g,"600x600bb"),
+        description:String(x.longDescription||x.shortDescription||x.description||"").slice(0,900),
+        preview:String(x.previewUrl||""),
+        store:String(x.trackViewUrl||x.collectionViewUrl||""),
+        season:type === "series" ? Number(x.discNumber||0) : 0
+      };
+    }).filter(x=>x.title && !seen.has(x.id) && seen.add(x.id));
+    res.setHeader("Cache-Control","public,max-age=120,s-maxage=300");
+    res.json({ok:true,type,query:raw,items});
+  } catch(e) {
+    res.status(500).json({ok:false,error:e?.name === "TimeoutError" ? "Catalog timed out" : "Catalog failed"});
+  }
+});
+
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {
   extensions: ["html"],
