@@ -13,6 +13,7 @@ const headers = require("./api/osint/headers");
 const robots = require("./api/osint/robots");
 const username = require("./api/osint/username");
 const archiveMedia = require("./api/media/archive");
+const archiveStream = archiveMedia.stream;
 
 const app = express();
 app.disable("x-powered-by");
@@ -21,7 +22,7 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
   next();
 });
 
@@ -35,6 +36,7 @@ app.get("/api/osint/headers", headers);
 app.get("/api/osint/robots", robots);
 app.get("/api/osint/username", username);
 app.get("/api/media/archive", archiveMedia);
+app.get("/api/media/stream", archiveStream);
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {

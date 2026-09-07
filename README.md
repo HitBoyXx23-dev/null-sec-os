@@ -1,4 +1,4 @@
-# Null Sec OS 6.0
+# Null Sec OS 6.2 Full Fixed
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -152,3 +152,15 @@ Adds a streaming-first catalog inspired by modern movie sites, but backed by Int
 The backend endpoint `/api/media/archive` performs catalog search and item metadata lookup. Browser-playable MP4/WebM files are selected from the item's Archive metadata and played directly inside the Null Cinema detail view.
 
 This build does not copy or aggregate unauthorized commercial movie/TV streams, bypass subscriptions, or defeat DRM.
+
+
+## 6.2 full media reliability build
+
+- Full repository, not a partial patch.
+- Null Cinema: Discover, My List, Continue Watching, resume progress.
+- Open-media mirror routing: Internet Archive metadata-provided download hosts plus archive.org fallback.
+- Same-origin `/api/media/stream` playback proxy with HTTP Range support for seeking.
+- Live TV cards now provide primary/fallback official links.
+- COEP changed from `require-corp` to `credentialless` for better cross-origin media compatibility while keeping cross-origin isolation on supported Chromium builds.
+- Existing Scramjet, Wisp, chat, voice, Vault, OSINT, games and classic UI retained.
+- No unauthorized commercial-stream mirrors, subscription bypass, DRM bypass or adult-site-specific access bypasses are included.

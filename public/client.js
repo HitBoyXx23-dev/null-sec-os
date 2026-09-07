@@ -297,135 +297,39 @@ function renderMedia(b){
 
 function renderLiveTV(b){
   const channels=[
-    {name:'NASA Live',group:'SPACE',desc:'NASA live events and NASA+ programming',url:'https://www.nasa.gov/live/',badge:'NASA'},
-    {name:'NASA+',group:'SPACE',desc:'Free, ad-free NASA streaming platform',url:'https://plus.nasa.gov/',badge:'N+'},
-    {name:'Al Jazeera English',group:'NEWS',desc:'Official live English news page',url:'https://www.aljazeera.com/live/',badge:'AJE'},
-    {name:'France 24',group:'NEWS',desc:'Official France 24 live page',url:'https://www.france24.com/en/live',badge:'F24'},
-    {name:'DW English',group:'NEWS',desc:'Official Deutsche Welle live TV page',url:'https://www.dw.com/en/live-tv/channel-english',badge:'DW'},
-    {name:'Euronews',group:'NEWS',desc:'Official Euronews live page',url:'https://www.euronews.com/live',badge:'EU'},
-    {name:'ABC News Live',group:'NEWS',desc:'Official ABC News live page',url:'https://abcnews.go.com/Live',badge:'ABC'},
-    {name:'CBS News 24/7',group:'NEWS',desc:'Official CBS News live page',url:'https://www.cbsnews.com/live/',badge:'CBS'},
-    {name:'PBS',group:'PUBLIC',desc:'PBS live and local station streaming',url:'https://www.pbs.org/livestream/',badge:'PBS'},
-    {name:'Internet Archive TV',group:'ARCHIVE',desc:'Television archive collections',url:'https://archive.org/details/tv',badge:'IA'}
+    {name:'NASA Live',group:'SPACE',desc:'NASA live events and NASA+ programming',badge:'NASA',sources:[['NASA LIVE','https://www.nasa.gov/live/'],['NASA+','https://plus.nasa.gov/']]},
+    {name:'Al Jazeera English',group:'NEWS',desc:'Official live English news',badge:'AJE',sources:[['LIVE','https://www.aljazeera.com/live/'],['VIDEO','https://www.aljazeera.com/videos/']]},
+    {name:'France 24',group:'NEWS',desc:'Official France 24 live page',badge:'F24',sources:[['LIVE','https://www.france24.com/en/live'],['VIDEO','https://www.france24.com/en/video/']]},
+    {name:'DW English',group:'NEWS',desc:'Official Deutsche Welle live TV',badge:'DW',sources:[['LIVE TV','https://www.dw.com/en/live-tv/channel-english'],['VIDEO','https://www.dw.com/en/media-center/live-tv/s-100825']]},
+    {name:'Euronews',group:'NEWS',desc:'Official Euronews live page',badge:'EU',sources:[['LIVE','https://www.euronews.com/live'],['VIDEO','https://www.euronews.com/video']]},
+    {name:'ABC News Live',group:'NEWS',desc:'Official ABC News live',badge:'ABC',sources:[['LIVE','https://abcnews.go.com/Live'],['VIDEO','https://abcnews.go.com/Video']]},
+    {name:'CBS News 24/7',group:'NEWS',desc:'Official CBS News live',badge:'CBS',sources:[['LIVE','https://www.cbsnews.com/live/'],['VIDEO','https://www.cbsnews.com/video/']]},
+    {name:'PBS',group:'PUBLIC',desc:'PBS livestream and local stations',badge:'PBS',sources:[['LIVE','https://www.pbs.org/livestream/'],['VIDEO','https://www.pbs.org/video/']]},
+    {name:'Internet Archive TV',group:'ARCHIVE',desc:'Television archive collections',badge:'IA',sources:[['TV ARCHIVE','https://archive.org/details/tv'],['MOVIES','https://archive.org/details/feature_films']]}
   ];
-  let group='ALL',query='';
-  const groups=['ALL',...new Set(channels.map(x=>x.group))];
-
-  b.innerHTML=`<div class="tv-shell">
-    <div class="tv-hero">
-      <div><div class="section-tag">NULL LIVE TV</div><h1>LIVE // NOW</h1><p>Official free live pages and public broadcasters. Channels stay inside Null Browser.</p></div>
-      <div class="tv-search"><input class="field tv-q" placeholder="Search channels"><span class="tv-live-dot">● LIVE</span></div>
-    </div>
-    <div class="tv-groups">${groups.map(g=>`<button class="btn tv-group ${g==='ALL'?'active':''}" data-group="${g}">${g}</button>`).join('')}</div>
-    <div class="tv-grid"></div>
-    <div class="panel muted">Availability, geoblocking and player compatibility are controlled by each broadcaster. Null Sec does not bypass subscriptions, DRM or access restrictions.</div>
-  </div>`;
-
+  let group='ALL',query=''; const groups=['ALL',...new Set(channels.map(x=>x.group))];
+  b.innerHTML=`<div class="tv-shell"><div class="tv-hero"><div><div class="section-tag">NULL LIVE TV</div><h1>LIVE // SOURCES</h1><p>Official free live pages with fallback source buttons. Use another source if one player fails.</p></div><div class="tv-search"><input class="field tv-q" placeholder="Search channels"><span class="tv-live-dot">● LIVE</span></div></div><div class="tv-groups">${groups.map(g=>`<button class="btn tv-group ${g==='ALL'?'active':''}" data-group="${g}">${g}</button>`).join('')}</div><div class="tv-grid"></div><div class="panel muted">Fallbacks stay on official/open providers. Null Sec does not bypass subscriptions, DRM, geoblocks or access controls.</div></div>`;
   const grid=b.querySelector('.tv-grid');
-  function draw(){
-    const q=query.toLowerCase();
-    const list=channels.filter(x=>(group==='ALL'||x.group===group)&&(`${x.name} ${x.desc} ${x.group}`.toLowerCase().includes(q)));
-    grid.innerHTML=list.map(x=>`<button class="tv-card" data-url="${x.url}">
-      <div class="tv-badge">${x.badge}</div>
-      <div class="tv-meta"><b>${x.name}</b><small>${x.group} // ${x.desc}</small></div>
-      <span class="tv-play">WATCH ›</span>
-    </button>`).join('')||'<div class="panel muted">No channels match.</div>';
-    grid.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>openInNullBrowser(x.dataset.url));
-  }
-  b.querySelector('.tv-q').oninput=e=>{query=e.target.value;draw()};
-  b.querySelectorAll('.tv-group').forEach(btn=>btn.onclick=()=>{
-    b.querySelectorAll('.tv-group').forEach(x=>x.classList.remove('active'));
-    btn.classList.add('active');group=btn.dataset.group;draw();
-  });
-  draw();
+  function draw(){const q=query.toLowerCase(), list=channels.filter(x=>(group==='ALL'||x.group===group)&&(`${x.name} ${x.desc} ${x.group}`.toLowerCase().includes(q)));
+    grid.innerHTML=list.map((x,idx)=>`<div class="tv-card tv-card-multi"><div class="tv-badge">${x.badge}</div><div class="tv-meta"><b>${x.name}</b><small>${x.group} // ${x.desc}</small><div class="tv-mirrors">${x.sources.map((s,i)=>`<button class="btn tv-source" data-c="${idx}" data-s="${i}">${i===0?'PRIMARY':'MIRROR'} // ${s[0]}</button>`).join('')}</div></div></div>`).join('')||'<div class="panel muted">No channels match.</div>';
+    grid.querySelectorAll('.tv-source').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const list2=channels.filter(x=>(group==='ALL'||x.group===group)&&(`${x.name} ${x.desc} ${x.group}`.toLowerCase().includes(q)));const ch=list2[Number(btn.dataset.c)],src=ch?.sources[Number(btn.dataset.s)];if(src)openInNullBrowser(src[1])});}
+  b.querySelector('.tv-q').oninput=e=>{query=e.target.value;draw()};b.querySelectorAll('.tv-group').forEach(btn=>btn.onclick=()=>{b.querySelectorAll('.tv-group').forEach(x=>x.classList.remove('active'));btn.classList.add('active');group=btn.dataset.group;draw()});draw();
 }
 
 function renderCinema(b){
-  let page=1,lastQuery='',items=[];
-  b.innerHTML=`<div class="cinema-shell">
-    <div class="cinema-hero">
-      <div class="cinema-shade"></div>
-      <div class="cinema-hero-content">
-        <div class="section-tag">NULL CINEMA // OPEN CATALOG</div>
-        <h1>WATCH THE ARCHIVE.</h1>
-        <p>Public-domain and openly hosted films in a streaming-first interface.</p>
-        <div class="cinema-searchbar"><input class="field cinema-search" placeholder="Search films, creators, keywords"><button class="btn cinema-go">SEARCH</button></div>
-      </div>
-    </div>
-    <div class="cinema-status">LOADING CATALOG...</div>
-    <div class="cinema-grid"></div>
-    <div class="cinema-pager"><button class="btn cinema-prev">PREV</button><span class="cinema-page">PAGE 1</span><button class="btn cinema-next">NEXT</button></div>
-    <div class="cinema-modal hidden">
-      <button class="cinema-close">×</button>
-      <div class="cinema-detail"></div>
-    </div>
-  </div>`;
-
-  const grid=b.querySelector('.cinema-grid'),status=b.querySelector('.cinema-status'),modal=b.querySelector('.cinema-modal'),detail=b.querySelector('.cinema-detail');
-
-  async function load(){
-    status.textContent='LOADING CATALOG...';
-    grid.innerHTML='<div class="cinema-loading">SCANNING ARCHIVE...</div>';
-    try{
-      const q=b.querySelector('.cinema-search').value.trim();
-      lastQuery=q;
-      const r=await fetch('/api/media/archive?q='+encodeURIComponent(q)+'&page='+page,{cache:'no-store'});
-      const data=await r.json();
-      if(!r.ok)throw new Error(data.error||'Catalog unavailable');
-      items=data.items||[];
-      status.textContent=`${Number(data.total||0).toLocaleString()} TITLES // ${q?`QUERY: ${q.toUpperCase()}`:'POPULAR PUBLIC-DOMAIN FILMS'}`;
-      b.querySelector('.cinema-page').textContent='PAGE '+page;
-      grid.innerHTML=items.map((x,i)=>`<button class="cinema-card" data-id="${x.id}" style="--delay:${i*12}ms">
-        <div class="cinema-poster"><img loading="lazy" src="${x.thumbnail}" alt=""><span class="cinema-playmark">▶</span></div>
-        <b>${escapeHtml(x.title)}</b>
-        <small>${escapeHtml([x.year,x.creator].filter(Boolean).join(' // '))}</small>
-      </button>`).join('')||'<div class="panel muted">No films found.</div>';
-      grid.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>openTitle(x.dataset.id));
-    }catch(e){
-      status.textContent='CATALOG ERROR';
-      grid.innerHTML=`<div class="panel bad">${escapeHtml(e.message)}</div>`;
-    }
-  }
-
-  async function openTitle(id){
-    modal.classList.remove('hidden');
-    detail.innerHTML='<div class="cinema-loading">LOADING TITLE...</div>';
-    try{
-      const r=await fetch('/api/media/archive?mode=details&id='+encodeURIComponent(id),{cache:'no-store'});
-      const x=await r.json();
-      if(!r.ok)throw new Error(x.error||'Title unavailable');
-      detail.innerHTML=`<div class="cinema-detail-grid">
-        <img class="cinema-detail-poster" src="${x.thumbnail}" alt="">
-        <div class="cinema-info">
-          <div class="section-tag">ARCHIVE TITLE</div>
-          <h2>${escapeHtml(x.title)}</h2>
-          <div class="cinema-facts">${escapeHtml([x.year,x.creator].filter(Boolean).join(' // '))}</div>
-          <p>${escapeHtml(x.description||'No description available.')}</p>
-          <div class="cinema-actions">
-            ${x.media?'<button class="btn cinema-watch">▶ WATCH NOW</button>':''}
-            <button class="btn cinema-page-open">ARCHIVE PAGE</button>
-          </div>
-          ${x.media?`<div class="cinema-player-wrap hidden"><video class="cinema-player" controls playsinline preload="metadata"></video></div>`:'<div class="panel muted">No browser-playable MP4/WebM file was found for this item.</div>'}
-        </div>
-      </div>`;
-      detail.querySelector('.cinema-page-open').onclick=()=>openInNullBrowser(x.page);
-      const watch=detail.querySelector('.cinema-watch');
-      if(watch)watch.onclick=()=>{
-        const wrap=detail.querySelector('.cinema-player-wrap'),video=detail.querySelector('.cinema-player');
-        wrap.classList.remove('hidden');video.src=x.media.url;video.play().catch(()=>{});
-        watch.textContent='PLAYING';
-      };
-    }catch(e){
-      detail.innerHTML=`<div class="panel bad">${escapeHtml(e.message)}</div>`;
-    }
-  }
-
-  b.querySelector('.cinema-go').onclick=()=>{page=1;load()};
-  b.querySelector('.cinema-search').onkeydown=e=>{if(e.key==='Enter'){page=1;load()}};
-  b.querySelector('.cinema-prev').onclick=()=>{if(page>1){page--;load()}};
-  b.querySelector('.cinema-next').onclick=()=>{page++;load()};
-  b.querySelector('.cinema-close').onclick=()=>{modal.classList.add('hidden');detail.innerHTML=''};
-  load();
+  const WL='nullsec.cinema.watchlist.v2',CW='nullsec.cinema.continue.v2'; let page=1,query='',mode='discover';
+  const getStore=(k,d=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}},setStore=(k,v)=>localStorage.setItem(k,JSON.stringify(v)),watchlist=()=>getStore(WL,[]),continueList=()=>getStore(CW,[]);
+  b.innerHTML=`<div class="cinema-shell"><div class="cinema-topbar"><div class="cinema-brand"><span>NULL</span> CINEMA</div><div class="cinema-tabs"><button class="cinema-tab active" data-mode="discover">DISCOVER</button><button class="cinema-tab" data-mode="watchlist">MY LIST</button><button class="cinema-tab" data-mode="continue">CONTINUE</button></div></div><div class="cinema-hero"><div class="cinema-shade"></div><div class="cinema-hero-content"><div class="section-tag">NULL CINEMA // MIRRORED OPEN MEDIA</div><h1>STREAM THE ARCHIVE.</h1><p>Public-domain/open films with automatic source fallback, watchlist and resume.</p><div class="cinema-searchbar"><input class="field cinema-search" placeholder="Search films, creators, keywords"><button class="btn cinema-go">SEARCH</button></div></div></div><div class="cinema-rail continue-rail hidden"><div class="cinema-rail-head"><b>CONTINUE WATCHING</b><span>LOCAL TO THIS BROWSER</span></div><div class="cinema-rail-items"></div></div><div class="cinema-status">LOADING CATALOG...</div><div class="cinema-grid"></div><div class="cinema-pager"><button class="btn cinema-prev">PREV</button><span class="cinema-page">PAGE 1</span><button class="btn cinema-next">NEXT</button></div><div class="cinema-modal hidden"><button class="cinema-close">×</button><div class="cinema-detail"></div></div></div>`;
+  const grid=b.querySelector('.cinema-grid'),status=b.querySelector('.cinema-status'),modal=b.querySelector('.cinema-modal'),detail=b.querySelector('.cinema-detail'),rail=b.querySelector('.continue-rail'),railItems=b.querySelector('.cinema-rail-items');
+  const isSaved=id=>watchlist().some(x=>x.id===id);
+  function toggleSaved(item){let a=watchlist();a=a.some(x=>x.id===item.id)?a.filter(x=>x.id!==item.id):[item,...a];setStore(WL,a.slice(0,100));}
+  function remember(item,t,d){let a=continueList().filter(x=>x.id!==item.id);a.unshift({...item,time:+t||0,duration:+d||0,updatedAt:Date.now()});setStore(CW,a.slice(0,30));drawRail();}
+  function drawRail(){const a=continueList().filter(x=>x.duration>0&&x.time>2&&x.time<x.duration-5);if(!a.length){rail.classList.add('hidden');railItems.innerHTML='';return}rail.classList.remove('hidden');railItems.innerHTML=a.slice(0,10).map(x=>`<button class="cinema-rail-card" data-id="${x.id}"><img src="${x.thumbnail}" alt=""><span>${escapeHtml(x.title)}</span><i><em style="width:${Math.max(0,Math.min(100,x.time/x.duration*100))}%"></em></i></button>`).join('');railItems.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>openTitle(x.dataset.id));}
+  function cards(a){grid.innerHTML=a.map((x,i)=>`<button class="cinema-card" data-id="${x.id}" style="--delay:${i*12}ms"><div class="cinema-poster"><img loading="lazy" src="${x.thumbnail}" alt=""><span class="cinema-playmark">▶</span>${isSaved(x.id)?'<span class="cinema-saved">✓ MY LIST</span>':''}</div><b>${escapeHtml(x.title)}</b><small>${escapeHtml([x.year,x.creator].filter(Boolean).join(' // '))}</small></button>`).join('')||'<div class="panel muted">Nothing here yet.</div>';grid.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>openTitle(x.dataset.id));}
+  async function discover(){status.textContent='LOADING CATALOG...';grid.innerHTML='<div class="cinema-loading">SCANNING ARCHIVE...</div>';try{const r=await fetch('/api/media/archive?q='+encodeURIComponent(query)+'&page='+page,{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Catalog unavailable');status.textContent=`${Number(d.total||0).toLocaleString()} TITLES // ${query?'QUERY: '+query.toUpperCase():'POPULAR OPEN FILMS'}`;b.querySelector('.cinema-page').textContent='PAGE '+page;cards(d.items||[])}catch(e){status.textContent='CATALOG ERROR';grid.innerHTML=`<div class="panel bad">${escapeHtml(e.message)}</div>`}}
+  async function loadMode(){b.querySelector('.cinema-pager').style.display=mode==='discover'?'flex':'none';if(mode==='discover')return discover();const a=mode==='watchlist'?watchlist():continueList();status.textContent=(mode==='watchlist'?'MY LIST // ':'CONTINUE WATCHING // ')+a.length;cards(a)}
+  async function openTitle(id){modal.classList.remove('hidden');detail.innerHTML='<div class="cinema-loading">LOADING TITLE...</div>';try{const r=await fetch('/api/media/archive?mode=details&id='+encodeURIComponent(id),{cache:'no-store'}),x=await r.json();if(!r.ok)throw new Error(x.error||'Title unavailable');const saved=continueList().find(y=>y.id===x.id),item={id:x.id,title:x.title,thumbnail:x.thumbnail,year:x.year,creator:x.creator};detail.innerHTML=`<div class="cinema-detail-grid"><img class="cinema-detail-poster" src="${x.thumbnail}" alt=""><div class="cinema-info"><div class="section-tag">ARCHIVE TITLE</div><h2>${escapeHtml(x.title)}</h2><div class="cinema-facts">${escapeHtml([x.year,x.creator].filter(Boolean).join(' // '))}</div><p>${escapeHtml(x.description||'No description available.')}</p><div class="cinema-actions">${x.media?'<button class="btn cinema-watch">▶ WATCH NOW</button>':''}<button class="btn cinema-save">${isSaved(x.id)?'✓ IN MY LIST':'+ MY LIST'}</button><button class="btn cinema-trailer">TRAILER / SEARCH</button><button class="btn cinema-page-open">SOURCE PAGE</button></div>${x.media?`<div class="cinema-mirrorbox"><b>PLAYBACK ROUTE</b><span>SAME-ORIGIN AUTO MIRROR</span><small>${(x.media.mirrors||[]).length} open source route(s) available</small></div><div class="cinema-player-wrap hidden"><video class="cinema-player" controls playsinline preload="metadata"></video><div class="cinema-player-note">Automatic fallback across Internet Archive hosts. Range requests supported.</div></div>`:'<div class="panel muted">No browser-playable open media file was found.</div>'}<div class="cinema-provider"><b>OFFICIAL / OPEN LINKS</b><div><button class="btn provider" data-provider="https://www.youtube.com/results?search_query=${encodeURIComponent(x.title+' official trailer')}">YOUTUBE SEARCH</button><button class="btn provider" data-provider="https://www.justwatch.com/us/search?q=${encodeURIComponent(x.title)}">JUSTWATCH</button><button class="btn provider" data-provider="${x.page}">INTERNET ARCHIVE</button></div></div></div></div>`;detail.querySelector('.cinema-page-open').onclick=()=>openInNullBrowser(x.page);detail.querySelector('.cinema-trailer').onclick=()=>openInNullBrowser('https://www.youtube.com/results?search_query='+encodeURIComponent(x.title+' official trailer'));detail.querySelectorAll('.provider').forEach(q=>q.onclick=()=>openInNullBrowser(q.dataset.provider));detail.querySelector('.cinema-save').onclick=()=>{toggleSaved(item);detail.querySelector('.cinema-save').textContent=isSaved(x.id)?'✓ IN MY LIST':'+ MY LIST';if(mode!=='discover')loadMode()};const w=detail.querySelector('.cinema-watch');if(w)w.onclick=()=>{const wrap=detail.querySelector('.cinema-player-wrap'),v=detail.querySelector('.cinema-player');wrap.classList.remove('hidden');v.src=x.media.stream;v.onloadedmetadata=()=>{if(saved?.time&&saved.time<v.duration-5)v.currentTime=saved.time;v.play().catch(()=>{})};let last=0;v.ontimeupdate=()=>{if(Date.now()-last>4000){last=Date.now();remember(item,v.currentTime,v.duration)}};v.onpause=()=>remember(item,v.currentTime,v.duration);v.onended=()=>{setStore(CW,continueList().filter(y=>y.id!==x.id));drawRail()};w.textContent='PLAYING'};}catch(e){detail.innerHTML=`<div class="panel bad">${escapeHtml(e.message)}</div>`}}
+  b.querySelector('.cinema-go').onclick=()=>{query=b.querySelector('.cinema-search').value.trim();page=1;mode='discover';b.querySelectorAll('.cinema-tab').forEach(x=>x.classList.toggle('active',x.dataset.mode==='discover'));loadMode()};b.querySelector('.cinema-search').onkeydown=e=>{if(e.key==='Enter')b.querySelector('.cinema-go').click()};b.querySelector('.cinema-prev').onclick=()=>{if(page>1){page--;discover()}};b.querySelector('.cinema-next').onclick=()=>{page++;discover()};b.querySelector('.cinema-close').onclick=()=>{modal.classList.add('hidden');detail.innerHTML=''};b.querySelectorAll('.cinema-tab').forEach(btn=>btn.onclick=()=>{mode=btn.dataset.mode;b.querySelectorAll('.cinema-tab').forEach(x=>x.classList.toggle('active',x===btn));loadMode()});drawRail();loadMode();
 }
 
 function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="media-el" controls playsinline></video><div class="video-tools"><input class="field media-url" placeholder="Direct .mp4, .webm, .mp3, .ogg or stream URL"><button class="btn media-load">LOAD</button></div></div>`;b.querySelector('.media-load').onclick=()=>{b.querySelector('.media-el').src=b.querySelector('.media-url').value.trim();b.querySelector('.media-el').play().catch(()=>{})}}
