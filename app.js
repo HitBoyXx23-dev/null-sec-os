@@ -12,8 +12,6 @@ const ct = require("./api/osint/ct");
 const headers = require("./api/osint/headers");
 const robots = require("./api/osint/robots");
 const username = require("./api/osint/username");
-const archiveMedia = require("./api/media/archive");
-const archiveStream = archiveMedia.stream;
 
 const app = express();
 app.disable("x-powered-by");
@@ -35,8 +33,114 @@ app.get("/api/osint/ct", ct);
 app.get("/api/osint/headers", headers);
 app.get("/api/osint/robots", robots);
 app.get("/api/osint/username", username);
-app.get("/api/media/archive", archiveMedia);
-app.get("/api/media/stream", archiveStream);
+
+
+/* ---------------- Dual proxy vendor routes: real UV + Scramjet ---------------- */
+let uvStatic = null;
+let epoxyStatic = null;
+let baremuxStatic = null;
+let uvVendorReady = null;
+
+function getUvVendorReady() {
+  if (uvVendorReady) return uvVendorReady;
+  uvVendorReady = Promise.all([
+    import("@titaniumnetwork-dev/ultraviolet"),
+    import("@mercuryworkshop/epoxy-transport"),
+    import("@mercuryworkshop/bare-mux/node")
+  ]).then(([uvMod, epoxyMod, baremuxMod]) => {
+    uvStatic = express.static(uvMod.uvPath);
+    epoxyStatic = express.static(epoxyMod.epoxyPath);
+    baremuxStatic = express.static(baremuxMod.baremuxPath);
+    return true;
+  }).catch((error) => {
+    uvVendorReady = null;
+    throw error;
+  });
+  return uvVendorReady;
+}
+
+app.use("/uv/", async (req, res, next) => {
+  try { await getUvVendorReady(); uvStatic(req, res, next); } catch (e) { next(e); }
+});
+app.use("/epoxy/", async (req, res, next) => {
+  try { await getUvVendorReady(); epoxyStatic(req, res, next); } catch (e) { next(e); }
+});
+app.use("/baremux/", async (req, res, next) => {
+  try { await getUvVendorReady(); baremuxStatic(req, res, next); } catch (e) { next(e); }
+});
+
+app.get("/api/proxy-status", async (req, res) => {
+  const fs = require("node:fs");
+  try {
+    await getUvVendorReady();
+    const sjFiles = [
+      "vendor/controller/controller.api.js",
+      "vendor/controller/controller.sw.js",
+      "vendor/controller/controller.inject.js",
+      "vendor/scramjet/scramjet.js",
+      "vendor/scramjet/scramjet.wasm",
+      "vendor/libcurl/index.mjs"
+    ];
+    const missing = sjFiles.filter(x => !fs.existsSync(path.join(__dirname, "public", x)));
+    res.status(missing.length ? 500 : 200).json({
+      ok: missing.length === 0,
+      engines: {
+        scramjet: { ok: missing.length === 0, missing },
+        ultraviolet: { ok: true, routes: ["/uv/", "/baremux/", "/epoxy/"] }
+      },
+      wisp: "/wisp/"
+    });
+  } catch (error) {
+    res.status(500).json({ ok:false, error:error.message });
+  }
+});
+
+/* HitBoyStream Live TV follows the same upstream source flow as the repo:
+   GitHub iptv-org country playlists, fetched server-side to avoid browser CORS. */
+app.get("/api/hbs/countries", async (req, res) => {
+  try {
+    const r = await fetch("https://api.github.com/repos/iptv-org/iptv/contents/streams", {
+      headers: { "User-Agent": "Null-Sec-OS/6.3", "Accept": "application/vnd.github+json" },
+      signal: AbortSignal.timeout(12000)
+    });
+    if (!r.ok) return res.status(r.status).json({error:"TV source unavailable"});
+    const data = await r.json();
+    const items = (Array.isArray(data) ? data : [])
+      .filter(x => x && typeof x.name === "string" && x.name.endsWith(".m3u") && typeof x.path === "string")
+      .map(x => ({name:x.name.replace(/\.m3u$/i,"").toUpperCase(), path:x.path}));
+    res.setHeader("Cache-Control","public,max-age=300,s-maxage=900");
+    res.json({items});
+  } catch (e) {
+    res.status(500).json({error:"TV country list failed"});
+  }
+});
+
+app.get("/api/hbs/playlist", async (req, res) => {
+  try {
+    const p = String(req.query.path || "");
+    if (!/^streams\/[A-Za-z0-9._-]+\.m3u$/.test(p)) return res.status(400).json({error:"Invalid playlist path"});
+    const r = await fetch("https://raw.githubusercontent.com/iptv-org/iptv/master/" + p, {
+      headers: { "User-Agent": "Null-Sec-OS/6.3" },
+      signal: AbortSignal.timeout(12000)
+    });
+    if (!r.ok) return res.status(r.status).json({error:"TV playlist unavailable"});
+    const text = await r.text();
+    const lines = text.split(/\r?\n/);
+    const items = [];
+    for (let i=0;i<lines.length;i++) {
+      if (!lines[i].startsWith("#EXTINF")) continue;
+      const title = (lines[i].split(",").slice(1).join(",") || "Untitled").trim().slice(0,160);
+      const url = String(lines[i+1] || "").trim();
+      if (/^https?:\/\//i.test(url)) items.push({title,url});
+      i++;
+    }
+    res.setHeader("Cache-Control","public,max-age=120,s-maxage=300");
+    res.json({items:items.slice(0,2500)});
+  } catch (e) {
+    res.status(500).json({error:"TV playlist failed"});
+  }
+});
+
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {
@@ -101,7 +205,7 @@ app.get(/^\/~\/sj\/.*/, (req, res) => {
 });
 
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/")) {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/") || req.path.startsWith("/uv/") || req.path.startsWith("/epoxy/") || req.path.startsWith("/baremux/")) {
     return next();
   }
   if (req.method !== "GET" && req.method !== "HEAD") return next();

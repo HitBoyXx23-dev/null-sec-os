@@ -58,11 +58,24 @@ function pkgRootFromEntry(entry,pkgName){
     copyFile(src,path.join(out,'libcurl',name));
   }
 
+
+  // HLS.js for HitBoyStream-style Live TV playback.
+  const hlsEntry=require.resolve('hls.js');
+  const hlsRoot=pkgRootFromEntry(hlsEntry,'hls.js');
+  const hlsCandidates=[
+    path.join(hlsRoot,'dist','hls.min.js'),
+    path.join(hlsRoot,'dist','hls.light.min.js')
+  ];
+  const hlsSrc=hlsCandidates.find(fs.existsSync);
+  if(!hlsSrc) throw new Error('Missing HLS.js browser bundle');
+  copyFile(hlsSrc,path.join(out,'hls','hls.min.js'));
+
   const manifest={
     generatedAt:new Date().toISOString(),
     controller:['controller.api.js','controller.inject.js','controller.sw.js'],
     scramjet:['scramjet.js','scramjet.wasm'],
-    libcurl:['index.mjs']
+    libcurl:['index.mjs'],
+    hls:['hls.min.js']
   };
   fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
   console.log('Null Sec proxy assets copied to public/vendor');

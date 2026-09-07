@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "6.2.0",
+  "version": "6.3.0",
   "private": true,
-  "description": "Null Sec OS full build with mirrored open-media playback, Live TV fallbacks, Cinema watchlist/resume, chat voice, Vault, OSINT and Scramjet",
+  "description": "Null Sec OS dual-proxy build with Scramjet + real Ultraviolet and HitBoyStream-based media/live TV",
   "main": "app.js",
   "type": "commonjs",
   "engines": {
@@ -20,6 +20,10 @@
     "@mercuryworkshop/scramjet-controller": "0.0.14",
     "@mercuryworkshop/scramjet-utils": "0.0.3",
     "@mercuryworkshop/libcurl-transport": "2.0.5",
-    "@mercuryworkshop/wisp-js": "0.4.1"
+    "@mercuryworkshop/wisp-js": "0.4.1",
+    "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
+    "@mercuryworkshop/bare-mux": "^2.1.8",
+    "@mercuryworkshop/epoxy-transport": "2.1.28",
+    "hls.js": "^1.6.13"
   }
 }

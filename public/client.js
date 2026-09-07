@@ -40,6 +40,22 @@ function youtubeId(u){try{const x=new URL(u);if(x.hostname.includes('youtu.be'))
 let nullSjController=null;
 let nullSjTransport=null;
 
+let nullUvConnection=null;
+
+async function ensureRealUV(){
+  if(!window.BareMux||!window.__uv$config)throw new Error('Ultraviolet assets did not load');
+  if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
+  await navigator.serviceWorker.register('/uv/sw.js',{scope:'/uv/'});
+  await navigator.serviceWorker.ready;
+  if(!nullUvConnection)nullUvConnection=new BareMux.BareMuxConnection('/baremux/worker.js');
+  const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
+  const current=await nullUvConnection.getTransport();
+  if(current!=='/epoxy/index.mjs'){
+    await nullUvConnection.setTransport('/epoxy/index.mjs',[{wisp}]);
+  }
+  return nullUvConnection;
+}
+
 async function waitForServiceWorkerControl(){
   if(navigator.serviceWorker.controller)return navigator.serviceWorker.controller;
   const reg=await navigator.serviceWorker.ready;
@@ -152,33 +168,55 @@ function nullYoutubeEmbedUrl(id){
 }
 
 function renderBrowser(b){
+  const storedEngine=localStorage.getItem('nullsec.proxyEngine')||'auto';
   b.innerHTML=`<div class="browser">
     <div class="browser-bar">
       <button class="back" title="Back">←</button><button class="home" title="Home">⌂</button><button class="reload" title="Reload">↻</button>
-      <div class="browser-address"><span>SJ</span><input class="url" placeholder="URL or search"></div>
+      <select class="field proxy-engine" title="Proxy engine">
+        <option value="auto">AUTO</option><option value="scramjet">SCRAMJET</option><option value="uv">ULTRAVIOLET</option>
+      </select>
+      <div class="browser-address"><span class="engine-badge">AUTO</span><input class="url" placeholder="URL or search"></div>
       <button class="go">CONNECT</button>
     </div>
     <div class="browser-view">
       <div class="browser-home"><div class="browser-card">
-        <div class="browser-kicker">SCRAMJET 2 CONTROLLER</div><div class="glyph">◎</div><h1>NULL BROWSER</h1>
-        <p>All external navigation stays inside Scramjet. Null Browser never points its main iframe directly at a remote website.</p>
+        <div class="browser-kicker">DUAL PROXY ROUTER</div><div class="glyph">◎</div><h1>NULL BROWSER</h1>
+        <p>Scramjet 2 + real Ultraviolet 3. Auto prefers UV for YouTube and Scramjet for general browsing. You can switch engines at any time.</p>
         <form><input placeholder="Search or enter address"><button>CONNECT</button></form>
-        <div class="quick-sites"><button data-url="https://www.google.com">GOOGLE</button><button data-url="https://www.youtube.com">YOUTUBE</button><button data-url="https://www.wikipedia.org">WIKIPEDIA</button><button data-url="https://archive.org">ARCHIVE</button></div>
+        <div class="quick-sites">
+          <button data-url="https://www.google.com">GOOGLE</button>
+          <button data-url="https://www.youtube.com">YOUTUBE</button>
+          <button data-url="https://www.wikipedia.org">WIKIPEDIA</button>
+          <button data-url="https://hitboyxx23-dev.github.io/hitboystream/live/live.html">HITBOY LIVE</button>
+        </div>
       </div></div>
       <div class="sj-host"></div>
-      <div class="browser-error"><div><b>SCRAMJET CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
+      <iframe class="frame uv-frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write"></iframe>
+      <div class="browser-error"><div><b>NULL BROWSER CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
     </div>
-    <div class="browser-note"><span>ENGINE: <b>SCRAMJET 2.x</b></span><span>EXTERNAL PAGES: SCRAMJET ONLY</span><span>POPUPS: STAY IN NULL BROWSER</span></div>
+    <div class="browser-note">
+      <span>ENGINE: <b class="engine-state">AUTO</b></span>
+      <span>SCRAMJET: <b>SJ 2.x / LIBCURL</b></span>
+      <span>UV: <b>UV 3 / EPOXY</b></span>
+    </div>
   </div>`;
 
-  const host=b.querySelector('.sj-host'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error');
-  let current='',sjFrame=null;
+  const host=b.querySelector('.sj-host'),uvFrame=b.querySelector('.uv-frame'),home=b.querySelector('.browser-home'),
+        url=b.querySelector('.url'),err=b.querySelector('.browser-error'),select=b.querySelector('.proxy-engine'),
+        badge=b.querySelector('.engine-badge'),engineState=b.querySelector('.engine-state');
+  select.value=storedEngine;
+  badge.textContent=storedEngine.toUpperCase();
+  let current='',sjFrame=null,activeEngine='';
 
-  function frameElement(){
-    return sjFrame?.element||null;
+  function frameElement(){return activeEngine==='uv'?uvFrame:(sjFrame?.element||null)}
+  function showEngine(name){
+    activeEngine=name;
+    badge.textContent=name.toUpperCase();
+    engineState.textContent=name.toUpperCase();
+    host.style.display=name==='scramjet'?'block':'none';
+    uvFrame.style.display=name==='uv'?'block':'none';
   }
-
-  async function ensureFrame(){
+  async function ensureSjFrame(){
     const controller=await ensureScramjet();
     if(!sjFrame){
       const iframe=document.createElement('iframe');
@@ -190,44 +228,52 @@ function renderBrowser(b){
     }
     return sjFrame;
   }
-
-  async function go(raw){
-    let directToken=String(raw||url.value||'');
-    let videoId=null;
-    if(directToken.startsWith('nullsec-youtube:')){
-      videoId=directToken.slice('nullsec-youtube:'.length);
-    }else{
-      const normalized=normalizeTarget(directToken);
-      if(!normalized)return;
-      directToken=normalized;
-      videoId=nullYoutubeVideoId(normalized);
-    }
-    current=directToken;
-    url.value=videoId?'https://www.youtube.com/watch?v='+videoId:directToken;
-    home.style.display='none';host.style.display='block';err.style.display='none';
+  async function goScramjet(target){
+    const frame=await ensureSjFrame();
+    showEngine('scramjet');
+    frame.go(target);
+  }
+  async function goUv(target){
+    await ensureRealUV();
+    showEngine('uv');
+    uvFrame.src=__uv$config.prefix+__uv$config.encodeUrl(target);
+  }
+  function autoOrder(target){
     try{
-      const frame=await ensureFrame();
-
-      if(videoId){
-        // Keep the lightweight YouTube player, but route it through Scramjet.
-        // Do not assign a cross-origin youtube-nocookie URL directly to iframe.src.
-        frame.go(nullYoutubeEmbedUrl(videoId));
+      const h=new URL(target).hostname.toLowerCase();
+      if(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be'||h.endsWith('.googlevideo.com'))return ['uv','scramjet'];
+    }catch{}
+    return ['scramjet','uv'];
+  }
+  async function go(raw){
+    const target=normalizeTarget(raw||url.value);
+    if(!target)return;
+    current=target;url.value=target;
+    home.style.display='none';err.style.display='none';
+    const pref=select.value;
+    const order=pref==='auto'?autoOrder(target):[pref];
+    let lastErr=null;
+    for(const eng of order){
+      try{
+        if(eng==='uv')await goUv(target);else await goScramjet(target);
         return;
-      }
-
-      frame.go(directToken);
-    }catch(e){
-      err.style.display='grid';
-      err.querySelector('span').textContent=e?.message||String(e);
+      }catch(e){lastErr=e}
     }
+    err.style.display='grid';
+    err.querySelector('span').textContent=lastErr?.message||String(lastErr||'Both proxy engines failed');
   }
 
+  select.onchange=()=>{
+    localStorage.setItem('nullsec.proxyEngine',select.value);
+    badge.textContent=select.value.toUpperCase();
+    if(current)go(current);
+  };
   b.querySelector('.go').onclick=()=>go();
   url.onkeydown=e=>{if(e.key==='Enter')go()};
   b.querySelector('form').onsubmit=e=>{e.preventDefault();go(e.target.querySelector('input').value)};
   b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>go(x.dataset.url));
   b.querySelector('.home').onclick=()=>{
-    current='';url.value='';host.style.display='none';home.style.display='grid';err.style.display='none';
+    current='';url.value='';host.style.display='none';uvFrame.style.display='none';home.style.display='grid';err.style.display='none';
   };
   b.querySelector('.back').onclick=()=>{try{frameElement()?.contentWindow?.history.back()}catch{}};
   b.querySelector('.reload').onclick=()=>current&&go(current);
@@ -269,67 +315,98 @@ function renderTerminal(b){
 function openInNullBrowser(url){openApp('browser');setTimeout(()=>{const w=wins.get('browser');const inp=w?.el.querySelector('.url');if(inp){inp.value=url;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},40)}
 function renderMedia(b){
   const cards=[
-    ['Null Live TV','Official free live channels and public broadcasters','app:livetv','TV'],
-    ['Null Cinema','Nepo-style public-domain film browser','app:cinema','◫'],
-    ['Internet Archive','Public films, audio, software and books','https://archive.org/details/feature_films','◉'],
-    ['NASA Live','Official NASA live events and NASA+','https://www.nasa.gov/live/','✦'],
-    ['YouTube Bridge','Open a YouTube URL in Null Browser','app:youtube','YT'],
-    ['Media Player','Play a direct video or audio URL','app:player','▷'],
-    ['Null Radio','Browse radio directories inside Null Sec OS','app:radio','◌']
+    ['Null Live TV','HitBoyStream-style country/channel HLS browser','app:livetv','TV'],
+    ['HitBoyStream Movies','Movies page from your HitBoyStream repo','https://hitboyxx23-dev.github.io/hitboystream/movies/movies.html','◫'],
+    ['HitBoyStream Series','Series page from your HitBoyStream repo','https://hitboyxx23-dev.github.io/hitboystream/series/series.html','▤'],
+    ['HitBoyStream News','News page from your HitBoyStream repo','https://hitboyxx23-dev.github.io/hitboystream/news/news.html','N'],
+    ['YouTube','Open through Null Browser dual proxy','https://www.youtube.com','YT'],
+    ['Media Player','Play a direct video/audio URL','app:player','▷'],
+    ['Null Radio','Radio directories inside Null Browser','app:radio','◌']
   ];
-  b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA HUB</div><h1>Watch. Listen. Explore.</h1><p>Live channels, public-domain cinema, direct media and official streaming pages inside Null Sec OS.</p><div class="media-search"><input class="field media-q" placeholder="Search Null Cinema or paste a URL"><button class="btn media-go">OPEN</button></div></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;
-  b.querySelectorAll('.media-card').forEach(c=>c.onclick=()=>{
-    const d=c.dataset.dest;
-    if(d.startsWith('app:'))openApp(d.slice(4));else openInNullBrowser(d);
-  });
-  b.querySelector('.media-go').onclick=()=>{
-    const v=b.querySelector('.media-q').value.trim();
-    if(!v)return;
-    if(/^https?:\/\//i.test(v)){openInNullBrowser(v);return}
-    openApp('cinema');
-    setTimeout(()=>{
-      const w=wins.get('cinema');
-      const inp=w?.el.querySelector('.cinema-search');
-      if(inp){inp.value=v;w.el.querySelector('.cinema-go')?.click()}
-    },50);
-  };
+  b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA // HITBOYSTREAM</div><h1>WATCH. LISTEN. SWITCH ENGINES.</h1><p>Media hub rebuilt around your HitBoyStream pages and Live TV source flow. Internet Archive and NASA entries removed.</p><div class="media-search"><input class="field media-q" placeholder="Paste a URL"><button class="btn media-go">OPEN IN NULL</button></div></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;
+  b.querySelectorAll('.media-card').forEach(c=>c.onclick=()=>{const d=c.dataset.dest;if(d.startsWith('app:'))openApp(d.slice(4));else openInNullBrowser(d)});
+  b.querySelector('.media-go').onclick=()=>{const v=b.querySelector('.media-q').value.trim();if(v)openInNullBrowser(v)};
 }
 
 function renderLiveTV(b){
-  const channels=[
-    {name:'NASA Live',group:'SPACE',desc:'NASA live events and NASA+ programming',badge:'NASA',sources:[['NASA LIVE','https://www.nasa.gov/live/'],['NASA+','https://plus.nasa.gov/']]},
-    {name:'Al Jazeera English',group:'NEWS',desc:'Official live English news',badge:'AJE',sources:[['LIVE','https://www.aljazeera.com/live/'],['VIDEO','https://www.aljazeera.com/videos/']]},
-    {name:'France 24',group:'NEWS',desc:'Official France 24 live page',badge:'F24',sources:[['LIVE','https://www.france24.com/en/live'],['VIDEO','https://www.france24.com/en/video/']]},
-    {name:'DW English',group:'NEWS',desc:'Official Deutsche Welle live TV',badge:'DW',sources:[['LIVE TV','https://www.dw.com/en/live-tv/channel-english'],['VIDEO','https://www.dw.com/en/media-center/live-tv/s-100825']]},
-    {name:'Euronews',group:'NEWS',desc:'Official Euronews live page',badge:'EU',sources:[['LIVE','https://www.euronews.com/live'],['VIDEO','https://www.euronews.com/video']]},
-    {name:'ABC News Live',group:'NEWS',desc:'Official ABC News live',badge:'ABC',sources:[['LIVE','https://abcnews.go.com/Live'],['VIDEO','https://abcnews.go.com/Video']]},
-    {name:'CBS News 24/7',group:'NEWS',desc:'Official CBS News live',badge:'CBS',sources:[['LIVE','https://www.cbsnews.com/live/'],['VIDEO','https://www.cbsnews.com/video/']]},
-    {name:'PBS',group:'PUBLIC',desc:'PBS livestream and local stations',badge:'PBS',sources:[['LIVE','https://www.pbs.org/livestream/'],['VIDEO','https://www.pbs.org/video/']]},
-    {name:'Internet Archive TV',group:'ARCHIVE',desc:'Television archive collections',badge:'IA',sources:[['TV ARCHIVE','https://archive.org/details/tv'],['MOVIES','https://archive.org/details/feature_films']]}
-  ];
-  let group='ALL',query=''; const groups=['ALL',...new Set(channels.map(x=>x.group))];
-  b.innerHTML=`<div class="tv-shell"><div class="tv-hero"><div><div class="section-tag">NULL LIVE TV</div><h1>LIVE // SOURCES</h1><p>Official free live pages with fallback source buttons. Use another source if one player fails.</p></div><div class="tv-search"><input class="field tv-q" placeholder="Search channels"><span class="tv-live-dot">● LIVE</span></div></div><div class="tv-groups">${groups.map(g=>`<button class="btn tv-group ${g==='ALL'?'active':''}" data-group="${g}">${g}</button>`).join('')}</div><div class="tv-grid"></div><div class="panel muted">Fallbacks stay on official/open providers. Null Sec does not bypass subscriptions, DRM, geoblocks or access controls.</div></div>`;
-  const grid=b.querySelector('.tv-grid');
-  function draw(){const q=query.toLowerCase(), list=channels.filter(x=>(group==='ALL'||x.group===group)&&(`${x.name} ${x.desc} ${x.group}`.toLowerCase().includes(q)));
-    grid.innerHTML=list.map((x,idx)=>`<div class="tv-card tv-card-multi"><div class="tv-badge">${x.badge}</div><div class="tv-meta"><b>${x.name}</b><small>${x.group} // ${x.desc}</small><div class="tv-mirrors">${x.sources.map((s,i)=>`<button class="btn tv-source" data-c="${idx}" data-s="${i}">${i===0?'PRIMARY':'MIRROR'} // ${s[0]}</button>`).join('')}</div></div></div>`).join('')||'<div class="panel muted">No channels match.</div>';
-    grid.querySelectorAll('.tv-source').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const list2=channels.filter(x=>(group==='ALL'||x.group===group)&&(`${x.name} ${x.desc} ${x.group}`.toLowerCase().includes(q)));const ch=list2[Number(btn.dataset.c)],src=ch?.sources[Number(btn.dataset.s)];if(src)openInNullBrowser(src[1])});}
-  b.querySelector('.tv-q').oninput=e=>{query=e.target.value;draw()};b.querySelectorAll('.tv-group').forEach(btn=>btn.onclick=()=>{b.querySelectorAll('.tv-group').forEach(x=>x.classList.remove('active'));btn.classList.add('active');group=btn.dataset.group;draw()});draw();
+  b.innerHTML=`<div class="tv-shell">
+    <div class="tv-hero"><div><div class="section-tag">NULL LIVE TV // HITBOYSTREAM SOURCE FLOW</div><h1>LIVE // IPTV</h1><p>Select a country, then a stream. This mirrors the source logic used by your HitBoyStream live page.</p></div><div class="tv-live-dot">● LIVE</div></div>
+    <div class="hbs-tv-controls">
+      <select class="field hbs-country"><option value="">SELECT COUNTRY</option></select>
+      <select class="field hbs-channel" disabled><option value="">SELECT STREAM</option></select>
+      <input class="field hbs-filter" placeholder="Filter channels" disabled>
+      <button class="btn hbs-open-source">OPEN HITBOYSTREAM LIVE PAGE</button>
+    </div>
+    <div class="hbs-player-wrap">
+      <video class="hbs-video" controls playsinline autoplay></video>
+      <div class="hbs-now">NO STREAM SELECTED</div>
+    </div>
+    <div class="panel muted hbs-status">Loading country playlists...</div>
+  </div>`;
+
+  const country=b.querySelector('.hbs-country'),channel=b.querySelector('.hbs-channel'),filter=b.querySelector('.hbs-filter'),
+        video=b.querySelector('.hbs-video'),now=b.querySelector('.hbs-now'),status=b.querySelector('.hbs-status');
+  let channels=[],hls=null;
+
+  function destroyHls(){try{hls?.destroy()}catch{}hls=null}
+  function drawChannels(){
+    const q=filter.value.trim().toLowerCase();
+    const list=channels.filter(x=>!q||x.title.toLowerCase().includes(q));
+    channel.innerHTML='<option value="">SELECT STREAM</option>'+list.map(x=>`<option value="${encodeURIComponent(x.url)}">${escapeHtml(x.title)}</option>`).join('');
+    channel.disabled=false;filter.disabled=false;
+    status.textContent=`${list.length} STREAMS LOADED`;
+  }
+  async function play(url,title){
+    destroyHls();video.removeAttribute('src');video.load();now.textContent='CONNECTING // '+title;
+    try{
+      if(window.Hls&&Hls.isSupported()){
+        hls=new Hls({enableWorker:true,lowLatencyMode:true});
+        hls.loadSource(url);hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED,()=>video.play().catch(()=>{}));
+        hls.on(Hls.Events.ERROR,(_,data)=>{if(data?.fatal)status.textContent='STREAM ERROR // '+(data.details||'HLS')});
+      }else if(video.canPlayType('application/vnd.apple.mpegurl')){
+        video.src=url;await video.play().catch(()=>{});
+      }else{
+        throw new Error('HLS playback is not supported in this browser');
+      }
+      now.textContent='NOW PLAYING // '+title;
+    }catch(e){status.textContent='PLAYBACK FAILED // '+e.message}
+  }
+
+  fetch('/api/hbs/countries',{cache:'no-store'}).then(async r=>{
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Country list failed');
+    country.innerHTML='<option value="">SELECT COUNTRY</option>'+d.items.map(x=>`<option value="${x.path}">${escapeHtml(x.name)}</option>`).join('');
+    status.textContent=`${d.items.length} COUNTRY PLAYLISTS READY`;
+  }).catch(e=>status.textContent='TV SOURCE ERROR // '+e.message);
+
+  country.onchange=async()=>{
+    if(!country.value)return;
+    channel.disabled=true;filter.disabled=true;status.textContent='LOADING STREAMS...';
+    try{
+      const r=await fetch('/api/hbs/playlist?path='+encodeURIComponent(country.value),{cache:'no-store'});
+      const d=await r.json();if(!r.ok)throw new Error(d.error||'Playlist failed');
+      channels=d.items||[];filter.value='';drawChannels();
+    }catch(e){status.textContent='PLAYLIST ERROR // '+e.message}
+  };
+  filter.oninput=drawChannels;
+  channel.onchange=()=>{
+    if(!channel.value)return;
+    const url=decodeURIComponent(channel.value);
+    const title=channel.options[channel.selectedIndex]?.textContent||'LIVE STREAM';
+    play(url,title);
+  };
+  b.querySelector('.hbs-open-source').onclick=()=>openInNullBrowser('https://hitboyxx23-dev.github.io/hitboystream/live/live.html');
 }
 
 function renderCinema(b){
-  const WL='nullsec.cinema.watchlist.v2',CW='nullsec.cinema.continue.v2'; let page=1,query='',mode='discover';
-  const getStore=(k,d=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}},setStore=(k,v)=>localStorage.setItem(k,JSON.stringify(v)),watchlist=()=>getStore(WL,[]),continueList=()=>getStore(CW,[]);
-  b.innerHTML=`<div class="cinema-shell"><div class="cinema-topbar"><div class="cinema-brand"><span>NULL</span> CINEMA</div><div class="cinema-tabs"><button class="cinema-tab active" data-mode="discover">DISCOVER</button><button class="cinema-tab" data-mode="watchlist">MY LIST</button><button class="cinema-tab" data-mode="continue">CONTINUE</button></div></div><div class="cinema-hero"><div class="cinema-shade"></div><div class="cinema-hero-content"><div class="section-tag">NULL CINEMA // MIRRORED OPEN MEDIA</div><h1>STREAM THE ARCHIVE.</h1><p>Public-domain/open films with automatic source fallback, watchlist and resume.</p><div class="cinema-searchbar"><input class="field cinema-search" placeholder="Search films, creators, keywords"><button class="btn cinema-go">SEARCH</button></div></div></div><div class="cinema-rail continue-rail hidden"><div class="cinema-rail-head"><b>CONTINUE WATCHING</b><span>LOCAL TO THIS BROWSER</span></div><div class="cinema-rail-items"></div></div><div class="cinema-status">LOADING CATALOG...</div><div class="cinema-grid"></div><div class="cinema-pager"><button class="btn cinema-prev">PREV</button><span class="cinema-page">PAGE 1</span><button class="btn cinema-next">NEXT</button></div><div class="cinema-modal hidden"><button class="cinema-close">×</button><div class="cinema-detail"></div></div></div>`;
-  const grid=b.querySelector('.cinema-grid'),status=b.querySelector('.cinema-status'),modal=b.querySelector('.cinema-modal'),detail=b.querySelector('.cinema-detail'),rail=b.querySelector('.continue-rail'),railItems=b.querySelector('.cinema-rail-items');
-  const isSaved=id=>watchlist().some(x=>x.id===id);
-  function toggleSaved(item){let a=watchlist();a=a.some(x=>x.id===item.id)?a.filter(x=>x.id!==item.id):[item,...a];setStore(WL,a.slice(0,100));}
-  function remember(item,t,d){let a=continueList().filter(x=>x.id!==item.id);a.unshift({...item,time:+t||0,duration:+d||0,updatedAt:Date.now()});setStore(CW,a.slice(0,30));drawRail();}
-  function drawRail(){const a=continueList().filter(x=>x.duration>0&&x.time>2&&x.time<x.duration-5);if(!a.length){rail.classList.add('hidden');railItems.innerHTML='';return}rail.classList.remove('hidden');railItems.innerHTML=a.slice(0,10).map(x=>`<button class="cinema-rail-card" data-id="${x.id}"><img src="${x.thumbnail}" alt=""><span>${escapeHtml(x.title)}</span><i><em style="width:${Math.max(0,Math.min(100,x.time/x.duration*100))}%"></em></i></button>`).join('');railItems.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>openTitle(x.dataset.id));}
-  function cards(a){grid.innerHTML=a.map((x,i)=>`<button class="cinema-card" data-id="${x.id}" style="--delay:${i*12}ms"><div class="cinema-poster"><img loading="lazy" src="${x.thumbnail}" alt=""><span class="cinema-playmark">▶</span>${isSaved(x.id)?'<span class="cinema-saved">✓ MY LIST</span>':''}</div><b>${escapeHtml(x.title)}</b><small>${escapeHtml([x.year,x.creator].filter(Boolean).join(' // '))}</small></button>`).join('')||'<div class="panel muted">Nothing here yet.</div>';grid.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>openTitle(x.dataset.id));}
-  async function discover(){status.textContent='LOADING CATALOG...';grid.innerHTML='<div class="cinema-loading">SCANNING ARCHIVE...</div>';try{const r=await fetch('/api/media/archive?q='+encodeURIComponent(query)+'&page='+page,{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Catalog unavailable');status.textContent=`${Number(d.total||0).toLocaleString()} TITLES // ${query?'QUERY: '+query.toUpperCase():'POPULAR OPEN FILMS'}`;b.querySelector('.cinema-page').textContent='PAGE '+page;cards(d.items||[])}catch(e){status.textContent='CATALOG ERROR';grid.innerHTML=`<div class="panel bad">${escapeHtml(e.message)}</div>`}}
-  async function loadMode(){b.querySelector('.cinema-pager').style.display=mode==='discover'?'flex':'none';if(mode==='discover')return discover();const a=mode==='watchlist'?watchlist():continueList();status.textContent=(mode==='watchlist'?'MY LIST // ':'CONTINUE WATCHING // ')+a.length;cards(a)}
-  async function openTitle(id){modal.classList.remove('hidden');detail.innerHTML='<div class="cinema-loading">LOADING TITLE...</div>';try{const r=await fetch('/api/media/archive?mode=details&id='+encodeURIComponent(id),{cache:'no-store'}),x=await r.json();if(!r.ok)throw new Error(x.error||'Title unavailable');const saved=continueList().find(y=>y.id===x.id),item={id:x.id,title:x.title,thumbnail:x.thumbnail,year:x.year,creator:x.creator};detail.innerHTML=`<div class="cinema-detail-grid"><img class="cinema-detail-poster" src="${x.thumbnail}" alt=""><div class="cinema-info"><div class="section-tag">ARCHIVE TITLE</div><h2>${escapeHtml(x.title)}</h2><div class="cinema-facts">${escapeHtml([x.year,x.creator].filter(Boolean).join(' // '))}</div><p>${escapeHtml(x.description||'No description available.')}</p><div class="cinema-actions">${x.media?'<button class="btn cinema-watch">▶ WATCH NOW</button>':''}<button class="btn cinema-save">${isSaved(x.id)?'✓ IN MY LIST':'+ MY LIST'}</button><button class="btn cinema-trailer">TRAILER / SEARCH</button><button class="btn cinema-page-open">SOURCE PAGE</button></div>${x.media?`<div class="cinema-mirrorbox"><b>PLAYBACK ROUTE</b><span>SAME-ORIGIN AUTO MIRROR</span><small>${(x.media.mirrors||[]).length} open source route(s) available</small></div><div class="cinema-player-wrap hidden"><video class="cinema-player" controls playsinline preload="metadata"></video><div class="cinema-player-note">Automatic fallback across Internet Archive hosts. Range requests supported.</div></div>`:'<div class="panel muted">No browser-playable open media file was found.</div>'}<div class="cinema-provider"><b>OFFICIAL / OPEN LINKS</b><div><button class="btn provider" data-provider="https://www.youtube.com/results?search_query=${encodeURIComponent(x.title+' official trailer')}">YOUTUBE SEARCH</button><button class="btn provider" data-provider="https://www.justwatch.com/us/search?q=${encodeURIComponent(x.title)}">JUSTWATCH</button><button class="btn provider" data-provider="${x.page}">INTERNET ARCHIVE</button></div></div></div></div>`;detail.querySelector('.cinema-page-open').onclick=()=>openInNullBrowser(x.page);detail.querySelector('.cinema-trailer').onclick=()=>openInNullBrowser('https://www.youtube.com/results?search_query='+encodeURIComponent(x.title+' official trailer'));detail.querySelectorAll('.provider').forEach(q=>q.onclick=()=>openInNullBrowser(q.dataset.provider));detail.querySelector('.cinema-save').onclick=()=>{toggleSaved(item);detail.querySelector('.cinema-save').textContent=isSaved(x.id)?'✓ IN MY LIST':'+ MY LIST';if(mode!=='discover')loadMode()};const w=detail.querySelector('.cinema-watch');if(w)w.onclick=()=>{const wrap=detail.querySelector('.cinema-player-wrap'),v=detail.querySelector('.cinema-player');wrap.classList.remove('hidden');v.src=x.media.stream;v.onloadedmetadata=()=>{if(saved?.time&&saved.time<v.duration-5)v.currentTime=saved.time;v.play().catch(()=>{})};let last=0;v.ontimeupdate=()=>{if(Date.now()-last>4000){last=Date.now();remember(item,v.currentTime,v.duration)}};v.onpause=()=>remember(item,v.currentTime,v.duration);v.onended=()=>{setStore(CW,continueList().filter(y=>y.id!==x.id));drawRail()};w.textContent='PLAYING'};}catch(e){detail.innerHTML=`<div class="panel bad">${escapeHtml(e.message)}</div>`}}
-  b.querySelector('.cinema-go').onclick=()=>{query=b.querySelector('.cinema-search').value.trim();page=1;mode='discover';b.querySelectorAll('.cinema-tab').forEach(x=>x.classList.toggle('active',x.dataset.mode==='discover'));loadMode()};b.querySelector('.cinema-search').onkeydown=e=>{if(e.key==='Enter')b.querySelector('.cinema-go').click()};b.querySelector('.cinema-prev').onclick=()=>{if(page>1){page--;discover()}};b.querySelector('.cinema-next').onclick=()=>{page++;discover()};b.querySelector('.cinema-close').onclick=()=>{modal.classList.add('hidden');detail.innerHTML=''};b.querySelectorAll('.cinema-tab').forEach(btn=>btn.onclick=()=>{mode=btn.dataset.mode;b.querySelectorAll('.cinema-tab').forEach(x=>x.classList.toggle('active',x===btn));loadMode()});drawRail();loadMode();
+  const links=[
+    {title:'MOVIES',desc:'Browse the Movies section from HitBoyStream',url:'https://hitboyxx23-dev.github.io/hitboystream/movies/movies.html',icon:'◫'},
+    {title:'SERIES',desc:'Browse the Series section from HitBoyStream',url:'https://hitboyxx23-dev.github.io/hitboystream/series/series.html',icon:'▤'},
+    {title:'LIVE TV',desc:'Use Null Live TV country/channel browser',app:'livetv',icon:'TV'},
+    {title:'NEWS',desc:'Open the HitBoyStream News section',url:'https://hitboyxx23-dev.github.io/hitboystream/news/news.html',icon:'N'}
+  ];
+  b.innerHTML=`<div class="cinema-shell"><div class="cinema-topbar"><div class="cinema-brand"><span>NULL</span> CINEMA</div><div class="cinema-tabs"><button class="cinema-tab active">HITBOYSTREAM</button></div></div><div class="cinema-hero"><div class="cinema-shade"></div><div class="cinema-hero-content"><div class="section-tag">NULL CINEMA // HITBOYSTREAM</div><h1>MEDIA ROUTER.</h1><p>Internet Archive catalog removed. Movies and Series now route to the pages from your HitBoyStream repository through the dual-proxy Null Browser.</p></div></div><div class="media-grid cinema-hbs-grid">${links.map(x=>`<button class="media-card hbs-media-card" ${x.app?`data-app="${x.app}"`:`data-url="${x.url}"`}><div class="poster">${x.icon}</div><b>${x.title}</b><small>${x.desc}</small></button>`).join('')}</div></div>`;
+  b.querySelectorAll('.hbs-media-card').forEach(x=>x.onclick=()=>x.dataset.app?openApp(x.dataset.app):openInNullBrowser(x.dataset.url));
 }
 
 function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="media-el" controls playsinline></video><div class="video-tools"><input class="field media-url" placeholder="Direct .mp4, .webm, .mp3, .ogg or stream URL"><button class="btn media-load">LOAD</button></div></div>`;b.querySelector('.media-load').onclick=()=>{b.querySelector('.media-el').src=b.querySelector('.media-url').value.trim();b.querySelector('.media-el').play().catch(()=>{})}}
@@ -337,7 +414,7 @@ function renderRadio(b){
   const stations=[
     ['Radio Garden','Explore live radio stations by location','https://radio.garden/'],
     ['SomaFM','Listener-supported internet radio','https://somafm.com/'],
-    ['Internet Archive Audio','Public audio collections','https://archive.org/details/audio']
+    ['Internet Archive Audio','Public audio collections','https://somafm.com']
   ];
   b.innerHTML=`<div class="tool-wrap"><div class="tool-head"><div><div class="section-tag">NULL RADIO</div><h2>Signal Radio</h2></div></div><div class="media-grid">${stations.map(([name,desc,url])=>`<button class="media-card radio-link" data-url="${url}"><div class="poster">◉</div><b>${name}</b><small>${desc}</small></button>`).join('')}</div><div class="panel muted" style="margin-top:10px">Stations open inside Null Browser through Scramjet.</div></div>`;
   b.querySelectorAll('.radio-link').forEach(x=>x.onclick=()=>openInNullBrowser(x.dataset.url));
