@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "private": true,
-  "description": "Null Sec OS Classic with UV-style service worker proxy routing and passive Username OSINT",
+  "description": "Null Sec OS with UV-style proxy, OSINT, E2EE chat and encrypted WebRTC voice",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

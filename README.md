@@ -1,4 +1,4 @@
-# Null Sec OS 4.1
+# Null Sec OS 4.2
 
 Classic Null Sec OS UI with a UV-style browser route and Username OSINT.
 
@@ -26,3 +26,14 @@ Important files:
 - `public/null-sw.js` Null Proxy service worker
 - `api/proxy/index.js` Node relay
 - `api/osint/username.js` public Username OSINT
+
+## Null Crypt communications
+
+Two self-contained communication apps are included:
+
+- **Null Crypt Chat** uses a WebRTC DataChannel plus an additional application-layer ECDH P-256 key agreement and AES-GCM encryption for every chat payload.
+- **Null Voice** uses WebRTC voice with DTLS-SRTP transport encryption.
+
+Both use manual offer/answer connection codes, so there is no hosted signaling service or external chat provider. Because this build intentionally ships with no external STUN/TURN server, direct peer connectivity depends on the peers' NAT/network environment. On restrictive networks, a TURN service would be required for reliable calls.
+
+Voice is encrypted in transit by WebRTC, but this build does not add a second Insertable Streams application-encryption layer to audio.

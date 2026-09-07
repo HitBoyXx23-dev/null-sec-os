@@ -3,7 +3,7 @@ const desktop=$('#desktop'),boot=$('#boot'),layer=$('#window-layer'),tpl=$('#win
 let z=20,seq=0;const wins=new Map();
 const state={notes:localStorage.getItem('nullsec.notes')||'[ NULL SEC SCRATCHPAD ]\n\nOperator notes are stored locally in this browser.',browserMode:(localStorage.getItem('nullsec.browserMode')==='relay'?'relay':'smart')};
 
-const bootLines=['NULL SEC BOOTLOADER 4.1 CLASSIC','[OK] verifying browser runtime','[OK] mounting local vault','[OK] loading 50+ application manifests','[OK] binding Vercel relay','[OK] initializing media bridge','[OK] operator: hitboyxx23','[OK] desktop ready'];
+const bootLines=['NULL SEC BOOTLOADER 4.2 CLASSIC','[OK] verifying browser runtime','[OK] mounting local vault','[OK] loading 50+ application manifests','[OK] binding Vercel relay','[OK] initializing media bridge','[OK] operator: hitboyxx23','[OK] desktop ready'];
 let bi=0;const bootLog=$('#boot-log');const bt=setInterval(()=>{if(bi<bootLines.length)bootLog.textContent+=bootLines[bi++]+'\n';else clearInterval(bt)},120);
 setTimeout(()=>{boot.classList.add('hidden');desktop.classList.remove('hidden');openApp('dashboard')},1650);
 
@@ -15,11 +15,12 @@ const appDefs=[
 ['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Virtual files'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
 ['media','Null Media','media','▶','Media hub'],['player','Media Player','media','▷','Direct media URL player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
 ['calculator','Calculator','tools','∑','Fast calculator'],['clock','World Clock','tools','◷','Clock and date'],['calendar','Calendar','tools','▣','Monthly calendar'],['stopwatch','Stopwatch','tools','⏱','Time laps'],['timer','Timer','tools','⌛','Countdown timer'],['paint','Null Paint','tools','✣','Canvas sketchpad'],['markdown','Markdown Pad','tools','M↓','Markdown preview'],['json','JSON Lab','tools','{}','Format JSON'],['base64','Base64','tools','64','Encode and decode'],['urlcodec','URL Codec','tools','%','URL encode/decode'],['uuid','UUID Forge','tools','ID','Generate UUIDs'],['password','Password Forge','tools','***','Generate passwords'],['hash','Hash Lab','tools','#','SHA-256 digest'],['regex','Regex Lab','tools','.*','Test patterns'],['color','Color Lab','tools','◈','Color converter'],['text','Text Lab','tools','Aa','Case and stats'],['ascii','ASCII Studio','tools','A#','Text banners'],['unit','Unit Convert','tools','⇄','Common conversions'],['random','Random Lab','tools','?','Random values'],['clipboard','Clipboard','tools','▤','Copy helper'],['systemmon','System Monitor','tools','▥','Browser runtime info'],['storage','Storage Inspector','tools','◧','LocalStorage viewer'],['network','Network Tools','tools','⌁','URL and connection info'],['qrcode','QR Forge','tools','QR','Node-powered QR generator'],
-['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['dnsintel','DNS Lens','intel','DNS','Public DNS records'],['rdapintel','RDAP Lens','intel','R','Domain and IP registration'],['ctintel','Cert Lens','intel','CRT','Certificate transparency'],['headerintel','Header Scope','intel','HDR','Security header inspector'],['robotsintel','Robots Viewer','intel','BOT','Public robots.txt viewer'],['urlclean','URL Sanitizer','intel','URL','Strip tracking parameters'],['leakscan','Leak Scanner','intel','LS','Local text exposure scan'],['fileintel','File Intel','intel','FILE','Local file metadata and hash'],['jwtscope','JWT Peek','intel','JWT','Decode JWT locally'],['passaudit','Password Audit','intel','KEY','Local entropy estimate'],['privacycheck','OPSEC Checklist','intel','OP','Privacy hygiene checklist'],
+['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['nullcrypt','Null Crypt Chat','comms','◈','E2EE peer-to-peer encrypted chat'],
+['nullvoice','Null Voice','comms','◉','Encrypted peer-to-peer voice call'],['dnsintel','DNS Lens','intel','DNS','Public DNS records'],['rdapintel','RDAP Lens','intel','R','Domain and IP registration'],['ctintel','Cert Lens','intel','CRT','Certificate transparency'],['headerintel','Header Scope','intel','HDR','Security header inspector'],['robotsintel','Robots Viewer','intel','BOT','Public robots.txt viewer'],['urlclean','URL Sanitizer','intel','URL','Strip tracking parameters'],['leakscan','Leak Scanner','intel','LS','Local text exposure scan'],['fileintel','File Intel','intel','FILE','Local file metadata and hash'],['jwtscope','JWT Peek','intel','JWT','Decode JWT locally'],['passaudit','Password Audit','intel','KEY','Local entropy estimate'],['privacycheck','OPSEC Checklist','intel','OP','Privacy hygiene checklist'],
 ['snake','Snake','games','S','Classic snake'],['pong','Pong','games','P','Arcade pong'],['breakout','Breakout','games','B','Brick breaker'],['tictactoe','Tic Tac Toe','games','XO','3x3 game'],['memory','Memory','games','◇','Match cards'],['mines','Mines','games','✹','Mine puzzle'],['clicker','Null Clicker','games','+1','Score clicker'],['reaction','Reaction Test','games','!','Reaction speed'],['typing','Typing Test','games','⌨','Typing speed'],['guess','Number Guess','games','?','Guess 1 to 100'],['dice','Dice','games','⚄','Dice roller'],['coin','Coin Flip','games','◐','Heads or tails'],['rps','Rock Paper Scissors','games','RPS','Play CPU'],['lights','Lights Out','games','▦','Toggle grid'],['simon','Simon','games','●','Memory sequence'],['maze','Maze Runner','games','⌗','Keyboard maze'],['2048','2048','games','2K','Number merge']
 ];
 const apps={};appDefs.forEach(([id,title,cat,icon,desc])=>apps[id]={id,title,cat,icon,desc,render:resolveRenderer(id)});
-function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
+function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,nullvoice:renderNullVoice,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
 
 function buildLaunchers(){const favorites=['browser','osintcenter','terminal','files','ops','media','snake','calculator'];$('#desktop-icons').innerHTML=favorites.map(id=>`<button class="desktop-icon" data-open="${id}"><span class="ico">${apps[id].icon}</span><small>${apps[id].title}</small></button>`).join('');renderAppGrid()}
 function renderAppGrid(filter='',cat='all'){const q=filter.toLowerCase();$('#app-grid').innerHTML=appDefs.filter(([id,title,c,,desc])=>(cat==='all'||c===cat)&&(`${title} ${desc}`.toLowerCase().includes(q))).map(([id,title,,icon,desc])=>`<button class="app-tile" data-open="${id}"><b>${icon}</b><span>${title}</span><small>${desc}</small></button>`).join('')}
@@ -58,7 +59,7 @@ function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="med
 function renderYouTube(b){b.innerHTML=`<div class="video-shell"><iframe class="yt-frame" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe><div class="video-tools"><input class="field yt-url" placeholder="Paste a YouTube watch or youtu.be URL"><button class="btn yt-load">LOAD OFFICIAL EMBED</button></div></div>`;const load=()=>{const id=youtubeId(b.querySelector('.yt-url').value.trim());if(!id)return alert('Enter a valid YouTube video URL.');b.querySelector('.yt-frame').src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`};b.querySelector('.yt-load').onclick=load;b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')load()}}
 function renderRadio(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SIGNAL RADIO</div><h2>In-OS Radio Browser</h2><p class="muted">Radio directories stay inside Null Browser. No new-tab launchers.</p><div class="grid3"><button class="panel btn" data-link="https://radio.garden">RADIO GARDEN</button><button class="panel btn" data-link="https://www.internet-radio.com">INTERNET RADIO</button><button class="panel btn" data-link="https://archive.org/details/audio">ARCHIVE AUDIO</button></div></div>`;b.querySelectorAll('[data-link]').forEach(x=>x.onclick=()=>openInNullBrowser(x.dataset.link))}
 
-function renderTerminal(b){b.innerHTML=`<div class="terminal"><div class="term-output">NULLSH 3.3\nType help for commands.\n\n</div><div class="term-line"><span class="term-prompt">hitboyxx23@nullsec:~$</span><input class="term-input" autofocus></div></div>`;const out=b.querySelector('.term-output'),inp=b.querySelector('.term-input');function run(s){const [c,...a]=s.trim().split(/\s+/);const m={help:'help clear date echo whoami uname ls pwd status apps open [app] neofetch',date:()=>new Date().toString(),whoami:'hitboyxx23',uname:'Null Sec OS 4.1 / browser runtime',pwd:'/home/operator',ls:'README.NFO notes/ apps/ media/ relay.cfg',status:()=>`network: ${navigator.onLine?'online':'offline'}\nrelay: /api/proxy\napps: ${appDefs.length}`,apps:appDefs.map(x=>x[0]).join('  '),neofetch:`NULL SEC OS 3.3\napps: ${appDefs.length}\nruntime: browser + Vercel Functions\noperator: hitboyxx23`};if(c==='clear'){out.textContent='';return''}if(c==='echo')return a.join(' ');if(c==='open'){openApp(a[0]||'browser');return`opened ${a[0]||'browser'}`};return typeof m[c]==='function'?m[c]():m[c]??`nullsh: command not found: ${c}`};inp.onkeydown=e=>{if(e.key==='Enter'){const s=inp.value;out.textContent+=`hitboyxx23@nullsec:~$ ${s}\n${run(s)}\n`;inp.value='';b.scrollTop=b.scrollHeight}}}
+function renderTerminal(b){b.innerHTML=`<div class="terminal"><div class="term-output">NULLSH 3.3\nType help for commands.\n\n</div><div class="term-line"><span class="term-prompt">hitboyxx23@nullsec:~$</span><input class="term-input" autofocus></div></div>`;const out=b.querySelector('.term-output'),inp=b.querySelector('.term-input');function run(s){const [c,...a]=s.trim().split(/\s+/);const m={help:'help clear date echo whoami uname ls pwd status apps open [app] neofetch',date:()=>new Date().toString(),whoami:'hitboyxx23',uname:'Null Sec OS 4.2 / browser runtime',pwd:'/home/operator',ls:'README.NFO notes/ apps/ media/ relay.cfg',status:()=>`network: ${navigator.onLine?'online':'offline'}\nrelay: /api/proxy\napps: ${appDefs.length}`,apps:appDefs.map(x=>x[0]).join('  '),neofetch:`NULL SEC OS 3.3\napps: ${appDefs.length}\nruntime: browser + Vercel Functions\noperator: hitboyxx23`};if(c==='clear'){out.textContent='';return''}if(c==='echo')return a.join(' ');if(c==='open'){openApp(a[0]||'browser');return`opened ${a[0]||'browser'}`};return typeof m[c]==='function'?m[c]():m[c]??`nullsh: command not found: ${c}`};inp.onkeydown=e=>{if(e.key==='Enter'){const s=inp.value;out.textContent+=`hitboyxx23@nullsec:~$ ${s}\n${run(s)}\n`;inp.value='';b.scrollTop=b.scrollHeight}}}
 function renderFiles(b){b.innerHTML=`<div class="file-layout"><aside class="file-sidebar">${['/home','/apps','/media','/notes','/system','/relay','/logs'].map(x=>`<button>${x}</button>`).join('')}</aside><main class="file-main"><div class="section-tag">VIRTUAL VAULT</div><h3>/home/operator</h3><div class="file-cards">${['README.NFO','notes/','apps/','media/','relay.cfg','session.log','preferences.json','games/'].map((x,i)=>`<div class="file-card">${i%2?'▦':'▤'}<br><br><b>${x}</b></div>`).join('')}</div></main></div>`}
 function renderOps(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TELEMETRY</div><h2>Ops Center</h2><p class="muted">Visual system telemetry only. No remote scanning is performed.</p><div class="ops-grid"><div class="metric"><label>APP COUNT</label><strong>${appDefs.length}</strong></div><div class="metric"><label>OPEN WINDOWS</label><strong id="ow">${wins.size+1}</strong></div><div class="metric"><label>MEMORY EST.</label><strong>${performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576)+'MB':'N/A'}</strong></div><div class="metric"><label>ONLINE</label><strong>${navigator.onLine?'YES':'NO'}</strong></div><div class="metric"><label>CORES</label><strong>${navigator.hardwareConcurrency||'?'}</strong></div><div class="metric"><label>LANG</label><strong>${navigator.language}</strong></div></div><div class="panel" style="margin-top:10px"><pre id="oplog">[OK] desktop compositor\n[OK] local vault\n[OK] app registry\n[OK] media bridge\n[OK] relay health probe queued</pre></div></div>`;fetch('/api/health').then(r=>b.querySelector('#oplog').textContent+=r.ok?'\n[OK] relay online':'\n[WARN] relay unavailable').catch(()=>b.querySelector('#oplog').textContent+='\n[LOCAL] static preview mode')}
 function renderNotes(b){b.innerHTML=`<textarea class="notes-area"></textarea>`;const t=b.querySelector('textarea');t.value=state.notes;t.oninput=()=>{state.notes=t.value;localStorage.setItem('nullsec.notes',state.notes)}}
@@ -118,6 +119,174 @@ function intelShell(b,title,subtitle,placeholder,button='QUERY'){
 async function intelFetch(out,url){out.textContent='QUERYING...';try{const r=await fetch(url,{cache:'no-store'});const text=await r.text();let data;try{data=JSON.parse(text)}catch{data={error:text}}if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}catch(e){out.textContent='ERROR: '+e.message;throw e}}
 function pretty(v){return JSON.stringify(v,null,2)}
 function renderOSINTCenter(b){const ids=['usernameintel','dnsintel','rdapintel','ctintel','headerintel','robotsintel','urlclean','leakscan','fileintel','jwtscope','passaudit','privacycheck'];b.innerHTML=`<div class="intel-shell"><div class="intel-head"><div><div class="section-tag">NULL SEC INTELLIGENCE WORKBENCH</div><h2>OSINT + OPSEC Center</h2></div><span class="intel-badge">PASSIVE MODE</span></div><p class="intel-note">Public-record lookups and local privacy tools. Network modules avoid port scanning, credential testing, private-network access, or intrusive collection.</p><div class="intel-grid">${ids.map(id=>`<button class="intel-card btn" data-open="${id}"><b>${apps[id].icon} ${apps[id].title}</b><span>${apps[id].desc}</span></button>`).join('')}</div></div>`}
+function b64bytes(bytes){
+  let s=''; bytes.forEach(v=>s+=String.fromCharCode(v));
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function unb64bytes(s){
+  s=s.replace(/-/g,'+').replace(/_/g,'/');
+  s+='='.repeat((4-s.length%4)%4);
+  const raw=atob(s); return Uint8Array.from(raw,c=>c.charCodeAt(0));
+}
+async function exportPub(key){
+  return b64bytes(new Uint8Array(await crypto.subtle.exportKey('raw',key)));
+}
+async function deriveNullKey(privateKey, remoteRaw){
+  const remote=await crypto.subtle.importKey('raw',unb64bytes(remoteRaw),{name:'ECDH',namedCurve:'P-256'},false,[]);
+  const bits=await crypto.subtle.deriveBits({name:'ECDH',public:remote},privateKey,256);
+  return crypto.subtle.importKey('raw',bits,{name:'AES-GCM'},false,['encrypt','decrypt']);
+}
+async function encryptNull(key,text){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(text)));
+  return {iv:b64bytes(iv),ct:b64bytes(ct)};
+}
+async function decryptNull(key,p){
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64bytes(p.iv)},key,unb64bytes(p.ct));
+  return new TextDecoder().decode(pt);
+}
+function encodeSignal(obj){ return b64bytes(new TextEncoder().encode(JSON.stringify(obj))); }
+function decodeSignal(s){ return JSON.parse(new TextDecoder().decode(unb64bytes(s.trim()))); }
+async function waitIce(pc){
+  if(pc.iceGatheringState==='complete') return;
+  await new Promise(resolve=>{
+    const f=()=>{if(pc.iceGatheringState==='complete'){pc.removeEventListener('icegatheringstatechange',f);resolve()}};
+    pc.addEventListener('icegatheringstatechange',f);
+    setTimeout(resolve,5000);
+  });
+}
+function nullRtcConfig(){
+  return {iceServers:[]};
+}
+
+function renderNullCrypt(b){
+  b.innerHTML=`<div class="intel-shell">
+    <div class="intel-head"><div><div class="section-tag">NULL COMMUNICATIONS</div><h2>Null Crypt Chat</h2></div><span class="intel-badge">AES-GCM + WEBRTC</span></div>
+    <p class="intel-note">Peer-to-peer chat. Connection codes are exchanged manually, so no external signaling service is required. Chat payloads are encrypted again with an ECDH-derived AES-GCM key before they enter the WebRTC data channel.</p>
+    <div class="intel-row"><button class="btn host">CREATE OFFER</button><button class="btn answer">ANSWER OFFER</button><button class="btn apply">APPLY ANSWER</button></div>
+    <textarea class="field signalin" style="height:92px;width:100%;margin-top:8px" placeholder="Paste the other peer's connection code here"></textarea>
+    <textarea class="field signalout" style="height:92px;width:100%;margin-top:8px" readonly placeholder="Your connection code appears here"></textarea>
+    <div class="intel-out log" style="height:170px;overflow:auto">OFFLINE.</div>
+    <div class="intel-row"><input class="field msg" placeholder="encrypted message" disabled><button class="btn send" disabled>SEND</button></div>
+  </div>`;
+
+  let pc=null,dc=null,keypair=null,aesKey=null;
+  const log=b.querySelector('.log'), inp=b.querySelector('.signalin'), out=b.querySelector('.signalout');
+  const msg=b.querySelector('.msg'), send=b.querySelector('.send');
+  const add=t=>{log.textContent += '\n'+t;log.scrollTop=log.scrollHeight};
+
+  async function setupCrypto(){
+    keypair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+    return exportPub(keypair.publicKey);
+  }
+  function bind(dc0){
+    dc=dc0;
+    dc.onopen=()=>{add('[LINK] DATA CHANNEL OPEN'); if(aesKey){msg.disabled=false;send.disabled=false;add('[CRYPTO] AES-GCM READY')}};
+    dc.onclose=()=>{add('[LINK] CLOSED');msg.disabled=true;send.disabled=true};
+    dc.onmessage=async e=>{
+      try{
+        const p=JSON.parse(e.data);
+        if(p.t==='hello'&&keypair){aesKey=await deriveNullKey(keypair.privateKey,p.pub);add('[CRYPTO] SHARED KEY DERIVED');if(dc.readyState==='open'){msg.disabled=false;send.disabled=false}}
+        if(p.t==='msg'&&aesKey){add('PEER> '+await decryptNull(aesKey,p))}
+      }catch(err){add('[ERR] '+err.message)}
+    };
+  }
+  async function base(){
+    pc=new RTCPeerConnection(nullRtcConfig());
+    pc.onconnectionstatechange=()=>add('[RTC] '+pc.connectionState.toUpperCase());
+    return setupCrypto();
+  }
+  b.querySelector('.host').onclick=async()=>{
+    try{
+      log.textContent='CREATING OFFER...';
+      const pub=await base(); bind(pc.createDataChannel('nullcrypt'));
+      const offer=await pc.createOffer(); await pc.setLocalDescription(offer); await waitIce(pc);
+      out.value=encodeSignal({sdp:pc.localDescription,pub});
+      dc.addEventListener('open',()=>dc.send(JSON.stringify({t:'hello',pub})),{once:true});
+      add('[READY] SEND THIS CODE TO PEER');
+    }catch(e){add('[ERR] '+e.message)}
+  };
+  b.querySelector('.answer').onclick=async()=>{
+    try{
+      log.textContent='ANSWERING OFFER...';
+      const remote=decodeSignal(inp.value); const pub=await base();
+      aesKey=await deriveNullKey(keypair.privateKey,remote.pub);
+      pc.ondatachannel=e=>{bind(e.channel);e.channel.addEventListener('open',()=>e.channel.send(JSON.stringify({t:'hello',pub})),{once:true})};
+      await pc.setRemoteDescription(remote.sdp);
+      const ans=await pc.createAnswer();await pc.setLocalDescription(ans);await waitIce(pc);
+      out.value=encodeSignal({sdp:pc.localDescription,pub});
+      add('[READY] SEND ANSWER CODE BACK');
+    }catch(e){add('[ERR] '+e.message)}
+  };
+  b.querySelector('.apply').onclick=async()=>{
+    try{
+      const remote=decodeSignal(inp.value);
+      if(!pc||!keypair) throw new Error('Create an offer first');
+      aesKey=await deriveNullKey(keypair.privateKey,remote.pub);
+      await pc.setRemoteDescription(remote.sdp);
+      add('[READY] ANSWER APPLIED');
+    }catch(e){add('[ERR] '+e.message)}
+  };
+  async function sendMsg(){
+    const t=msg.value.trim();if(!t||!dc||dc.readyState!=='open'||!aesKey)return;
+    const p=await encryptNull(aesKey,t);p.t='msg';dc.send(JSON.stringify(p));add('YOU> '+t);msg.value='';
+  }
+  send.onclick=sendMsg;msg.onkeydown=e=>{if(e.key==='Enter')sendMsg()};
+}
+
+function renderNullVoice(b){
+  b.innerHTML=`<div class="intel-shell">
+    <div class="intel-head"><div><div class="section-tag">NULL COMMUNICATIONS</div><h2>Null Voice</h2></div><span class="intel-badge">WEBRTC DTLS-SRTP</span></div>
+    <p class="intel-note">Direct browser-to-browser voice using WebRTC encrypted media transport. This build uses manual offer/answer codes and no third-party signaling service. Microphone permission is required.</p>
+    <div class="intel-row"><button class="btn mic">ENABLE MIC</button><button class="btn host">CREATE CALL</button><button class="btn answer">ANSWER CALL</button><button class="btn apply">APPLY ANSWER</button><button class="btn hang">HANG UP</button></div>
+    <textarea class="field signalin" style="height:92px;width:100%;margin-top:8px" placeholder="Paste the other peer's call code here"></textarea>
+    <textarea class="field signalout" style="height:92px;width:100%;margin-top:8px" readonly placeholder="Your call code appears here"></textarea>
+    <div class="intel-out log" style="height:150px;overflow:auto">MIC OFFLINE.</div>
+    <audio class="remoteaudio" autoplay></audio>
+  </div>`;
+
+  let pc=null,stream=null;
+  const log=b.querySelector('.log'), inp=b.querySelector('.signalin'), out=b.querySelector('.signalout'), audio=b.querySelector('.remoteaudio');
+  const add=t=>{log.textContent+='\n'+t;log.scrollTop=log.scrollHeight};
+  async function mic(){
+    if(stream) return stream;
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+    add('[MIC] READY');return stream;
+  }
+  async function base(){
+    await mic();
+    pc=new RTCPeerConnection(nullRtcConfig());
+    stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+    pc.ontrack=e=>{audio.srcObject=e.streams[0];add('[AUDIO] REMOTE STREAM CONNECTED')};
+    pc.onconnectionstatechange=()=>add('[RTC] '+pc.connectionState.toUpperCase());
+  }
+  b.querySelector('.mic').onclick=()=>mic().catch(e=>add('[ERR] '+e.message));
+  b.querySelector('.host').onclick=async()=>{
+    try{
+      await base();const offer=await pc.createOffer();await pc.setLocalDescription(offer);await waitIce(pc);
+      out.value=encodeSignal({sdp:pc.localDescription});
+      add('[READY] SEND CALL CODE TO PEER');
+    }catch(e){add('[ERR] '+e.message)}
+  };
+  b.querySelector('.answer').onclick=async()=>{
+    try{
+      const remote=decodeSignal(inp.value);await base();await pc.setRemoteDescription(remote.sdp);
+      const ans=await pc.createAnswer();await pc.setLocalDescription(ans);await waitIce(pc);
+      out.value=encodeSignal({sdp:pc.localDescription});
+      add('[READY] SEND ANSWER CODE BACK');
+    }catch(e){add('[ERR] '+e.message)}
+  };
+  b.querySelector('.apply').onclick=async()=>{
+    try{
+      if(!pc)throw new Error('Create a call first');
+      const remote=decodeSignal(inp.value);await pc.setRemoteDescription(remote.sdp);add('[READY] ANSWER APPLIED');
+    }catch(e){add('[ERR] '+e.message)}
+  };
+  b.querySelector('.hang').onclick=()=>{
+    try{pc&&pc.close();stream&&stream.getTracks().forEach(t=>t.stop())}catch{}
+    pc=null;stream=null;audio.srcObject=null;add('[CALL] ENDED');
+  };
+}
 function renderUsernameIntel(b){
   b.innerHTML=`<div class="intel-shell">
     <div class="intel-head"><div><div class="section-tag">PASSIVE ACCOUNT DISCOVERY</div><h2>Username OSINT</h2></div><span class="intel-badge">PUBLIC ONLY</span></div>
