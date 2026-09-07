@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "5.6.0",
+  "version": "5.7.0",
   "private": true,
-  "description": "Null Sec OS with Scramjet shield, popup suppression, realtime chat voice, recent history, and encrypted local Vault",
+  "description": "Null Sec OS with Scramjet YouTube stability mode, safe popup handling, chat voice, history, and encrypted Vault",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

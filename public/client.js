@@ -98,49 +98,57 @@ async function ensureScramjet(){
 }
 
 
-function installNullBrowserShield(iframe){
+function installNullBrowserShield(iframe,onNavigate){
   const apply=()=>{
     try{
-      const w=iframe.contentWindow,d=iframe.contentDocument;
-      if(!w||!d)return;
-
-      try{
-        Object.defineProperty(w,'open',{
-          configurable:true,
-          value:function(url){
-            if(url){
-              try{
-                const a=d.createElement('a');
-                a.href=String(url);
-                a.target='_self';
-                a.rel='noopener noreferrer';
-                d.body?.append(a);
-                a.click();
-                a.remove();
-              }catch{}
-            }
-            return w;
-          }
-        });
-      }catch{}
-
+      const d=iframe.contentDocument;
+      if(!d)return;
       d.addEventListener('click',e=>{
-        const a=e.target?.closest?.('a');
+        const a=e.target?.closest?.('a[href]');
         if(!a)return;
+        let href='';
+        try{href=a.href||''}catch{}
+        if(!href)return;
         const target=(a.getAttribute('target')||'').toLowerCase();
         if(target==='_blank'||target==='_new'){
           e.preventDefault();
-          e.stopImmediatePropagation();
-          const href=a.href;
-          if(href)w.location.href=href;
+          e.stopPropagation();
+          if(typeof onNavigate==='function')onNavigate(href);
+          return;
+        }
+        const videoId=nullYoutubeVideoId(href);
+        if(videoId && typeof onNavigate==='function'){
+          e.preventDefault();
+          e.stopPropagation();
+          onNavigate('nullsec-youtube:'+videoId);
         }
       },true);
-
-      d.querySelectorAll('a[target="_blank"],a[target="_new"]').forEach(a=>a.setAttribute('target','_self'));
     }catch{}
   };
-  iframe.addEventListener('load',()=>setTimeout(apply,50));
-  setTimeout(apply,100);
+  iframe.addEventListener('load',()=>setTimeout(apply,80));
+}
+
+function nullYoutubeVideoId(raw){
+  try{
+    const u=new URL(String(raw),location.href);
+    const h=u.hostname.replace(/^www\./,'').toLowerCase();
+    if(h==='youtu.be'){
+      const id=u.pathname.split('/').filter(Boolean)[0];
+      return /^[A-Za-z0-9_-]{6,20}$/.test(id||'')?id:null;
+    }
+    if(h==='youtube.com'||h.endsWith('.youtube.com')){
+      if(u.pathname==='/watch'){
+        const id=u.searchParams.get('v');
+        return /^[A-Za-z0-9_-]{6,20}$/.test(id||'')?id:null;
+      }
+      const m=u.pathname.match(/^\/(?:shorts|embed)\/([A-Za-z0-9_-]{6,20})/);
+      if(m)return m[1];
+    }
+  }catch{}
+  return null;
+}
+function nullYoutubeEmbedUrl(id){
+  return 'https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0&playsinline=1';
 }
 
 function renderBrowser(b){
@@ -160,7 +168,7 @@ function renderBrowser(b){
       <div class="sj-host"></div>
       <div class="browser-error"><div><b>SCRAMJET CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
     </div>
-    <div class="browser-note"><span>ENGINE: <b>SCRAMJET 2.x</b></span><span>SHIELD: ADS/TRACKERS + POPUPS</span><span>FRAME: CONTROLLER-MANAGED</span></div>
+    <div class="browser-note"><span>ENGINE: <b>SCRAMJET 2.x</b></span><span>YOUTUBE: STABILITY MODE</span><span>POPUPS: STAY IN NULL BROWSER</span></div>
   </div>`;
 
   const host=b.querySelector('.sj-host'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error');
@@ -177,18 +185,40 @@ function renderBrowser(b){
       iframe.className='frame sj-frame';
       iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');
       host.replaceChildren(iframe);
-      installNullBrowserShield(iframe);
+      installNullBrowserShield(iframe,(href)=>go(href));
       sjFrame=controller.createFrame(iframe);
     }
     return sjFrame;
   }
 
   async function go(raw){
-    const t=normalizeTarget(raw||url.value);if(!t)return;
-    current=t;url.value=t;home.style.display='none';host.style.display='block';err.style.display='none';
+    let directToken=String(raw||url.value||'');
+    let videoId=null;
+    if(directToken.startsWith('nullsec-youtube:')){
+      videoId=directToken.slice('nullsec-youtube:'.length);
+    }else{
+      const normalized=normalizeTarget(directToken);
+      if(!normalized)return;
+      directToken=normalized;
+      videoId=nullYoutubeVideoId(normalized);
+    }
+    current=directToken;
+    url.value=videoId?'https://www.youtube.com/watch?v='+videoId:directToken;
+    home.style.display='none';host.style.display='block';err.style.display='none';
     try{
+      if(videoId){
+        sjFrame=null;
+        const iframe=document.createElement('iframe');
+        iframe.className='frame sj-frame youtube-stable';
+        iframe.src=nullYoutubeEmbedUrl(videoId);
+        iframe.setAttribute('allow','autoplay; encrypted-media; picture-in-picture; fullscreen');
+        iframe.setAttribute('allowfullscreen','');
+        iframe.referrerPolicy='strict-origin-when-cross-origin';
+        host.replaceChildren(iframe);
+        return;
+      }
       const frame=await ensureFrame();
-      frame.go(t);
+      frame.go(directToken);
     }catch(e){
       err.style.display='grid';
       err.querySelector('span').textContent=e?.message||String(e);

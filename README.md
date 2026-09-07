@@ -1,4 +1,4 @@
-# Null Sec OS 5.6
+# Null Sec OS 5.7
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -109,3 +109,16 @@ Each browser also keeps the latest 100 displayed public/private messages per use
 ### Vault
 
 Vault now stores actual entries. It derives an AES-256-GCM key from the user's vault password with PBKDF2-SHA-256 and 250,000 iterations. The encrypted blob stays in browser localStorage. It supports create, unlock, add/delete entries, lock, and encrypted export/import.
+
+
+## 5.7 YouTube stability fix
+
+5.6 modified `window.open` inside the Scramjet-controlled page. Scramjet already virtualizes navigation/browser APIs, so that extra monkey patch could destabilize large applications.
+
+5.7 removes that monkey patch. New-tab anchors are handled with a capture-phase click listener and routed back through Null Browser.
+
+The service-worker shield now backs off for YouTube, YouTube-Nocookie, Googlevideo, YTImg, GGPHT, and Googleusercontent traffic so it cannot accidentally terminate YouTube runtime or media requests.
+
+For `youtube.com/watch?v=...`, `youtu.be/...`, Shorts, and watch-page clicks, Null Browser switches to YouTube Stability Mode and uses the official `youtube-nocookie.com/embed/VIDEO_ID` player. Search and browse pages can still use Scramjet.
+
+This is a stability fix, not a guarantee of ad-free playback.

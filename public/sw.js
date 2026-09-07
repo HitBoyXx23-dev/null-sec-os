@@ -4,29 +4,34 @@ const BLOCK_HOSTS = [
   "doubleclick.net",
   "googleadservices.com",
   "googlesyndication.com",
-  "adservice.google.com",
   "securepubads.g.doubleclick.net"
 ];
 
 const BLOCK_HINTS = [
   "/pagead/",
   "/adsystem/",
-  "/pcs/activeview",
-  "/ptracking",
-  "googleads.g.doubleclick.net"
+  "/pcs/activeview"
+];
+
+const YOUTUBE_CRITICAL = [
+  "youtube.com",
+  "youtube-nocookie.com",
+  "googlevideo.com",
+  "ytimg.com",
+  "ggpht.com",
+  "googleusercontent.com"
 ];
 
 function decodedRequestText(url) {
-  try {
-    return decodeURIComponent(url).toLowerCase();
-  } catch {
-    return String(url).toLowerCase();
-  }
+  try { return decodeURIComponent(url).toLowerCase(); }
+  catch { return String(url).toLowerCase(); }
 }
 
 function shouldBlockAdLikeRequest(request) {
-  if (request.destination === "document" || request.destination === "iframe") return false;
+  if (request.destination === "document" || request.destination === "iframe" ||
+      request.destination === "video" || request.destination === "audio") return false;
   const text = decodedRequestText(request.url);
+  if (YOUTUBE_CRITICAL.some(h => text.includes(h))) return false;
   return BLOCK_HOSTS.some(h => text.includes(h)) || BLOCK_HINTS.some(h => text.includes(h));
 }
 
