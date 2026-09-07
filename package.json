@@ -1,6 +1,6 @@
 {
   "name": "null-sec-os",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "private": true,
   "description": "Null Sec OS with Scramjet 2.x controller proxy, Wisp transport, username chat and E2EE private DMs",
   "main": "app.js",
@@ -18,7 +18,7 @@
     "@mercuryworkshop/scramjet": "2.0.67-alpha.2",
     "@mercuryworkshop/scramjet-controller": "0.0.14",
     "@mercuryworkshop/scramjet-utils": "0.0.3",
-    "@mercuryworkshop/libcurl-transport": "^2.0.5",
-    "@mercuryworkshop/wisp-js": "^0.4.1"
+    "@mercuryworkshop/libcurl-transport": "2.0.5",
+    "@mercuryworkshop/wisp-js": "0.4.1"
   }
 }

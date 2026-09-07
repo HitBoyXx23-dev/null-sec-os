@@ -54,8 +54,23 @@ async function waitForServiceWorkerControl(){
 }
 
 async function ensureScramjet(){
-  if(!window.$scramjetController)throw new Error('Scramjet controller assets did not load');
+  if(!window.$scramjetController){
+    let detail='controller.api.js was not loaded';
+    try{
+      const r=await fetch('/api/scramjet-status',{cache:'no-store'});
+      const d=await r.json();
+      if(!r.ok||!d.ok)detail=d.error||detail;
+      else detail='server assets are present, but /controller/controller.api.js did not initialize';
+    }catch{}
+    throw new Error('Scramjet controller assets did not load: '+detail);
+  }
   if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable in this browser');
+
+  const required=['/controller/controller.api.js','/controller/controller.sw.js','/controller/controller.inject.js','/scramjet/scramjet.js','/scramjet/scramjet.wasm','/libcurl/index.mjs'];
+  for(const asset of required){
+    const r=await fetch(asset,{method:'GET',cache:'no-store'});
+    if(!r.ok)throw new Error(asset+' returned HTTP '+r.status);
+  }
 
   await navigator.serviceWorker.register('/sw.js',{scope:'/'});
   const sw=await waitForServiceWorkerControl();

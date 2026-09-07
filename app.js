@@ -33,6 +33,26 @@ app.get("/api/osint/ct", ct);
 app.get("/api/osint/headers", headers);
 app.get("/api/osint/robots", robots);
 app.get("/api/osint/username", username);
+app.get("/api/scramjet-status", async (req, res) => {
+  try {
+    await vendorReady;
+    res.json({
+      ok: true,
+      assets: {
+        controllerApi: "/controller/controller.api.js",
+        controllerSw: "/controller/controller.sw.js",
+        controllerInject: "/controller/controller.inject.js",
+        scramjetJs: "/scramjet/scramjet.js",
+        scramjetWasm: "/scramjet/scramjet.wasm",
+        libcurl: "/libcurl/index.mjs",
+        serviceWorker: "/sw.js",
+        wisp: "/wisp/"
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: String(error?.message || error) });
+  }
+});
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {
@@ -49,20 +69,41 @@ let wisp = null;
 
 const vendorReady = (async () => {
   const pathMod = require("node:path");
+  const fs = require("node:fs");
   const scramjetPathMod = await import("@mercuryworkshop/scramjet/path");
-  const controllerEntry = require.resolve("@mercuryworkshop/scramjet-controller");
-  const libcurlEntry = require.resolve("@mercuryworkshop/libcurl-transport");
 
   const scramjetPath = scramjetPathMod.scramjetPath || scramjetPathMod.default;
-  const controllerPath = pathMod.dirname(controllerEntry);
+  const controllerApi = require.resolve("@mercuryworkshop/scramjet-controller/dist/controller.api.js");
+  const controllerPath = pathMod.dirname(controllerApi);
+  const libcurlEntry = require.resolve("@mercuryworkshop/libcurl-transport");
   const libcurlPath = pathMod.dirname(libcurlEntry);
 
-  scramjetStatic = express.static(scramjetPath);
-  controllerStatic = express.static(controllerPath);
-  libcurlStatic = express.static(libcurlPath);
+  const requiredAssets = [
+    pathMod.join(scramjetPath, "scramjet.js"),
+    pathMod.join(scramjetPath, "scramjet.wasm"),
+    pathMod.join(controllerPath, "controller.api.js"),
+    pathMod.join(controllerPath, "controller.inject.js"),
+    pathMod.join(controllerPath, "controller.sw.js"),
+    pathMod.join(libcurlPath, "index.mjs")
+  ];
+
+  const missing = requiredAssets.filter((file) => !fs.existsSync(file));
+  if (missing.length) {
+    throw new Error("Missing Scramjet runtime assets: " + missing.join(", "));
+  }
+
+  scramjetStatic = express.static(scramjetPath, { fallthrough: false });
+  controllerStatic = express.static(controllerPath, { fallthrough: false });
+  libcurlStatic = express.static(libcurlPath, { fallthrough: false });
 
   const wispMod = await import("@mercuryworkshop/wisp-js/server");
   wisp = wispMod.server;
+
+  console.log("Scramjet assets ready", {
+    scramjetPath,
+    controllerPath,
+    libcurlPath
+  });
 })();
 
 app.use("/scramjet/", async (req, res, next) => {
