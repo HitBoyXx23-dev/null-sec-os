@@ -234,9 +234,51 @@ function renderBrowser(b){
   b.querySelector('.retry').onclick=()=>current&&go(current);
 }
 
+function renderTerminal(b){
+  b.innerHTML=`<div class="terminal-app"><div class="term-output"></div><div class="term-line"><span>null@sec:$</span><input class="term-input" autocomplete="off" spellcheck="false" placeholder="type help"></div></div>`;
+  const out=b.querySelector('.term-output'),input=b.querySelector('.term-input');
+  const print=(text='')=>{const line=document.createElement('div');line.textContent=String(text);out.append(line);out.scrollTop=out.scrollHeight};
+  const help=()=>print('help  clear  date  echo <text>  apps  open <app>  net  whoami  pwd  storage  vault  browser <url>');
+  print('NULLSH // LOCAL BROWSER SHELL');
+  print('Type help for commands. Commands run locally unless explicitly opening a Null Sec app.');
+  input.onkeydown=e=>{
+    if(e.key!=='Enter')return;
+    const raw=input.value.trim();input.value='';
+    if(!raw)return;
+    print('null@sec:$ '+raw);
+    const [cmd,...args]=raw.split(/\s+/);const rest=args.join(' ');
+    switch((cmd||'').toLowerCase()){
+      case 'help':help();break;
+      case 'clear':out.innerHTML='';break;
+      case 'date':print(new Date().toString());break;
+      case 'echo':print(rest);break;
+      case 'apps':print(appDefs.map(x=>x[0]).join('  '));break;
+      case 'open':if(apps[args[0]])openApp(args[0]);else print('unknown app: '+(args[0]||''));break;
+      case 'net':print(navigator.onLine?'ONLINE':'OFFLINE');break;
+      case 'whoami':print('null-operator');break;
+      case 'pwd':print('/home/null');break;
+      case 'storage':print(`${localStorage.length} localStorage entries`);break;
+      case 'vault':openApp('files');break;
+      case 'browser':if(rest)openInNullBrowser(rest);else openApp('browser');break;
+      default:print('command not found: '+cmd);break;
+    }
+  };
+  setTimeout(()=>input.focus(),20);
+}
+
 function openInNullBrowser(url){openApp('browser');setTimeout(()=>{const w=wins.get('browser');const inp=w?.el.querySelector('.url');if(inp){inp.value=url;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},40)}
 function renderMedia(b){const cards=[['Internet Archive','Public domain films, audio, software and books','https://archive.org/details/feature_films','◉'],['Prelinger Archives','Historic public domain and educational films','https://archive.org/details/prelinger','▤'],['NASA Video','Space and science video collections','https://www.nasa.gov/multimedia/','✦'],['YouTube Bridge','Paste a YouTube watch URL into the in-OS player','app:youtube','YT'],['Media Player','Play a direct video or audio URL','app:player','▷'],['Null Radio','Browse radio directories inside Null Sec OS','app:radio','◌']];b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA HUB</div><h1>Watch. Listen. Explore.</h1><p>A built-in media center for legal public-domain collections, direct media URLs, and official embedded playback. Media sources open inside Null Sec OS instead of a new browser tab.</p><div class="media-search"><input class="field media-q" placeholder="Paste YouTube or media URL"><button class="btn media-go">OPEN IN NULL</button></div></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;b.querySelectorAll('.media-card').forEach(c=>c.onclick=()=>{const d=c.dataset.dest;if(d.startsWith('app:'))openApp(d.slice(4));else openInNullBrowser(d)});b.querySelector('.media-go').onclick=()=>{const v=b.querySelector('.media-q').value.trim();if(youtubeId(v)){openApp('youtube');setTimeout(()=>{const w=wins.get('youtube');const inp=w?.el.querySelector('.yt-url');if(inp){inp.value=v;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},30)}else{openApp('player');setTimeout(()=>{const w=wins.get('player');const inp=w?.el.querySelector('.media-url');if(inp){inp.value=v;w.el.querySelector('.media-load').click()}},30)}}}
 function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="media-el" controls playsinline></video><div class="video-tools"><input class="field media-url" placeholder="Direct .mp4, .webm, .mp3, .ogg or stream URL"><button class="btn media-load">LOAD</button></div></div>`;b.querySelector('.media-load').onclick=()=>{b.querySelector('.media-el').src=b.querySelector('.media-url').value.trim();b.querySelector('.media-el').play().catch(()=>{})}}
+function renderRadio(b){
+  const stations=[
+    ['Radio Garden','Explore live radio stations by location','https://radio.garden/'],
+    ['SomaFM','Listener-supported internet radio','https://somafm.com/'],
+    ['Internet Archive Audio','Public audio collections','https://archive.org/details/audio']
+  ];
+  b.innerHTML=`<div class="tool-wrap"><div class="tool-head"><div><div class="section-tag">NULL RADIO</div><h2>Signal Radio</h2></div></div><div class="media-grid">${stations.map(([name,desc,url])=>`<button class="media-card radio-link" data-url="${url}"><div class="poster">◉</div><b>${name}</b><small>${desc}</small></button>`).join('')}</div><div class="panel muted" style="margin-top:10px">Stations open inside Null Browser through Scramjet.</div></div>`;
+  b.querySelectorAll('.radio-link').forEach(x=>x.onclick=()=>openInNullBrowser(x.dataset.url));
+}
+
 function renderYouTube(b){
   b.innerHTML=`<div class="tool-wrap">
     <div class="tool-head"><div><div class="section-tag">SCRAMJET ROUTED MEDIA</div><h2>YOUTUBE</h2></div></div>
@@ -256,6 +298,11 @@ function renderYouTube(b){
   };
   b.querySelector('.yt-load').onclick=load;
   b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')load()};
+}
+function vaultB64(bytes){
+  let s='';
+  bytes.forEach(v=>s+=String.fromCharCode(v));
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function vaultUnb64(s){
   s=String(s).replace(/-/g,'+').replace(/_/g,'/');

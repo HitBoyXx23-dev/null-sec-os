@@ -1,4 +1,4 @@
-# Null Sec OS 5.8
+# Null Sec OS 5.9
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -126,3 +126,12 @@ YouTube watch/Shorts/youtu.be URLs still use the lighter `youtube-nocookie.com/e
 The dedicated YouTube app no longer creates a separate raw iframe. It sends the URL to Null Browser.
 
 Some remote sites can still block or break their own nested media frames through anti-embedding, DRM, authentication, or browser-integrity mechanisms. This build does not add site-specific bypasses for those protections.
+
+
+## 5.9 startup repair
+
+The desktop startup crash was caused by `resolveRenderer()` referencing `renderTerminal` even though that function was missing. Because the renderer registry is built before launcher icons, the exception stopped all desktop initialization.
+
+5.9 restores `renderTerminal` and `renderRadio`. It also restores the missing `vaultB64()` helper that Vault needs when encrypting and saving data.
+
+The browser-extension warnings mentioning `contentscript.js`, `ObjectMultiplex`, and `MaxListenersExceededWarning` are not emitted by Null Sec OS.
