@@ -12,14 +12,14 @@ async function checkApi(){const e=$('#api-status');try{const r=await fetch('/api
 
 const appDefs=[
 ['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Encrypted local secrets and notes'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
-['media','Null Media','media','▶','Media hub'],['player','Media Player','media','▷','Direct media URL player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
+['media','Null Media','media','▶','Media hub'],['livetv','Null Live TV','media','TV','Official free live channel hub'],['cinema','Null Cinema','media','◫','Public-domain streaming cinema'],['player','Media Player','media','▷','Direct media URL player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
 ['calculator','Calculator','tools','∑','Fast calculator'],['clock','World Clock','tools','◷','Clock and date'],['calendar','Calendar','tools','▣','Monthly calendar'],['stopwatch','Stopwatch','tools','⏱','Time laps'],['timer','Timer','tools','⌛','Countdown timer'],['paint','Null Paint','tools','✣','Canvas sketchpad'],['markdown','Markdown Pad','tools','M↓','Markdown preview'],['json','JSON Lab','tools','{}','Format JSON'],['base64','Base64','tools','64','Encode and decode'],['urlcodec','URL Codec','tools','%','URL encode/decode'],['uuid','UUID Forge','tools','ID','Generate UUIDs'],['password','Password Forge','tools','***','Generate passwords'],['hash','Hash Lab','tools','#','SHA-256 digest'],['regex','Regex Lab','tools','.*','Test patterns'],['color','Color Lab','tools','◈','Color converter'],['text','Text Lab','tools','Aa','Case and stats'],['ascii','ASCII Studio','tools','A#','Text banners'],['unit','Unit Convert','tools','⇄','Common conversions'],['random','Random Lab','tools','?','Random values'],['clipboard','Clipboard','tools','▤','Copy helper'],['systemmon','System Monitor','tools','▥','Browser runtime info'],['storage','Storage Inspector','tools','◧','LocalStorage viewer'],['network','Network Tools','tools','⌁','URL and connection info'],['qrcode','QR Forge','tools','QR','Node-powered QR generator'],
 ['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['nullcrypt','Null Chat','comms','◈','Public chat + E2EE private DMs by username'],
 ['dnsintel','DNS Lens','intel','DNS','Public DNS records'],['rdapintel','RDAP Lens','intel','R','Domain and IP registration'],['ctintel','Cert Lens','intel','CRT','Certificate transparency'],['headerintel','Header Scope','intel','HDR','Security header inspector'],['robotsintel','Robots Viewer','intel','BOT','Public robots.txt viewer'],['urlclean','URL Sanitizer','intel','URL','Strip tracking parameters'],['leakscan','Leak Scanner','intel','LS','Local text exposure scan'],['fileintel','File Intel','intel','FILE','Local file metadata and hash'],['jwtscope','JWT Peek','intel','JWT','Decode JWT locally'],['passaudit','Password Audit','intel','KEY','Local entropy estimate'],['privacycheck','OPSEC Checklist','intel','OP','Privacy hygiene checklist'],
 ['snake','Snake','games','S','Classic snake'],['pong','Pong','games','P','Arcade pong'],['breakout','Breakout','games','B','Brick breaker'],['tictactoe','Tic Tac Toe','games','XO','3x3 game'],['memory','Memory','games','◇','Match cards'],['mines','Mines','games','✹','Mine puzzle'],['clicker','Null Clicker','games','+1','Score clicker'],['reaction','Reaction Test','games','!','Reaction speed'],['typing','Typing Test','games','⌨','Typing speed'],['guess','Number Guess','games','?','Guess 1 to 100'],['dice','Dice','games','⚄','Dice roller'],['coin','Coin Flip','games','◐','Heads or tails'],['rps','Rock Paper Scissors','games','RPS','Play CPU'],['lights','Lights Out','games','▦','Toggle grid'],['simon','Simon','games','●','Memory sequence'],['maze','Maze Runner','games','⌗','Keyboard maze'],['2048','2048','games','2K','Number merge']
 ];
 const apps={};appDefs.forEach(([id,title,cat,icon,desc])=>apps[id]={id,title,cat,icon,desc,render:resolveRenderer(id)});
-function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
+function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,livetv:renderLiveTV,cinema:renderCinema,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
 
 function buildLaunchers(){const favorites=['browser','osintcenter','terminal','files','ops','media','snake','calculator'];$('#desktop-icons').innerHTML=favorites.map(id=>`<button class="desktop-icon" data-open="${id}"><span class="ico">${apps[id].icon}</span><small>${apps[id].title}</small></button>`).join('');renderAppGrid()}
 function renderAppGrid(filter='',cat='all'){const q=filter.toLowerCase();$('#app-grid').innerHTML=appDefs.filter(([id,title,c,,desc])=>(cat==='all'||c===cat)&&(`${title} ${desc}`.toLowerCase().includes(q))).map(([id,title,,icon,desc])=>`<button class="app-tile" data-open="${id}"><b>${icon}</b><span>${title}</span><small>${desc}</small></button>`).join('')}
@@ -267,7 +267,167 @@ function renderTerminal(b){
 }
 
 function openInNullBrowser(url){openApp('browser');setTimeout(()=>{const w=wins.get('browser');const inp=w?.el.querySelector('.url');if(inp){inp.value=url;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},40)}
-function renderMedia(b){const cards=[['Internet Archive','Public domain films, audio, software and books','https://archive.org/details/feature_films','◉'],['Prelinger Archives','Historic public domain and educational films','https://archive.org/details/prelinger','▤'],['NASA Video','Space and science video collections','https://www.nasa.gov/multimedia/','✦'],['YouTube Bridge','Paste a YouTube watch URL into the in-OS player','app:youtube','YT'],['Media Player','Play a direct video or audio URL','app:player','▷'],['Null Radio','Browse radio directories inside Null Sec OS','app:radio','◌']];b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA HUB</div><h1>Watch. Listen. Explore.</h1><p>A built-in media center for legal public-domain collections, direct media URLs, and official embedded playback. Media sources open inside Null Sec OS instead of a new browser tab.</p><div class="media-search"><input class="field media-q" placeholder="Paste YouTube or media URL"><button class="btn media-go">OPEN IN NULL</button></div></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;b.querySelectorAll('.media-card').forEach(c=>c.onclick=()=>{const d=c.dataset.dest;if(d.startsWith('app:'))openApp(d.slice(4));else openInNullBrowser(d)});b.querySelector('.media-go').onclick=()=>{const v=b.querySelector('.media-q').value.trim();if(youtubeId(v)){openApp('youtube');setTimeout(()=>{const w=wins.get('youtube');const inp=w?.el.querySelector('.yt-url');if(inp){inp.value=v;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},30)}else{openApp('player');setTimeout(()=>{const w=wins.get('player');const inp=w?.el.querySelector('.media-url');if(inp){inp.value=v;w.el.querySelector('.media-load').click()}},30)}}}
+function renderMedia(b){
+  const cards=[
+    ['Null Live TV','Official free live channels and public broadcasters','app:livetv','TV'],
+    ['Null Cinema','Nepo-style public-domain film browser','app:cinema','◫'],
+    ['Internet Archive','Public films, audio, software and books','https://archive.org/details/feature_films','◉'],
+    ['NASA Live','Official NASA live events and NASA+','https://www.nasa.gov/live/','✦'],
+    ['YouTube Bridge','Open a YouTube URL in Null Browser','app:youtube','YT'],
+    ['Media Player','Play a direct video or audio URL','app:player','▷'],
+    ['Null Radio','Browse radio directories inside Null Sec OS','app:radio','◌']
+  ];
+  b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA HUB</div><h1>Watch. Listen. Explore.</h1><p>Live channels, public-domain cinema, direct media and official streaming pages inside Null Sec OS.</p><div class="media-search"><input class="field media-q" placeholder="Search Null Cinema or paste a URL"><button class="btn media-go">OPEN</button></div></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;
+  b.querySelectorAll('.media-card').forEach(c=>c.onclick=()=>{
+    const d=c.dataset.dest;
+    if(d.startsWith('app:'))openApp(d.slice(4));else openInNullBrowser(d);
+  });
+  b.querySelector('.media-go').onclick=()=>{
+    const v=b.querySelector('.media-q').value.trim();
+    if(!v)return;
+    if(/^https?:\/\//i.test(v)){openInNullBrowser(v);return}
+    openApp('cinema');
+    setTimeout(()=>{
+      const w=wins.get('cinema');
+      const inp=w?.el.querySelector('.cinema-search');
+      if(inp){inp.value=v;w.el.querySelector('.cinema-go')?.click()}
+    },50);
+  };
+}
+
+function renderLiveTV(b){
+  const channels=[
+    {name:'NASA Live',group:'SPACE',desc:'NASA live events and NASA+ programming',url:'https://www.nasa.gov/live/',badge:'NASA'},
+    {name:'NASA+',group:'SPACE',desc:'Free, ad-free NASA streaming platform',url:'https://plus.nasa.gov/',badge:'N+'},
+    {name:'Al Jazeera English',group:'NEWS',desc:'Official live English news page',url:'https://www.aljazeera.com/live/',badge:'AJE'},
+    {name:'France 24',group:'NEWS',desc:'Official France 24 live page',url:'https://www.france24.com/en/live',badge:'F24'},
+    {name:'DW English',group:'NEWS',desc:'Official Deutsche Welle live TV page',url:'https://www.dw.com/en/live-tv/channel-english',badge:'DW'},
+    {name:'Euronews',group:'NEWS',desc:'Official Euronews live page',url:'https://www.euronews.com/live',badge:'EU'},
+    {name:'ABC News Live',group:'NEWS',desc:'Official ABC News live page',url:'https://abcnews.go.com/Live',badge:'ABC'},
+    {name:'CBS News 24/7',group:'NEWS',desc:'Official CBS News live page',url:'https://www.cbsnews.com/live/',badge:'CBS'},
+    {name:'PBS',group:'PUBLIC',desc:'PBS live and local station streaming',url:'https://www.pbs.org/livestream/',badge:'PBS'},
+    {name:'Internet Archive TV',group:'ARCHIVE',desc:'Television archive collections',url:'https://archive.org/details/tv',badge:'IA'}
+  ];
+  let group='ALL',query='';
+  const groups=['ALL',...new Set(channels.map(x=>x.group))];
+
+  b.innerHTML=`<div class="tv-shell">
+    <div class="tv-hero">
+      <div><div class="section-tag">NULL LIVE TV</div><h1>LIVE // NOW</h1><p>Official free live pages and public broadcasters. Channels stay inside Null Browser.</p></div>
+      <div class="tv-search"><input class="field tv-q" placeholder="Search channels"><span class="tv-live-dot">● LIVE</span></div>
+    </div>
+    <div class="tv-groups">${groups.map(g=>`<button class="btn tv-group ${g==='ALL'?'active':''}" data-group="${g}">${g}</button>`).join('')}</div>
+    <div class="tv-grid"></div>
+    <div class="panel muted">Availability, geoblocking and player compatibility are controlled by each broadcaster. Null Sec does not bypass subscriptions, DRM or access restrictions.</div>
+  </div>`;
+
+  const grid=b.querySelector('.tv-grid');
+  function draw(){
+    const q=query.toLowerCase();
+    const list=channels.filter(x=>(group==='ALL'||x.group===group)&&(`${x.name} ${x.desc} ${x.group}`.toLowerCase().includes(q)));
+    grid.innerHTML=list.map(x=>`<button class="tv-card" data-url="${x.url}">
+      <div class="tv-badge">${x.badge}</div>
+      <div class="tv-meta"><b>${x.name}</b><small>${x.group} // ${x.desc}</small></div>
+      <span class="tv-play">WATCH ›</span>
+    </button>`).join('')||'<div class="panel muted">No channels match.</div>';
+    grid.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>openInNullBrowser(x.dataset.url));
+  }
+  b.querySelector('.tv-q').oninput=e=>{query=e.target.value;draw()};
+  b.querySelectorAll('.tv-group').forEach(btn=>btn.onclick=()=>{
+    b.querySelectorAll('.tv-group').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');group=btn.dataset.group;draw();
+  });
+  draw();
+}
+
+function renderCinema(b){
+  let page=1,lastQuery='',items=[];
+  b.innerHTML=`<div class="cinema-shell">
+    <div class="cinema-hero">
+      <div class="cinema-shade"></div>
+      <div class="cinema-hero-content">
+        <div class="section-tag">NULL CINEMA // OPEN CATALOG</div>
+        <h1>WATCH THE ARCHIVE.</h1>
+        <p>Public-domain and openly hosted films in a streaming-first interface.</p>
+        <div class="cinema-searchbar"><input class="field cinema-search" placeholder="Search films, creators, keywords"><button class="btn cinema-go">SEARCH</button></div>
+      </div>
+    </div>
+    <div class="cinema-status">LOADING CATALOG...</div>
+    <div class="cinema-grid"></div>
+    <div class="cinema-pager"><button class="btn cinema-prev">PREV</button><span class="cinema-page">PAGE 1</span><button class="btn cinema-next">NEXT</button></div>
+    <div class="cinema-modal hidden">
+      <button class="cinema-close">×</button>
+      <div class="cinema-detail"></div>
+    </div>
+  </div>`;
+
+  const grid=b.querySelector('.cinema-grid'),status=b.querySelector('.cinema-status'),modal=b.querySelector('.cinema-modal'),detail=b.querySelector('.cinema-detail');
+
+  async function load(){
+    status.textContent='LOADING CATALOG...';
+    grid.innerHTML='<div class="cinema-loading">SCANNING ARCHIVE...</div>';
+    try{
+      const q=b.querySelector('.cinema-search').value.trim();
+      lastQuery=q;
+      const r=await fetch('/api/media/archive?q='+encodeURIComponent(q)+'&page='+page,{cache:'no-store'});
+      const data=await r.json();
+      if(!r.ok)throw new Error(data.error||'Catalog unavailable');
+      items=data.items||[];
+      status.textContent=`${Number(data.total||0).toLocaleString()} TITLES // ${q?`QUERY: ${q.toUpperCase()}`:'POPULAR PUBLIC-DOMAIN FILMS'}`;
+      b.querySelector('.cinema-page').textContent='PAGE '+page;
+      grid.innerHTML=items.map((x,i)=>`<button class="cinema-card" data-id="${x.id}" style="--delay:${i*12}ms">
+        <div class="cinema-poster"><img loading="lazy" src="${x.thumbnail}" alt=""><span class="cinema-playmark">▶</span></div>
+        <b>${escapeHtml(x.title)}</b>
+        <small>${escapeHtml([x.year,x.creator].filter(Boolean).join(' // '))}</small>
+      </button>`).join('')||'<div class="panel muted">No films found.</div>';
+      grid.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>openTitle(x.dataset.id));
+    }catch(e){
+      status.textContent='CATALOG ERROR';
+      grid.innerHTML=`<div class="panel bad">${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  async function openTitle(id){
+    modal.classList.remove('hidden');
+    detail.innerHTML='<div class="cinema-loading">LOADING TITLE...</div>';
+    try{
+      const r=await fetch('/api/media/archive?mode=details&id='+encodeURIComponent(id),{cache:'no-store'});
+      const x=await r.json();
+      if(!r.ok)throw new Error(x.error||'Title unavailable');
+      detail.innerHTML=`<div class="cinema-detail-grid">
+        <img class="cinema-detail-poster" src="${x.thumbnail}" alt="">
+        <div class="cinema-info">
+          <div class="section-tag">ARCHIVE TITLE</div>
+          <h2>${escapeHtml(x.title)}</h2>
+          <div class="cinema-facts">${escapeHtml([x.year,x.creator].filter(Boolean).join(' // '))}</div>
+          <p>${escapeHtml(x.description||'No description available.')}</p>
+          <div class="cinema-actions">
+            ${x.media?'<button class="btn cinema-watch">▶ WATCH NOW</button>':''}
+            <button class="btn cinema-page-open">ARCHIVE PAGE</button>
+          </div>
+          ${x.media?`<div class="cinema-player-wrap hidden"><video class="cinema-player" controls playsinline preload="metadata"></video></div>`:'<div class="panel muted">No browser-playable MP4/WebM file was found for this item.</div>'}
+        </div>
+      </div>`;
+      detail.querySelector('.cinema-page-open').onclick=()=>openInNullBrowser(x.page);
+      const watch=detail.querySelector('.cinema-watch');
+      if(watch)watch.onclick=()=>{
+        const wrap=detail.querySelector('.cinema-player-wrap'),video=detail.querySelector('.cinema-player');
+        wrap.classList.remove('hidden');video.src=x.media.url;video.play().catch(()=>{});
+        watch.textContent='PLAYING';
+      };
+    }catch(e){
+      detail.innerHTML=`<div class="panel bad">${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  b.querySelector('.cinema-go').onclick=()=>{page=1;load()};
+  b.querySelector('.cinema-search').onkeydown=e=>{if(e.key==='Enter'){page=1;load()}};
+  b.querySelector('.cinema-prev').onclick=()=>{if(page>1){page--;load()}};
+  b.querySelector('.cinema-next').onclick=()=>{page++;load()};
+  b.querySelector('.cinema-close').onclick=()=>{modal.classList.add('hidden');detail.innerHTML=''};
+  load();
+}
+
 function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="media-el" controls playsinline></video><div class="video-tools"><input class="field media-url" placeholder="Direct .mp4, .webm, .mp3, .ogg or stream URL"><button class="btn media-load">LOAD</button></div></div>`;b.querySelector('.media-load').onclick=()=>{b.querySelector('.media-el').src=b.querySelector('.media-url').value.trim();b.querySelector('.media-el').play().catch(()=>{})}}
 function renderRadio(b){
   const stations=[

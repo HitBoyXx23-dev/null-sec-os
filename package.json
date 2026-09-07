@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "5.9.0",
+  "version": "6.0.0",
   "private": true,
-  "description": "Null Sec OS with repaired startup renderer registry, Scramjet browser, chat voice/history, and encrypted Vault",
+  "description": "Null Sec OS with Scramjet browser, Null Live TV, public-domain Null Cinema, chat voice, history, and encrypted Vault",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

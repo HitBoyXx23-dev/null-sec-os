@@ -1,4 +1,4 @@
-# Null Sec OS 5.9
+# Null Sec OS 6.0
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -135,3 +135,20 @@ The desktop startup crash was caused by `resolveRenderer()` referencing `renderT
 5.9 restores `renderTerminal` and `renderRadio`. It also restores the missing `vaultB64()` helper that Vault needs when encrypting and saving data.
 
 The browser-extension warnings mentioning `contentscript.js`, `ObjectMultiplex`, and `MaxListenersExceededWarning` are not emitted by Null Sec OS.
+
+
+## 6.0 Media expansion
+
+### Null Live TV
+
+Adds a searchable live-channel grid for official/free broadcaster pages including NASA Live, NASA+, France 24, DW, Euronews, Al Jazeera English, ABC News Live, CBS News 24/7, PBS, and the Internet Archive television collection.
+
+These entries open the broadcaster's official web page through Null Browser. Availability and geoblocking remain under the broadcaster's control.
+
+### Null Cinema
+
+Adds a streaming-first catalog inspired by modern movie sites, but backed by Internet Archive's `feature_films` and `prelinger` collections.
+
+The backend endpoint `/api/media/archive` performs catalog search and item metadata lookup. Browser-playable MP4/WebM files are selected from the item's Archive metadata and played directly inside the Null Cinema detail view.
+
+This build does not copy or aggregate unauthorized commercial movie/TV streams, bypass subscriptions, or defeat DRM.

@@ -12,6 +12,7 @@ const ct = require("./api/osint/ct");
 const headers = require("./api/osint/headers");
 const robots = require("./api/osint/robots");
 const username = require("./api/osint/username");
+const archiveMedia = require("./api/media/archive");
 
 const app = express();
 app.disable("x-powered-by");
@@ -33,6 +34,7 @@ app.get("/api/osint/ct", ct);
 app.get("/api/osint/headers", headers);
 app.get("/api/osint/robots", robots);
 app.get("/api/osint/username", username);
+app.get("/api/media/archive", archiveMedia);
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {
