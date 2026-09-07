@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "6.3.0",
+  "version": "6.5.0",
   "private": true,
-  "description": "Null Sec OS dual-proxy build with Scramjet + real Ultraviolet and HitBoyStream-based media/live TV",
+  "description": "Null Sec OS dual-proxy build with fixed Ultraviolet service-worker routing and native media",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

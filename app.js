@@ -69,6 +69,28 @@ app.use("/baremux/", async (req, res, next) => {
   try { await getUvVendorReady(); baremuxStatic(req, res, next); } catch (e) { next(e); }
 });
 
+app.get("/api/uv-status", async (req, res) => {
+  try {
+    await getUvVendorReady();
+    const checks = {};
+    for (const asset of ["uv.bundle.js","uv.config.js","uv.sw.js","uv.handler.js"]) {
+      checks[asset] = true;
+    }
+    res.json({
+      ok:true,
+      staticBase:"/uv/",
+      expectedWorker:"/uv/uv.sw.js",
+      expectedPrefix:"/uv/service/",
+      assets:checks,
+      baremux:"/baremux/",
+      epoxy:"/epoxy/",
+      wisp:"/wisp/"
+    });
+  } catch (error) {
+    res.status(500).json({ok:false,error:error.message});
+  }
+});
+
 app.get("/api/proxy-status", async (req, res) => {
   const fs = require("node:fs");
   try {
@@ -95,50 +117,108 @@ app.get("/api/proxy-status", async (req, res) => {
   }
 });
 
-/* HitBoyStream Live TV follows the same upstream source flow as the repo:
-   GitHub iptv-org country playlists, fetched server-side to avoid browser CORS. */
-app.get("/api/hbs/countries", async (req, res) => {
-  try {
-    const r = await fetch("https://api.github.com/repos/iptv-org/iptv/contents/streams", {
-      headers: { "User-Agent": "Null-Sec-OS/6.3", "Accept": "application/vnd.github+json" },
-      signal: AbortSignal.timeout(12000)
-    });
-    if (!r.ok) return res.status(r.status).json({error:"TV source unavailable"});
-    const data = await r.json();
-    const items = (Array.isArray(data) ? data : [])
-      .filter(x => x && typeof x.name === "string" && x.name.endsWith(".m3u") && typeof x.path === "string")
-      .map(x => ({name:x.name.replace(/\.m3u$/i,"").toUpperCase(), path:x.path}));
-    res.setHeader("Cache-Control","public,max-age=300,s-maxage=900");
-    res.json({items});
-  } catch (e) {
-    res.status(500).json({error:"TV country list failed"});
+/* ---------------- Native Null Media data + HLS gateway ---------------- */
+const { Readable } = require("node:stream");
+
+const TV_SOURCES = [
+  (code) => `https://raw.githubusercontent.com/iptv-org/iptv/master/streams/${code}.m3u`,
+  (code) => `https://cdn.jsdelivr.net/gh/iptv-org/iptv@master/streams/${code}.m3u`,
+  (code) => `https://raw.githubusercontent.com/iptv-org/iptv/main/streams/${code}.m3u`
+];
+
+const COUNTRY_CATALOG = [
+['us','United States','US'],['ca','Canada','CA'],['gb','United Kingdom','GB'],['au','Australia','AU'],['nz','New Zealand','NZ'],
+['ie','Ireland','IE'],['fr','France','FR'],['de','Germany','DE'],['es','Spain','ES'],['it','Italy','IT'],['pt','Portugal','PT'],['nl','Netherlands','NL'],
+['be','Belgium','BE'],['ch','Switzerland','CH'],['at','Austria','AT'],['se','Sweden','SE'],['no','Norway','NO'],['dk','Denmark','DK'],['fi','Finland','FI'],
+['pl','Poland','PL'],['cz','Czechia','CZ'],['sk','Slovakia','SK'],['hu','Hungary','HU'],['ro','Romania','RO'],['bg','Bulgaria','BG'],['gr','Greece','GR'],
+['tr','Turkey','TR'],['ua','Ukraine','UA'],['hr','Croatia','HR'],['rs','Serbia','RS'],['si','Slovenia','SI'],['ba','Bosnia & Herzegovina','BA'],
+['jp','Japan','JP'],['kr','South Korea','KR'],['cn','China','CN'],['hk','Hong Kong','HK'],['tw','Taiwan','TW'],['in','India','IN'],['pk','Pakistan','PK'],
+['bd','Bangladesh','BD'],['id','Indonesia','ID'],['my','Malaysia','MY'],['sg','Singapore','SG'],['th','Thailand','TH'],['vn','Vietnam','VN'],['ph','Philippines','PH'],
+['br','Brazil','BR'],['mx','Mexico','MX'],['ar','Argentina','AR'],['cl','Chile','CL'],['co','Colombia','CO'],['pe','Peru','PE'],['uy','Uruguay','UY'],['ve','Venezuela','VE'],
+['za','South Africa','ZA'],['ng','Nigeria','NG'],['ke','Kenya','KE'],['gh','Ghana','GH'],['eg','Egypt','EG'],['ma','Morocco','MA'],['dz','Algeria','DZ'],['tn','Tunisia','TN'],
+['il','Israel','IL'],['ae','United Arab Emirates','AE'],['sa','Saudi Arabia','SA'],['qa','Qatar','QA'],['kw','Kuwait','KW'],['jo','Jordan','JO'],['lb','Lebanon','LB'],
+['ru','Russia','RU'],['kz','Kazakhstan','KZ'],['ge','Georgia','GE'],['az','Azerbaijan','AZ']
+].map(([code,name,flag])=>({code,name,flag}));
+
+function parseM3U(text) {
+  const lines=String(text||'').split(/\r?\n/); const out=[];
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i].trim(); if(!line.startsWith('#EXTINF')) continue;
+    const info=line;
+    let j=i+1; while(j<lines.length && (!lines[j].trim() || lines[j].trim().startsWith('#'))) j++;
+    const url=String(lines[j]||'').trim(); if(!/^https?:\/\//i.test(url)) continue;
+    const attr=(name)=>{const m=info.match(new RegExp(name+'="([^"]*)"','i')); return m?m[1]:''};
+    const comma=info.indexOf(',');
+    const title=(comma>=0?info.slice(comma+1):attr('tvg-name')||'Untitled').trim().slice(0,180);
+    out.push({title,url,logo:attr('tvg-logo'),group:attr('group-title'),id:attr('tvg-id'),language:attr('tvg-language')});
+    i=j;
   }
+  return out;
+}
+
+app.get('/null-data/tv/countries', (req,res)=>{
+  res.setHeader('Cache-Control','public,max-age=3600,s-maxage=86400');
+  res.json({ok:true,items:COUNTRY_CATALOG});
 });
 
-app.get("/api/hbs/playlist", async (req, res) => {
-  try {
-    const p = String(req.query.path || "");
-    if (!/^streams\/[A-Za-z0-9._-]+\.m3u$/.test(p)) return res.status(400).json({error:"Invalid playlist path"});
-    const r = await fetch("https://raw.githubusercontent.com/iptv-org/iptv/master/" + p, {
-      headers: { "User-Agent": "Null-Sec-OS/6.3" },
-      signal: AbortSignal.timeout(12000)
-    });
-    if (!r.ok) return res.status(r.status).json({error:"TV playlist unavailable"});
-    const text = await r.text();
-    const lines = text.split(/\r?\n/);
-    const items = [];
-    for (let i=0;i<lines.length;i++) {
-      if (!lines[i].startsWith("#EXTINF")) continue;
-      const title = (lines[i].split(",").slice(1).join(",") || "Untitled").trim().slice(0,160);
-      const url = String(lines[i+1] || "").trim();
-      if (/^https?:\/\//i.test(url)) items.push({title,url});
-      i++;
-    }
-    res.setHeader("Cache-Control","public,max-age=120,s-maxage=300");
-    res.json({items:items.slice(0,2500)});
-  } catch (e) {
-    res.status(500).json({error:"TV playlist failed"});
+app.get('/null-data/tv/playlist/:code', async (req,res)=>{
+  const code=String(req.params.code||'').toLowerCase();
+  if(!/^[a-z]{2}$/.test(code)) return res.status(400).json({ok:false,error:'Invalid country code'});
+  let last='';
+  for(const makeUrl of TV_SOURCES){
+    try{
+      const r=await fetch(makeUrl(code),{headers:{'User-Agent':'Null-Sec-OS/6.4'},signal:AbortSignal.timeout(12000)});
+      if(!r.ok){last='HTTP '+r.status;continue}
+      const text=await r.text();
+      if(!text.includes('#EXTM3U')&&!text.includes('#EXTINF')){last='Invalid playlist';continue}
+      const items=parseM3U(text);
+      res.setHeader('Cache-Control','public,max-age=120,s-maxage=300');
+      return res.json({ok:true,code,items,source:'iptv-org'});
+    }catch(e){last=e.message||String(e)}
   }
+  res.status(502).json({ok:false,error:'No playlist mirror responded',detail:last});
+});
+
+function blockedMediaHost(hostname){
+  const h=String(hostname||'').toLowerCase();
+  if(!h||h==='localhost'||h.endsWith('.local')) return true;
+  if(h==='0.0.0.0'||h==='127.0.0.1'||h==='::1') return true;
+  if(/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)) return true;
+  const m=h.match(/^172\.(\d+)\./); if(m&&Number(m[1])>=16&&Number(m[1])<=31) return true;
+  return false;
+}
+function mediaGatewayUrl(raw){return '/null-media/hls?u='+encodeURIComponent(raw)}
+function rewriteM3U(text,base){
+  const rewrite=(raw)=>{try{return mediaGatewayUrl(new URL(raw,base).href)}catch{return raw}};
+  return String(text).split(/\r?\n/).map(line=>{
+    if(!line)return line;
+    if(line.startsWith('#')) return line.replace(/URI="([^"]+)"/g,(_,u)=>`URI="${rewrite(u)}"`);
+    return rewrite(line.trim());
+  }).join('\n');
+}
+
+app.get('/null-media/hls', async (req,res)=>{
+  try{
+    const raw=String(req.query.u||''); if(raw.length>4096) return res.status(400).end('URL too long');
+    const u=new URL(raw); if(!['http:','https:'].includes(u.protocol)||blockedMediaHost(u.hostname)) return res.status(400).end('Blocked media URL');
+    if(u.port && !['80','443','8080','8000','8443'].includes(u.port)) return res.status(400).end('Blocked media port');
+    const headers={'User-Agent':'Mozilla/5.0 NullSecMedia/6.4','Accept':'*/*'};
+    if(req.headers.range)headers.Range=req.headers.range;
+    const upstream=await fetch(u,{headers,redirect:'follow',signal:AbortSignal.timeout(20000)});
+    const ct=String(upstream.headers.get('content-type')||'application/octet-stream');
+    const finalUrl=upstream.url||u.href;
+    res.status(upstream.status);
+    for(const h of ['content-type','content-length','content-range','accept-ranges','cache-control']){const v=upstream.headers.get(h);if(v)res.setHeader(h,v)}
+    res.setHeader('Access-Control-Allow-Origin','*');
+    if(/mpegurl|m3u8|application\/vnd\.apple\.mpegurl|application\/x-mpegurl/i.test(ct)||/\.m3u8?(?:$|\?)/i.test(finalUrl)){
+      const text=await upstream.text();
+      res.removeHeader('content-length');
+      res.setHeader('content-type','application/vnd.apple.mpegurl; charset=utf-8');
+      return res.send(rewriteM3U(text,finalUrl));
+    }
+    if(!upstream.body)return res.end();
+    Readable.fromWeb(upstream.body).pipe(res);
+  }catch(e){res.status(502).end('Media gateway failed')}
 });
 
 

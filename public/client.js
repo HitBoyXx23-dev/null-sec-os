@@ -45,8 +45,43 @@ let nullUvConnection=null;
 async function ensureRealUV(){
   if(!window.BareMux||!window.__uv$config)throw new Error('Ultraviolet assets did not load');
   if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
-  await navigator.serviceWorker.register('/uv/sw.js',{scope:'/uv/'});
-  await navigator.serviceWorker.ready;
+
+  const swUrl=__uv$config.sw||'/uv/uv.sw.js';
+  const scope=__uv$config.prefix||'/uv/service/';
+  let reg=await navigator.serviceWorker.getRegistration(scope);
+
+  const matches=(worker)=>{
+    if(!worker?.scriptURL)return false;
+    try{return new URL(worker.scriptURL).pathname===new URL(swUrl,location.origin).pathname}catch{return false}
+  };
+
+  if(!reg||![reg.active,reg.waiting,reg.installing].some(matches)){
+    reg=await navigator.serviceWorker.register(swUrl,{scope});
+  }
+
+  if(reg.installing){
+    await new Promise((resolve,reject)=>{
+      const worker=reg.installing;
+      const timer=setTimeout(()=>reject(new Error('Ultraviolet service worker activation timed out')),10000);
+      const done=()=>{clearTimeout(timer);resolve()};
+      worker.addEventListener('statechange',()=>{
+        if(worker.state==='activated')done();
+        else if(worker.state==='redundant'){clearTimeout(timer);reject(new Error('Ultraviolet service worker became redundant'))}
+      });
+      if(worker.state==='activated')done();
+    });
+  }else if(reg.waiting){
+    await new Promise(resolve=>{
+      const worker=reg.waiting;
+      const timer=setTimeout(resolve,3000);
+      worker.addEventListener('statechange',()=>{
+        if(worker.state==='activated'){clearTimeout(timer);resolve()}
+      });
+    });
+  }
+
+  if(!reg.active && !reg.waiting)throw new Error('Ultraviolet service worker did not activate');
+
   if(!nullUvConnection)nullUvConnection=new BareMux.BareMuxConnection('/baremux/worker.js');
   const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
   const current=await nullUvConnection.getTransport();
@@ -187,7 +222,6 @@ function renderBrowser(b){
           <button data-url="https://www.google.com">GOOGLE</button>
           <button data-url="https://www.youtube.com">YOUTUBE</button>
           <button data-url="https://www.wikipedia.org">WIKIPEDIA</button>
-          <button data-url="https://hitboyxx23-dev.github.io/hitboystream/live/live.html">HITBOY LIVE</button>
         </div>
       </div></div>
       <div class="sj-host"></div>
@@ -260,7 +294,7 @@ function renderBrowser(b){
       }catch(e){lastErr=e}
     }
     err.style.display='grid';
-    err.querySelector('span').textContent=lastErr?.message||String(lastErr||'Both proxy engines failed');
+    err.querySelector('span').textContent=(lastErr?.message||String(lastErr||'Both proxy engines failed'))+' // UV SW: '+(__uv$config?.sw||'/uv/uv.sw.js')+' // UV SCOPE: '+(__uv$config?.prefix||'/uv/service/');
   }
 
   select.onchange=()=>{
@@ -315,98 +349,70 @@ function renderTerminal(b){
 function openInNullBrowser(url){openApp('browser');setTimeout(()=>{const w=wins.get('browser');const inp=w?.el.querySelector('.url');if(inp){inp.value=url;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},40)}
 function renderMedia(b){
   const cards=[
-    ['Null Live TV','HitBoyStream-style country/channel HLS browser','app:livetv','TV'],
-    ['HitBoyStream Movies','Movies page from your HitBoyStream repo','https://hitboyxx23-dev.github.io/hitboystream/movies/movies.html','◫'],
-    ['HitBoyStream Series','Series page from your HitBoyStream repo','https://hitboyxx23-dev.github.io/hitboystream/series/series.html','▤'],
-    ['HitBoyStream News','News page from your HitBoyStream repo','https://hitboyxx23-dev.github.io/hitboystream/news/news.html','N'],
-    ['YouTube','Open through Null Browser dual proxy','https://www.youtube.com','YT'],
-    ['Media Player','Play a direct video/audio URL','app:player','▷'],
-    ['Null Radio','Radio directories inside Null Browser','app:radio','◌']
+    ['Null Live TV','Native country playlists, groups, search, favorites and HLS playback','app:livetv','TV'],
+    ['Null Cinema','Local media shell with direct player and watch history','app:cinema','◫'],
+    ['YouTube','Open with Null Browser auto proxy engine','https://www.youtube.com','YT'],
+    ['Media Player','Play a direct video or audio URL inside Null Sec','app:player','▷'],
+    ['Null Radio','Radio discovery inside Null Sec','app:radio','◌']
   ];
-  b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA // HITBOYSTREAM</div><h1>WATCH. LISTEN. SWITCH ENGINES.</h1><p>Media hub rebuilt around your HitBoyStream pages and Live TV source flow. Internet Archive and NASA entries removed.</p><div class="media-search"><input class="field media-q" placeholder="Paste a URL"><button class="btn media-go">OPEN IN NULL</button></div></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;
-  b.querySelectorAll('.media-card').forEach(c=>c.onclick=()=>{const d=c.dataset.dest;if(d.startsWith('app:'))openApp(d.slice(4));else openInNullBrowser(d)});
-  b.querySelector('.media-go').onclick=()=>{const v=b.querySelector('.media-q').value.trim();if(v)openInNullBrowser(v)};
+  b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA // NATIVE MODE</div><h1>MEDIA WITHOUT WEBSITE WRAPPERS.</h1><p>TV sources are parsed and rendered by Null Sec OS itself. No HitBoyStream page iframe, no direct website launcher.</p></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;
+  b.querySelectorAll('.media-card').forEach(x=>x.onclick=()=>{const d=x.dataset.dest;d.startsWith('app:')?openApp(d.slice(4)):openInNullBrowser(d)});
 }
 
 function renderLiveTV(b){
-  b.innerHTML=`<div class="tv-shell">
-    <div class="tv-hero"><div><div class="section-tag">NULL LIVE TV // HITBOYSTREAM SOURCE FLOW</div><h1>LIVE // IPTV</h1><p>Select a country, then a stream. This mirrors the source logic used by your HitBoyStream live page.</p></div><div class="tv-live-dot">● LIVE</div></div>
-    <div class="hbs-tv-controls">
-      <select class="field hbs-country"><option value="">SELECT COUNTRY</option></select>
-      <select class="field hbs-channel" disabled><option value="">SELECT STREAM</option></select>
-      <input class="field hbs-filter" placeholder="Filter channels" disabled>
-      <button class="btn hbs-open-source">OPEN HITBOYSTREAM LIVE PAGE</button>
-    </div>
-    <div class="hbs-player-wrap">
-      <video class="hbs-video" controls playsinline autoplay></video>
-      <div class="hbs-now">NO STREAM SELECTED</div>
-    </div>
-    <div class="panel muted hbs-status">Loading country playlists...</div>
+  const FAV='nullsec.tv.favorites.v2';
+  const getFav=()=>{try{return JSON.parse(localStorage.getItem(FAV)||'[]')}catch{return[]}};
+  const saveFav=v=>localStorage.setItem(FAV,JSON.stringify(v.slice(0,200)));
+  let all=[],filtered=[],hls=null,currentCountry='',currentGroup='ALL';
+
+  b.innerHTML=`<div class="tv-native">
+    <div class="tv-native-head"><div><div class="section-tag">NULL LIVE TV // NATIVE</div><h1>LIVE CHANNEL MATRIX</h1><p>HitBoyStream-style IPTV sources, rebuilt as a real Null Sec app.</p></div><div class="tv-signal">● SOURCE BUS ONLINE</div></div>
+    <div class="tv-toolbar"><select class="field tv-country"><option value="">SELECT COUNTRY</option></select><input class="field tv-filter" placeholder="Search channels" disabled><select class="field tv-group" disabled><option>ALL</option></select><button class="btn tv-favs">★ FAVORITES</button><button class="btn tv-refresh">REFRESH</button></div>
+    <div class="tv-layout"><div class="tv-channel-pane"><div class="tv-count">0 CHANNELS</div><div class="tv-channel-list"></div></div><div class="tv-player-pane"><div class="tv-screen"><video class="tv-video" controls playsinline autoplay></video><div class="tv-empty">SELECT A CHANNEL</div><div class="tv-now hidden"></div></div><div class="tv-player-info"><b class="tv-title">NO CHANNEL</b><span class="tv-meta">WAITING FOR SOURCE</span></div><div class="tv-health"></div></div></div>
+    <div class="panel muted tv-status">Loading internal country catalog...</div>
   </div>`;
+  const country=b.querySelector('.tv-country'),filter=b.querySelector('.tv-filter'),group=b.querySelector('.tv-group'),list=b.querySelector('.tv-channel-list'),count=b.querySelector('.tv-count'),status=b.querySelector('.tv-status'),video=b.querySelector('.tv-video'),empty=b.querySelector('.tv-empty'),now=b.querySelector('.tv-now'),title=b.querySelector('.tv-title'),meta=b.querySelector('.tv-meta'),health=b.querySelector('.tv-health');
 
-  const country=b.querySelector('.hbs-country'),channel=b.querySelector('.hbs-channel'),filter=b.querySelector('.hbs-filter'),
-        video=b.querySelector('.hbs-video'),now=b.querySelector('.hbs-now'),status=b.querySelector('.hbs-status');
-  let channels=[],hls=null;
-
-  function destroyHls(){try{hls?.destroy()}catch{}hls=null}
-  function drawChannels(){
-    const q=filter.value.trim().toLowerCase();
-    const list=channels.filter(x=>!q||x.title.toLowerCase().includes(q));
-    channel.innerHTML='<option value="">SELECT STREAM</option>'+list.map(x=>`<option value="${encodeURIComponent(x.url)}">${escapeHtml(x.title)}</option>`).join('');
-    channel.disabled=false;filter.disabled=false;
-    status.textContent=`${list.length} STREAMS LOADED`;
+  async function getJson(url){
+    const r=await fetch(url,{cache:'no-store'}); const text=await r.text();
+    let d; try{d=JSON.parse(text)}catch{throw new Error('Server returned non-JSON: '+text.slice(0,80).replace(/\s+/g,' '))}
+    if(!r.ok||d.ok===false)throw new Error(d.error||('HTTP '+r.status)); return d;
   }
-  async function play(url,title){
-    destroyHls();video.removeAttribute('src');video.load();now.textContent='CONNECTING // '+title;
+  function favKey(x){return [x.id,x.title,x.url].join('|')}
+  function isFav(x){const k=favKey(x);return getFav().some(y=>favKey(y)===k)}
+  function toggleFav(x){let f=getFav(),k=favKey(x);f=f.some(y=>favKey(y)===k)?f.filter(y=>favKey(y)!==k):[x,...f];saveFav(f);draw()}
+  function rebuildGroups(){const gs=['ALL',...new Set(all.map(x=>x.group||'OTHER'))].sort();group.innerHTML=gs.map(g=>`<option>${escapeHtml(g)}</option>`).join('');group.value='ALL';currentGroup='ALL'}
+  function draw(){
+    const q=filter.value.trim().toLowerCase();
+    filtered=all.filter(x=>(currentGroup==='ALL'||(x.group||'OTHER')===currentGroup)&&(!q||(`${x.title} ${x.group} ${x.language}`.toLowerCase().includes(q))));
+    count.textContent=filtered.length+' CHANNELS';
+    list.innerHTML=filtered.slice(0,1200).map((x,i)=>`<button class="tv-row" data-i="${i}"><span class="tv-logo">${x.logo?`<img loading="lazy" src="${x.logo}" alt="">`:'TV'}</span><span class="tv-row-info"><b>${escapeHtml(x.title)}</b><small>${escapeHtml(x.group||'UNGROUPED')}</small></span><span class="tv-star" data-star="${i}">${isFav(x)?'★':'☆'}</span><span class="tv-watch">WATCH ›</span></button>`).join('')||'<div class="panel muted">No channels match.</div>';
+    list.querySelectorAll('.tv-row').forEach(row=>row.onclick=e=>{const i=Number(row.dataset.i);if(e.target.closest('[data-star]')){e.stopPropagation();toggleFav(filtered[i]);return}play(filtered[i])});
+  }
+  function stop(){try{hls?.destroy()}catch{}hls=null;video.pause();video.removeAttribute('src');video.load()}
+  function play(ch){
+    stop();empty.classList.add('hidden');now.classList.remove('hidden');now.textContent='CONNECTING';title.textContent=ch.title;meta.textContent=[currentCountry.toUpperCase(),ch.group,ch.language].filter(Boolean).join(' // ');health.textContent='';
+    const src='/null-media/hls?u='+encodeURIComponent(ch.url);
     try{
       if(window.Hls&&Hls.isSupported()){
-        hls=new Hls({enableWorker:true,lowLatencyMode:true});
-        hls.loadSource(url);hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED,()=>video.play().catch(()=>{}));
-        hls.on(Hls.Events.ERROR,(_,data)=>{if(data?.fatal)status.textContent='STREAM ERROR // '+(data.details||'HLS')});
-      }else if(video.canPlayType('application/vnd.apple.mpegurl')){
-        video.src=url;await video.play().catch(()=>{});
-      }else{
-        throw new Error('HLS playback is not supported in this browser');
-      }
-      now.textContent='NOW PLAYING // '+title;
-    }catch(e){status.textContent='PLAYBACK FAILED // '+e.message}
+        hls=new Hls({enableWorker:true,lowLatencyMode:true,backBufferLength:30,maxBufferLength:20});hls.loadSource(src);hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED,()=>{now.textContent='● LIVE';video.play().catch(()=>{})});
+        hls.on(Hls.Events.ERROR,(_,d)=>{if(d?.fatal){health.textContent='STREAM ERROR // '+(d.details||d.type||'HLS');now.textContent='ERROR'}});
+      }else if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=src;video.play().catch(()=>{});now.textContent='● LIVE'}
+      else throw new Error('HLS unsupported');
+    }catch(e){health.textContent='PLAYBACK FAILED // '+e.message;now.textContent='ERROR'}
   }
-
-  fetch('/api/hbs/countries',{cache:'no-store'}).then(async r=>{
-    const d=await r.json();if(!r.ok)throw new Error(d.error||'Country list failed');
-    country.innerHTML='<option value="">SELECT COUNTRY</option>'+d.items.map(x=>`<option value="${x.path}">${escapeHtml(x.name)}</option>`).join('');
-    status.textContent=`${d.items.length} COUNTRY PLAYLISTS READY`;
-  }).catch(e=>status.textContent='TV SOURCE ERROR // '+e.message);
-
-  country.onchange=async()=>{
-    if(!country.value)return;
-    channel.disabled=true;filter.disabled=true;status.textContent='LOADING STREAMS...';
-    try{
-      const r=await fetch('/api/hbs/playlist?path='+encodeURIComponent(country.value),{cache:'no-store'});
-      const d=await r.json();if(!r.ok)throw new Error(d.error||'Playlist failed');
-      channels=d.items||[];filter.value='';drawChannels();
-    }catch(e){status.textContent='PLAYLIST ERROR // '+e.message}
-  };
-  filter.oninput=drawChannels;
-  channel.onchange=()=>{
-    if(!channel.value)return;
-    const url=decodeURIComponent(channel.value);
-    const title=channel.options[channel.selectedIndex]?.textContent||'LIVE STREAM';
-    play(url,title);
-  };
-  b.querySelector('.hbs-open-source').onclick=()=>openInNullBrowser('https://hitboyxx23-dev.github.io/hitboystream/live/live.html');
+  async function loadCountry(code){
+    currentCountry=code;status.textContent='Loading '+code.toUpperCase()+' playlist through Null source adapters...';filter.disabled=true;group.disabled=true;list.innerHTML='<div class="cinema-loading">PARSING CHANNELS...</div>';
+    try{const d=await getJson('/null-data/tv/playlist/'+encodeURIComponent(code));all=d.items||[];rebuildGroups();filter.disabled=false;group.disabled=false;status.textContent=`${all.length} channels loaded // source: ${d.source||'adapter'}`;draw()}catch(e){all=[];list.innerHTML='<div class="panel bad">'+escapeHtml(e.message)+'</div>';status.textContent='TV SOURCE ERROR // '+e.message}
+  }
+  getJson('/null-data/tv/countries').then(d=>{country.innerHTML='<option value="">SELECT COUNTRY</option>'+d.items.map(x=>`<option value="${x.code}">${escapeHtml(x.flag+' // '+x.name)}</option>`).join('');status.textContent=d.items.length+' country adapters ready'}).catch(e=>status.textContent='TV SOURCE ERROR // '+e.message);
+  country.onchange=()=>country.value&&loadCountry(country.value);filter.oninput=draw;group.onchange=()=>{currentGroup=group.value;draw()};b.querySelector('.tv-refresh').onclick=()=>currentCountry&&loadCountry(currentCountry);b.querySelector('.tv-favs').onclick=()=>{all=getFav();currentCountry='FAV';rebuildGroups();filter.disabled=false;group.disabled=false;status.textContent=all.length+' saved favorites';draw()};
 }
 
 function renderCinema(b){
-  const links=[
-    {title:'MOVIES',desc:'Browse the Movies section from HitBoyStream',url:'https://hitboyxx23-dev.github.io/hitboystream/movies/movies.html',icon:'◫'},
-    {title:'SERIES',desc:'Browse the Series section from HitBoyStream',url:'https://hitboyxx23-dev.github.io/hitboystream/series/series.html',icon:'▤'},
-    {title:'LIVE TV',desc:'Use Null Live TV country/channel browser',app:'livetv',icon:'TV'},
-    {title:'NEWS',desc:'Open the HitBoyStream News section',url:'https://hitboyxx23-dev.github.io/hitboystream/news/news.html',icon:'N'}
-  ];
-  b.innerHTML=`<div class="cinema-shell"><div class="cinema-topbar"><div class="cinema-brand"><span>NULL</span> CINEMA</div><div class="cinema-tabs"><button class="cinema-tab active">HITBOYSTREAM</button></div></div><div class="cinema-hero"><div class="cinema-shade"></div><div class="cinema-hero-content"><div class="section-tag">NULL CINEMA // HITBOYSTREAM</div><h1>MEDIA ROUTER.</h1><p>Internet Archive catalog removed. Movies and Series now route to the pages from your HitBoyStream repository through the dual-proxy Null Browser.</p></div></div><div class="media-grid cinema-hbs-grid">${links.map(x=>`<button class="media-card hbs-media-card" ${x.app?`data-app="${x.app}"`:`data-url="${x.url}"`}><div class="poster">${x.icon}</div><b>${x.title}</b><small>${x.desc}</small></button>`).join('')}</div></div>`;
-  b.querySelectorAll('.hbs-media-card').forEach(x=>x.onclick=()=>x.dataset.app?openApp(x.dataset.app):openInNullBrowser(x.dataset.url));
+  b.innerHTML=`<div class="cinema-shell"><div class="cinema-topbar"><div class="cinema-brand"><span>NULL</span> CINEMA</div><div class="cinema-tabs"><button class="cinema-tab active">LOCAL MEDIA</button></div></div><div class="cinema-hero"><div class="cinema-shade"></div><div class="cinema-hero-content"><div class="section-tag">NULL CINEMA // NATIVE</div><h1>NO WEBSITE WRAPPERS.</h1><p>Use the native Live TV app for channel sources or the direct Media Player for your own playable URLs. Commercial third-party movie-site embeds are not bundled.</p><div class="cinema-searchbar"><input class="field cinema-url" placeholder="Paste direct MP4 / WebM / HLS URL"><button class="btn cinema-play-direct">PLAY</button></div></div></div><div class="media-grid cinema-hbs-grid"><button class="media-card cinema-live"><div class="poster">TV</div><b>LIVE TV</b><small>Native country/channel source browser</small></button><button class="media-card cinema-player"><div class="poster">▷</div><b>MEDIA PLAYER</b><small>Direct URL playback</small></button><button class="media-card cinema-browser"><div class="poster">◎</div><b>NULL BROWSER</b><small>Dual Scramjet / Ultraviolet browser</small></button></div></div>`;
+  b.querySelector('.cinema-live').onclick=()=>openApp('livetv');b.querySelector('.cinema-player').onclick=()=>openApp('player');b.querySelector('.cinema-browser').onclick=()=>openApp('browser');b.querySelector('.cinema-play-direct').onclick=()=>{const v=b.querySelector('.cinema-url').value.trim();if(!v)return;openApp('player');setTimeout(()=>{const w=wins.get('player'),inp=w?.el.querySelector('input');if(inp){inp.value=v;w.el.querySelector('button')?.click()}},50)};
 }
 
 function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="media-el" controls playsinline></video><div class="video-tools"><input class="field media-url" placeholder="Direct .mp4, .webm, .mp3, .ogg or stream URL"><button class="btn media-load">LOAD</button></div></div>`;b.querySelector('.media-load').onclick=()=>{b.querySelector('.media-el').src=b.querySelector('.media-url').value.trim();b.querySelector('.media-el').play().catch(()=>{})}}

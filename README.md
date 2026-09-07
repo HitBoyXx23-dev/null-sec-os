@@ -1,31 +1,34 @@
-# Null Sec OS 6.3
+# Null Sec OS 6.5
 
-Full Null Sec OS build with dual proxy browsing and reworked media.
+This build fixes the Vercel TV JSON failure and removes direct HitBoyStream website wrappers from Null Media.
 
-## Browser
-- Scramjet 2.x remains installed.
-- Real Ultraviolet 3 is installed alongside it.
-- Null Browser has AUTO / SCRAMJET / ULTRAVIOLET selector.
-- AUTO prefers Ultraviolet for YouTube and Scramjet for general pages.
-- Both engines use the same `/wisp/` endpoint.
+## What changed
+- TV endpoints moved away from `/api/*` to `/null-data/*` so Vercel does not confuse them with filesystem API functions.
+- Country catalog is built into Null Sec OS.
+- Country M3U playlists use multiple upstream mirrors.
+- Playlist metadata includes title, logo, group, tvg id and language.
+- Native channel search, group filtering and local favorites.
+- Same-origin `/null-media/hls` gateway rewrites HLS manifests, nested playlists, keys and segment URLs for much better CORS compatibility.
+- No direct HitBoyStream page buttons in Null Media.
+- Null Cinema is now a native media router rather than an external-site wrapper.
+- Scramjet + real Ultraviolet dual browser is preserved.
 
-## Media
-- Internet Archive media catalog removed.
-- NASA Live/TV entries removed.
-- Null Media now links to the Movies, Series, Live and News pages from:
-  `https://github.com/HitBoyXx23-dev/hitboystream`
-- Null Live TV follows that repo's Live TV logic:
-  1. load country playlist names from `iptv-org/iptv`
-  2. load the chosen `.m3u`
-  3. parse channel names/URLs
-  4. play HLS with bundled HLS.js
-- The original HitBoyStream Live page is also available as a one-click fallback through Null Browser.
+The source model is based on the HitBoyStream Live TV approach, which consumes country playlists from iptv-org.
 
-## Existing Null Sec features preserved
-- classic green-on-black desktop
-- Null Chat + WebRTC voice
-- E2EE private DMs
-- encrypted local Vault
-- passive OSINT suite
-- terminal, tools, games, media player, radio
-- Vercel/Express deployment
+
+## 6.5 Ultraviolet route fix
+
+Fixed the real Ultraviolet worker registration.
+
+Previous code registered `/uv/sw.js` with scope `/uv/`, but Ultraviolet's package uses `uv.sw.js` and its service worker must own the configured proxy prefix, normally `/uv/service/`.
+
+The client now:
+- reads `__uv$config.sw`
+- reads `__uv$config.prefix`
+- registers the UV worker with that exact scope
+- waits for that specific worker to activate
+- keeps BareMux + Epoxy connected to `/wisp/`
+- leaves the root Scramjet worker separate
+- exposes `/api/uv-status` for deployment diagnostics
+
+After deploying this build, clear the old site's service-worker/site data once so the stale registration from 6.4 cannot keep intercepting requests.
