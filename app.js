@@ -119,6 +119,8 @@ const server = createServer(app);
 /* ---------------- Realtime username chat ---------------- */
 const chatWss = new WebSocketServer({ noServer: true });
 const users = new Map();
+const recentPublic = [];
+const MAX_PUBLIC_HISTORY = 50;
 
 function validName(value) {
   const name = String(value || "").trim();
@@ -162,6 +164,7 @@ chatWss.on("connection", (ws) => {
       current = name;
       users.set(name, { ws, pub, joined: Date.now() });
       send(ws, { type: "ready", username: name });
+      send(ws, { type: "history", messages: recentPublic });
       publishPresence();
       broadcast({ type: "system", text: `${name} joined public chat` }, ws);
       return;
@@ -172,7 +175,35 @@ chatWss.on("connection", (ws) => {
     if (msg.type === "public") {
       const text = String(msg.text || "").slice(0, 2000);
       if (!text.trim()) return;
-      broadcast({ type: "public", from: current, text, at: Date.now() });
+      const packet = { type: "public", from: current, text, at: Date.now() };
+      recentPublic.push(packet);
+      if (recentPublic.length > MAX_PUBLIC_HISTORY) recentPublic.shift();
+      broadcast(packet);
+      return;
+    }
+
+
+    if (["voice_offer", "voice_answer", "voice_ice", "voice_hangup"].includes(msg.type)) {
+      const to = validName(msg.to);
+      const peer = to && users.get(to);
+      if (!peer) return send(ws, { type: "error", message: "Voice peer is not online" });
+
+      const packet = {
+        type: msg.type,
+        from: current,
+        to,
+        at: Date.now()
+      };
+
+      if (msg.type === "voice_offer" || msg.type === "voice_answer") {
+        if (!msg.sdp || typeof msg.sdp !== "object") return;
+        packet.sdp = msg.sdp;
+      } else if (msg.type === "voice_ice") {
+        if (!msg.candidate || typeof msg.candidate !== "object") return;
+        packet.candidate = msg.candidate;
+      }
+
+      send(peer.ws, packet);
       return;
     }
 

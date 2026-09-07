@@ -1,4 +1,4 @@
-# Null Sec OS 5.5 Vendored Scramjet Assets
+# Null Sec OS 5.6
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -84,3 +84,28 @@ The previous Express fallback explicitly excluded `/~/sj/`, so those requests fe
 5.5 adds an explicit GET handler for `/~/sj/*` that returns the application shell. The root-scoped Scramjet service worker can then intercept that navigation and perform the actual rewritten fetch.
 
 This is specifically for rewritten browser navigations. API and static vendor paths still bypass the SPA fallback.
+
+
+## 5.6 additions
+
+### Null Browser Shield
+
+The Scramjet service worker now rejects a conservative list of obvious advertising and tracking endpoints before routing requests. Null Browser also rewrites `_blank` / `_new` link behavior back into the current Scramjet frame and overrides ordinary `window.open` attempts inside accessible proxied documents.
+
+This is intentionally conservative. It is not a promise to remove every YouTube in-stream ad, because aggressive blocking of shared Google video infrastructure can also break normal playback.
+
+### Null Chat voice
+
+Voice is now inside Null Chat. Select an online username and use CALL. Signaling travels over the existing `/chat/` WebSocket; audio travels peer-to-peer over WebRTC DTLS-SRTP.
+
+The default ICE configuration uses Cloudflare's public STUN service at `stun:stun.cloudflare.com:3478`. STUN helps peers discover public network addresses but does not relay media. Restrictive NAT/firewall combinations can still require a TURN service.
+
+### Recent messages
+
+The server keeps the most recent 50 public messages in memory and sends them after login. This history is instance-local on serverless deployments and is not a durable database.
+
+Each browser also keeps the latest 100 displayed public/private messages per username locally so reopening Null Chat shows recent local conversation history automatically.
+
+### Vault
+
+Vault now stores actual entries. It derives an AES-256-GCM key from the user's vault password with PBKDF2-SHA-256 and 250,000 iterations. The encrypted blob stays in browser localStorage. It supports create, unlock, add/delete entries, lock, and encrypted export/import.
