@@ -33,26 +33,6 @@ app.get("/api/osint/ct", ct);
 app.get("/api/osint/headers", headers);
 app.get("/api/osint/robots", robots);
 app.get("/api/osint/username", username);
-app.get("/api/scramjet-status", async (req, res) => {
-  try {
-    await getVendorReady();
-    res.json({
-      ok: true,
-      assets: {
-        controllerApi: "/controller/controller.api.js",
-        controllerSw: "/controller/controller.sw.js",
-        controllerInject: "/controller/controller.inject.js",
-        scramjetJs: "/scramjet/scramjet.js",
-        scramjetWasm: "/scramjet/scramjet.wasm",
-        libcurl: "/libcurl/index.mjs",
-        serviceWorker: "/sw.js",
-        wisp: "/wisp/"
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ ok: false, error: String(error?.message || error) });
-  }
-});
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {
@@ -62,135 +42,53 @@ app.use(express.static(publicDir, {
   }
 }));
 
-let scramjetStatic = null;
-let controllerStatic = null;
-let libcurlStatic = null;
 let wisp = null;
-let vendorReadyPromise = null;
+let wispReadyPromise = null;
 
-function findPackageRoot(entryFile, expectedName) {
-  const fs = require("node:fs");
-  const pathMod = require("node:path");
-  let dir = pathMod.dirname(entryFile);
-
-  for (let i = 0; i < 8; i++) {
-    const pkgFile = pathMod.join(dir, "package.json");
-    if (fs.existsSync(pkgFile)) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(pkgFile, "utf8"));
-        if (!expectedName || pkg.name === expectedName) return dir;
-      } catch {}
-    }
-    const parent = pathMod.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-
-  throw new Error(`Could not locate package root for ${expectedName || entryFile}`);
-}
-
-function findExistingDir(candidates, requiredFile) {
-  const fs = require("node:fs");
-  const pathMod = require("node:path");
-
-  for (const dir of candidates) {
-    if (!dir) continue;
-    const target = requiredFile ? pathMod.join(dir, requiredFile) : dir;
-    if (fs.existsSync(target)) return dir;
-  }
-
-  throw new Error(`Could not locate runtime asset ${requiredFile || ""} in: ${candidates.filter(Boolean).join(", ")}`);
-}
-
-function getVendorReady() {
-  if (vendorReadyPromise) return vendorReadyPromise;
-
-  vendorReadyPromise = (async () => {
-    const fs = require("node:fs");
-    const pathMod = require("node:path");
-
-    const scramjetPathMod = await import("@mercuryworkshop/scramjet/path");
-    const scramjetPath = scramjetPathMod.scramjetPath || scramjetPathMod.default;
-    if (!scramjetPath) throw new Error("Scramjet package did not expose scramjetPath");
-
-    // Resolve only public/exported package entrypoints. Never resolve blocked dist subpaths.
-    const controllerEntry = require.resolve("@mercuryworkshop/scramjet-controller");
-    const controllerRoot = findPackageRoot(controllerEntry, "@mercuryworkshop/scramjet-controller");
-    const controllerPath = findExistingDir([
-      pathMod.join(controllerRoot, "dist"),
-      pathMod.dirname(controllerEntry),
-      controllerRoot
-    ], "controller.api.js");
-
-    const libcurlEntry = require.resolve("@mercuryworkshop/libcurl-transport");
-    const libcurlRoot = findPackageRoot(libcurlEntry, "@mercuryworkshop/libcurl-transport");
-    const libcurlPath = findExistingDir([
-      pathMod.dirname(libcurlEntry),
-      pathMod.join(libcurlRoot, "dist"),
-      libcurlRoot
-    ], "index.mjs");
-
-    const requiredAssets = [
-      pathMod.join(scramjetPath, "scramjet.js"),
-      pathMod.join(scramjetPath, "scramjet.wasm"),
-      pathMod.join(controllerPath, "controller.api.js"),
-      pathMod.join(controllerPath, "controller.inject.js"),
-      pathMod.join(controllerPath, "controller.sw.js"),
-      pathMod.join(libcurlPath, "index.mjs")
-    ];
-
-    const missing = requiredAssets.filter((file) => !fs.existsSync(file));
-    if (missing.length) {
-      throw new Error("Missing Scramjet runtime assets: " + missing.join(", "));
-    }
-
-    scramjetStatic = express.static(scramjetPath, { fallthrough: false });
-    controllerStatic = express.static(controllerPath, { fallthrough: false });
-    libcurlStatic = express.static(libcurlPath, { fallthrough: false });
-
-    const wispMod = await import("@mercuryworkshop/wisp-js/server");
-    wisp = wispMod.server;
-
-    console.log("Scramjet assets ready", {
-      scramjetPath,
-      controllerRoot,
-      controllerPath,
-      libcurlRoot,
-      libcurlPath
+function getWispReady() {
+  if (wispReadyPromise) return wispReadyPromise;
+  wispReadyPromise = import("@mercuryworkshop/wisp-js/server")
+    .then((mod) => {
+      wisp = mod.server;
+      return wisp;
+    })
+    .catch((error) => {
+      wispReadyPromise = null;
+      throw error;
     });
-
-    return {
-      scramjetPath,
-      controllerRoot,
-      controllerPath,
-      libcurlRoot,
-      libcurlPath
-    };
-  })().catch((error) => {
-    // Allow a later request to retry after a transient module-load problem.
-    vendorReadyPromise = null;
-    throw error;
-  });
-
-  return vendorReadyPromise;
+  return wispReadyPromise;
 }
 
-app.use("/scramjet/", async (req, res, next) => {
-  try { await getVendorReady(); return scramjetStatic(req, res, next); }
-  catch (e) { return next(e); }
-});
-app.use("/controller/", async (req, res, next) => {
-  try { await getVendorReady(); return controllerStatic(req, res, next); }
-  catch (e) { return next(e); }
-});
-app.use("/libcurl/", async (req, res, next) => {
-  try { await getVendorReady(); return libcurlStatic(req, res, next); }
-  catch (e) { return next(e); }
+app.get("/api/scramjet-status", (req, res) => {
+  const fs = require("node:fs");
+  const files = {
+    controllerApi: path.join(publicDir, "vendor/controller/controller.api.js"),
+    controllerSw: path.join(publicDir, "vendor/controller/controller.sw.js"),
+    controllerInject: path.join(publicDir, "vendor/controller/controller.inject.js"),
+    scramjetJs: path.join(publicDir, "vendor/scramjet/scramjet.js"),
+    scramjetWasm: path.join(publicDir, "vendor/scramjet/scramjet.wasm"),
+    libcurl: path.join(publicDir, "vendor/libcurl/index.mjs")
+  };
+  const missing = Object.entries(files).filter(([, file]) => !fs.existsSync(file)).map(([name]) => name);
+  res.status(missing.length ? 500 : 200).json({
+    ok: missing.length === 0,
+    mode: "vendored-static-assets",
+    missing,
+    urls: {
+      controllerApi: "/vendor/controller/controller.api.js",
+      controllerSw: "/vendor/controller/controller.sw.js",
+      controllerInject: "/vendor/controller/controller.inject.js",
+      scramjetJs: "/vendor/scramjet/scramjet.js",
+      scramjetWasm: "/vendor/scramjet/scramjet.wasm",
+      libcurl: "/vendor/libcurl/index.mjs",
+      serviceWorker: "/sw.js",
+      wisp: "/wisp/"
+    }
+  });
 });
 
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/") || req.path.startsWith("/scramjet/") ||
-      req.path.startsWith("/controller/") || req.path.startsWith("/libcurl/") ||
+  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/") ||
       req.path.startsWith("/~/sj/")) {
     return next();
   }
@@ -309,7 +207,7 @@ server.on("upgrade", async (req, socket, head) => {
     }
 
     if (pathname === "/wisp/") {
-      await getVendorReady();
+      await getWispReady();
       req.url = pathname;
       wisp.routeRequest(req, socket, head);
       return;

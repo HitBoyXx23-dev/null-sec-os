@@ -1,4 +1,4 @@
-importScripts("/controller/controller.sw.js");
+importScripts("/vendor/controller/controller.sw.js");
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());

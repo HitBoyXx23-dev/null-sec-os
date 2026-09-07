@@ -1,4 +1,4 @@
-# Null Sec OS 5.3 Scramjet Export Fix
+# Null Sec OS 5.4 Vendored Scramjet Assets
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -62,3 +62,12 @@ then walks upward to the package root and checks these on-disk candidates:
 The same export-safe strategy is used for Libcurl.
 
 Vendor discovery is now lazy. A Scramjet asset problem no longer executes during module startup and can no longer take down the entire Node app before `/api/scramjet-status` is reachable.
+
+
+## 5.4 Vercel static asset fix
+
+The previous runtime resolver was correct about the npm package layout, but Vercel Node File Trace removed the browser-only files because they were only accessed through `express.static`.
+
+5.4 moves that work to npm `postinstall`. `scripts/copy-proxy-assets.cjs` copies the exact Scramjet browser runtime into `public/vendor/` while the complete npm installation is still present. Vercel deploys `public/vendor/` as application files, so these assets no longer depend on runtime node_modules tracing.
+
+After deployment, `/api/scramjet-status` should report `mode: "vendored-static-assets"` and `ok: true`.

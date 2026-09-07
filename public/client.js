@@ -60,13 +60,13 @@ async function ensureScramjet(){
       const r=await fetch('/api/scramjet-status',{cache:'no-store'});
       const d=await r.json();
       if(!r.ok||!d.ok)detail=d.error||detail;
-      else detail='server resolved Scramjet assets, but /controller/controller.api.js did not initialize in the page';
+      else detail='server resolved Scramjet assets, but /vendor/controller/controller.api.js did not initialize in the page';
     }catch{}
     throw new Error('Scramjet controller assets did not load: '+detail);
   }
   if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable in this browser');
 
-  const required=['/controller/controller.api.js','/controller/controller.sw.js','/controller/controller.inject.js','/scramjet/scramjet.js','/scramjet/scramjet.wasm','/libcurl/index.mjs'];
+  const required=['/vendor/controller/controller.api.js','/vendor/controller/controller.sw.js','/vendor/controller/controller.inject.js','/vendor/scramjet/scramjet.js','/vendor/scramjet/scramjet.wasm','/vendor/libcurl/index.mjs'];
   for(const asset of required){
     const r=await fetch(asset,{method:'GET',cache:'no-store'});
     if(!r.ok)throw new Error(asset+' returned HTTP '+r.status);
@@ -77,7 +77,7 @@ async function ensureScramjet(){
 
   if(!nullSjController){
     const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
-    const mod=await import('/libcurl/index.mjs');
+    const mod=await import('/vendor/libcurl/index.mjs');
     const LibcurlClient=mod.default;
     nullSjTransport=new LibcurlClient({wisp});
     if(typeof nullSjTransport.init==='function')await nullSjTransport.init();
@@ -87,9 +87,9 @@ async function ensureScramjet(){
       transport:nullSjTransport,
       config:{
         prefix:'/~/sj/',
-        scramjetPath:'/scramjet/scramjet.js',
-        injectPath:'/controller/controller.inject.js',
-        wasmPath:'/scramjet/scramjet.wasm'
+        scramjetPath:'/vendor/scramjet/scramjet.js',
+        injectPath:'/vendor/controller/controller.inject.js',
+        wasmPath:'/vendor/scramjet/scramjet.wasm'
       }
     });
     await nullSjController.wait();
