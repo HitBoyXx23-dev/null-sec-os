@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "5.4.0",
+  "version": "5.5.0",
   "private": true,
-  "description": "Null Sec OS Scramjet 2 with build-time vendored browser assets for Vercel, Wisp, realtime username chat and E2EE DMs",
+  "description": "Null Sec OS with Scramjet 2 static vendor assets, corrected rewritten-route handling, Wisp, realtime username chat and E2EE DMs",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

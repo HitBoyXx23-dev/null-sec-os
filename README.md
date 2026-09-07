@@ -1,4 +1,4 @@
-# Null Sec OS 5.4 Vendored Scramjet Assets
+# Null Sec OS 5.5 Vendored Scramjet Assets
 
 This build removes Ultraviolet from Null Browser and uses the Scramjet 2.x controller generation.
 
@@ -71,3 +71,16 @@ The previous runtime resolver was correct about the npm package layout, but Verc
 5.4 moves that work to npm `postinstall`. `scripts/copy-proxy-assets.cjs` copies the exact Scramjet browser runtime into `public/vendor/` while the complete npm installation is still present. Vercel deploys `public/vendor/` as application files, so these assets no longer depend on runtime node_modules tracing.
 
 After deployment, `/api/scramjet-status` should report `mode: "vendored-static-assets"` and `ok: true`.
+
+
+## 5.5 rewritten route fix
+
+Scramjet correctly generates URLs under `/~/sj/...`.
+
+The previous Express fallback explicitly excluded `/~/sj/`, so those requests fell through to the JSON 404 middleware and returned:
+
+`{"error":"Not found"}`
+
+5.5 adds an explicit GET handler for `/~/sj/*` that returns the application shell. The root-scoped Scramjet service worker can then intercept that navigation and perform the actual rewritten fetch.
+
+This is specifically for rewritten browser navigations. API and static vendor paths still bypass the SPA fallback.

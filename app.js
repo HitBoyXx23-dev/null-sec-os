@@ -87,9 +87,17 @@ app.get("/api/scramjet-status", (req, res) => {
   });
 });
 
+
+// Scramjet rewritten navigations must reach the app shell so the root-scoped
+// service worker can intercept and route them. Returning JSON 404 here breaks
+// controller-managed navigation such as /~/sj/<session>/... .
+app.get(/^\/~\/sj\/.*/, (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/") ||
-      req.path.startsWith("/~/sj/")) {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/")) {
     return next();
   }
   if (req.method !== "GET" && req.method !== "HEAD") return next();
