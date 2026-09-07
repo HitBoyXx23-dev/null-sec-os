@@ -19,8 +19,6 @@ app.disable("x-powered-by");
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
   next();
 });
 
@@ -59,6 +57,12 @@ function getUvVendorReady() {
   return uvVendorReady;
 }
 
+app.get("/uv/uv.config.js", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.type("application/javascript");
+  res.sendFile(path.join(__dirname, "public", "uv", "uv.config.js"));
+});
+
 app.get("/uv/sw.js", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.type("application/javascript");
@@ -87,6 +91,8 @@ app.get("/api/uv-status", async (req, res) => {
       staticBase:"/uv/",
       expectedWorker:"/uv/sw.js",
       expectedPrefix:"/uv/service/",
+      config:"/uv/uv.config.js",
+      wrapper:"/uv/sw.js",
       assets:checks,
       baremux:"/baremux/",
       epoxy:"/epoxy/",
@@ -429,6 +435,98 @@ app.get("/null-data/catalog/season", async (req, res) => {
   }
 });
 
+
+
+function youtubeVideoId(raw) {
+  try {
+    const u = new URL(String(raw || ""));
+    const host = u.hostname.replace(/^www\./,"").toLowerCase();
+    if (host === "youtu.be") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      return /^[A-Za-z0-9_-]{6,20}$/.test(id || "") ? id : null;
+    }
+    if (host === "youtube.com" || host.endsWith(".youtube.com")) {
+      if (u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        return /^[A-Za-z0-9_-]{6,20}$/.test(id || "") ? id : null;
+      }
+      const m = u.pathname.match(/^\/(?:shorts|embed)\/([A-Za-z0-9_-]{6,20})/);
+      return m ? m[1] : null;
+    }
+  } catch {}
+  return null;
+}
+
+app.get("/null-data/youtube/oembed", async (req, res) => {
+  try {
+    const raw = String(req.query.url || "");
+    const id = youtubeVideoId(raw);
+    if (!id) return res.status(400).json({ok:false,error:"Invalid YouTube URL"});
+    const watch = "https://www.youtube.com/watch?v=" + encodeURIComponent(id);
+    const r = await fetch("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent(watch), {
+      headers: {"User-Agent":"Null-Sec-OS/6.8"},
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!r.ok) return res.status(r.status).json({ok:false,error:"YouTube metadata unavailable"});
+    const d = await r.json();
+    res.setHeader("Cache-Control","public,max-age=300,s-maxage=900");
+    res.json({
+      ok:true,
+      id,
+      watch,
+      embed:"https://www.youtube.com/embed/" + encodeURIComponent(id),
+      title:String(d.title||""),
+      author:String(d.author_name||""),
+      thumbnail:String(d.thumbnail_url||"")
+    });
+  } catch (e) {
+    res.status(502).json({ok:false,error:e?.name==="TimeoutError"?"YouTube metadata timed out":(e.message||"YouTube metadata failed")});
+  }
+});
+
+app.get("/null-data/youtube/search", async (req, res) => {
+  try {
+    const key = process.env.YOUTUBE_API_KEY;
+    if (!key) return res.status(503).json({
+      ok:false,
+      needsKey:true,
+      error:"Native search needs YOUTUBE_API_KEY. URL playback works without a key."
+    });
+    const q = String(req.query.q || "").trim().slice(0,120);
+    if (!q) return res.status(400).json({ok:false,error:"Missing search query"});
+    const url = new URL("https://www.googleapis.com/youtube/v3/search");
+    url.searchParams.set("part","snippet");
+    url.searchParams.set("type","video");
+    url.searchParams.set("maxResults","24");
+    url.searchParams.set("safeSearch","moderate");
+    url.searchParams.set("q",q);
+    url.searchParams.set("key",key);
+    const r = await fetch(url, {signal:AbortSignal.timeout(10000)});
+    const d = await r.json();
+    if (!r.ok) return res.status(r.status).json({ok:false,error:d?.error?.message||"YouTube search failed"});
+    const items = (d.items||[]).map(x=>({
+      id:String(x?.id?.videoId||""),
+      title:String(x?.snippet?.title||""),
+      channel:String(x?.snippet?.channelTitle||""),
+      description:String(x?.snippet?.description||""),
+      thumbnail:String(x?.snippet?.thumbnails?.medium?.url||x?.snippet?.thumbnails?.default?.url||"")
+    })).filter(x=>x.id);
+    res.setHeader("Cache-Control","private,max-age=30");
+    res.json({ok:true,items});
+  } catch (e) {
+    res.status(502).json({ok:false,error:e?.name==="TimeoutError"?"YouTube search timed out":(e.message||"YouTube search failed")});
+  }
+});
+
+app.get("/null-data/runtime", (req,res) => {
+  res.json({
+    ok:true,
+    youtubeSearch:Boolean(process.env.YOUTUBE_API_KEY),
+    turn:Boolean(process.env.TURN_URL),
+    proxy:{uv:true,scramjet:true},
+    media:{tmdb:true,liveTv:true}
+  });
+});
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {

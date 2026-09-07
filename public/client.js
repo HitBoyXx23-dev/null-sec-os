@@ -46,41 +46,39 @@ async function ensureRealUV(){
   if(!window.BareMux||!window.__uv$config)throw new Error('Ultraviolet assets did not load');
   if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
 
-  const swUrl='/uv/sw.js';
-  const scope=__uv$config.prefix||'/uv/service/';
-  let reg=await navigator.serviceWorker.getRegistration(scope);
-
-  const matches=(worker)=>{
-    if(!worker?.scriptURL)return false;
-    try{return new URL(worker.scriptURL).pathname===new URL(swUrl,location.origin).pathname}catch{return false}
-  };
-
-  if(!reg||![reg.active,reg.waiting,reg.installing].some(matches)){
-    reg=await navigator.serviceWorker.register(swUrl,{scope});
+  for(const asset of ['/uv/uv.bundle.js','/uv/uv.config.js','/uv/uv.sw.js','/uv/sw.js','/baremux/index.js','/epoxy/index.mjs']){
+    const r=await fetch(asset,{cache:'no-store'});
+    if(!r.ok)throw new Error('Missing UV asset: '+asset+' ('+r.status+')');
   }
 
-  if(reg.installing){
+  const swUrl='/uv/sw.js';
+  const scope='/uv/service/';
+  let reg=await navigator.serviceWorker.getRegistration(scope);
+
+  if(reg){
+    const scripts=[reg.active,reg.waiting,reg.installing].filter(Boolean).map(w=>{try{return new URL(w.scriptURL).pathname}catch{return ''}});
+    if(!scripts.includes(swUrl)){
+      await reg.unregister();
+      reg=null;
+    }
+  }
+
+  if(!reg)reg=await navigator.serviceWorker.register(swUrl,{scope,updateViaCache:'none'});
+  await reg.update().catch(()=>{});
+
+  const worker=reg.installing||reg.waiting||reg.active;
+  if(worker&&worker.state!=='activated'){
     await new Promise((resolve,reject)=>{
-      const worker=reg.installing;
-      const timer=setTimeout(()=>reject(new Error('Ultraviolet service worker activation timed out')),10000);
+      const timer=setTimeout(()=>reject(new Error('UV worker activation timed out')),12000);
       const done=()=>{clearTimeout(timer);resolve()};
       worker.addEventListener('statechange',()=>{
         if(worker.state==='activated')done();
-        else if(worker.state==='redundant'){clearTimeout(timer);reject(new Error('Ultraviolet service worker became redundant'))}
+        else if(worker.state==='redundant'){clearTimeout(timer);reject(new Error('UV worker became redundant'))}
       });
       if(worker.state==='activated')done();
     });
-  }else if(reg.waiting){
-    await new Promise(resolve=>{
-      const worker=reg.waiting;
-      const timer=setTimeout(resolve,3000);
-      worker.addEventListener('statechange',()=>{
-        if(worker.state==='activated'){clearTimeout(timer);resolve()}
-      });
-    });
   }
-
-  if(!reg.active && !reg.waiting)throw new Error('Ultraviolet service worker did not activate');
+  if(!reg.active)throw new Error('UV worker did not activate');
 
   if(!nullUvConnection)nullUvConnection=new BareMux.BareMuxConnection('/baremux/worker.js');
   const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
@@ -199,7 +197,7 @@ function nullYoutubeVideoId(raw){
   return null;
 }
 function nullYoutubeEmbedUrl(id){
-  return 'https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0&playsinline=1';
+  return 'https://www.youtube.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0&playsinline=1&origin='+encodeURIComponent(location.origin);
 }
 
 function renderBrowser(b){
@@ -227,9 +225,16 @@ function renderBrowser(b){
   async function ensureSjFrame(){const controller=await ensureScramjet();if(!sjFrame){const iframe=document.createElement('iframe');iframe.className='frame sj-frame';iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');host.replaceChildren(iframe);installNullBrowserShield(iframe,(href)=>go(href));sjFrame=controller.createFrame(iframe)}return sjFrame}
   async function goScramjet(target){const frame=await ensureSjFrame();showEngine('scramjet');frame.go(target)}
   async function goUv(target){await ensureRealUV();showEngine('uv');uvFrame.src=__uv$config.prefix+__uv$config.encodeUrl(target)}
-  function goYoutube(target){const id=nullYoutubeVideoId(target)||youtubeId(target);if(!id)throw new Error('No YouTube video ID');showEngine('youtube');ytFrame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0&playsinline=1';urlState.textContent='YOUTUBE PLAYER'}
+  function goYoutube(target){const id=nullYoutubeVideoId(target)||youtubeId(target);if(!id)throw new Error('No YouTube video ID');showEngine('youtube');ytFrame.src=nullYoutubeEmbedUrl(id);urlState.textContent='YOUTUBE PLAYER'}
   function autoOrder(target){try{const h=new URL(target).hostname.toLowerCase();if(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be')return ['uv','scramjet']}catch{}return ['scramjet','uv']}
   async function go(raw){const target=normalizeTarget(raw||url.value);if(!target)return;current=target;url.value=target;urlState.textContent='LOADING';home.style.display='none';err.style.display='none';const vid=nullYoutubeVideoId(target)||youtubeId(target);if(vid){try{goYoutube(target);return}catch{}}
+    try{
+      const u=new URL(target);
+      const h=u.hostname.replace(/^www\./,'').toLowerCase();
+      if(select.value==='auto'&&(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be')){
+        openApp('youtube');urlState.textContent='NATIVE YOUTUBE';home.style.display='grid';return;
+      }
+    }catch{}
     const pref=select.value,order=pref==='auto'?autoOrder(target):[pref];let lastErr=null;for(const eng of order){try{if(eng==='uv')await goUv(target);else await goScramjet(target);urlState.textContent='LOADED';return}catch(e){lastErr=e}}
     err.style.display='grid';urlState.textContent='FAILED';err.querySelector('span').textContent=lastErr?.message||String(lastErr||'Proxy failed')}
   select.onchange=()=>{localStorage.setItem('nullsec.proxyEngine',select.value);if(current)go(current)};b.querySelector('.go').onclick=()=>go();url.onkeydown=e=>{if(e.key==='Enter')go()};b.querySelector('form').onsubmit=e=>{e.preventDefault();go(e.target.querySelector('input').value)};b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>go(x.dataset.url));b.querySelector('.home').onclick=()=>{current='';url.value='';host.style.display='none';uvFrame.style.display='none';ytFrame.style.display='none';ytFrame.src='about:blank';home.style.display='grid';err.style.display='none';engineState.textContent=select.value.toUpperCase();urlState.textContent='READY'};b.querySelector('.back').onclick=()=>{try{frameElement()?.contentWindow?.history.back()}catch{}};b.querySelector('.reload').onclick=()=>current&&go(current);b.querySelector('.retry').onclick=()=>current&&go(current);
@@ -451,7 +456,7 @@ function renderCatalogApp(b,type){
       if(trailerBtn&&item.trailer?.key){
         trailerBtn.onclick=()=>{
           const stage=detail.querySelector('.hbs-trailer-stage'),frame=stage.querySelector('iframe');
-          frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(item.trailer.key)+'?autoplay=1&rel=0&playsinline=1';
+          frame.src=nullYoutubeEmbedUrl(item.trailer.key);
           stage.classList.remove('hidden');
         };
       }
@@ -525,10 +530,69 @@ function renderRadio(b){
 }
 
 function renderYouTube(b){
-  b.innerHTML=`<div class="youtube-app"><div class="catalog-toolbar"><b>YOUTUBE</b><input class="field yt-url" placeholder="Paste watch / Shorts / youtu.be URL"><button class="btn yt-load">PLAY</button></div><div class="yt-stage"><div class="yt-empty">PASTE A VIDEO LINK</div><iframe class="yt-official hidden" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div><div class="yt-actions"><input class="field yt-search" placeholder="Search YouTube"><button class="btn yt-search-go">SEARCH IN BROWSER</button></div></div>`;
-  const frame=b.querySelector('.yt-official'),empty=b.querySelector('.yt-empty');
-  function play(){const raw=b.querySelector('.yt-url').value.trim();const id=nullYoutubeVideoId(raw)||youtubeId(raw);if(!id){empty.textContent='INVALID VIDEO URL';return}frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0&playsinline=1';frame.classList.remove('hidden');empty.classList.add('hidden')}
-  b.querySelector('.yt-load').onclick=play;b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')play()};b.querySelector('.yt-search-go').onclick=()=>{const q=b.querySelector('.yt-search').value.trim();if(q)openInNullBrowser('https://www.youtube.com/results?search_query='+encodeURIComponent(q))};
+  b.innerHTML=`<div class="youtube-app yt-native">
+    <div class="catalog-toolbar">
+      <b>YOUTUBE</b>
+      <input class="field yt-url" placeholder="Paste watch / Shorts / youtu.be URL">
+      <button class="btn yt-load">PLAY</button>
+    </div>
+    <div class="yt-stage">
+      <div class="yt-empty">PASTE A YOUTUBE VIDEO LINK</div>
+      <iframe class="yt-official hidden" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+    </div>
+    <div class="yt-meta hidden"></div>
+    <div class="yt-searchbox">
+      <input class="field yt-search" placeholder="Search YouTube">
+      <button class="btn yt-search-go">SEARCH</button>
+      <span class="yt-search-note">Native search uses YOUTUBE_API_KEY. Direct URL playback does not.</span>
+    </div>
+    <div class="yt-results"></div>
+  </div>`;
+
+  const frame=b.querySelector('.yt-official'),empty=b.querySelector('.yt-empty'),meta=b.querySelector('.yt-meta'),results=b.querySelector('.yt-results');
+
+  async function playRaw(raw){
+    const id=nullYoutubeVideoId(raw)||youtubeId(raw);
+    if(!id){empty.textContent='INVALID YOUTUBE VIDEO URL';return}
+    empty.textContent='LOADING...';
+    frame.src=nullYoutubeEmbedUrl(id);
+    frame.classList.remove('hidden');
+    empty.classList.add('hidden');
+    meta.classList.add('hidden');
+
+    try{
+      const r=await fetch('/null-data/youtube/oembed?url='+encodeURIComponent('https://www.youtube.com/watch?v='+id),{cache:'no-store'});
+      const d=await r.json();
+      if(r.ok&&d.ok){
+        meta.innerHTML=`${d.thumbnail?`<img src="${d.thumbnail}" alt="">`:''}<div><b>${escapeHtml(d.title)}</b><small>${escapeHtml(d.author)}</small></div>`;
+        meta.classList.remove('hidden');
+      }
+    }catch{}
+  }
+
+  b.querySelector('.yt-load').onclick=()=>playRaw(b.querySelector('.yt-url').value.trim());
+  b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')playRaw(e.target.value.trim())};
+
+  b.querySelector('.yt-search-go').onclick=async()=>{
+    const q=b.querySelector('.yt-search').value.trim();
+    if(!q)return;
+    results.innerHTML='<div class="panel muted">SEARCHING...</div>';
+    try{
+      const r=await fetch('/null-data/youtube/search?q='+encodeURIComponent(q),{cache:'no-store'});
+      const d=await r.json();
+      if(!r.ok||!d.ok){
+        results.innerHTML=`<div class="panel ${d.needsKey?'muted':'bad'}">${escapeHtml(d.error||'Search failed')}</div>`;
+        return;
+      }
+      results.innerHTML=d.items.map(x=>`<button class="yt-result" data-id="${x.id}">
+        ${x.thumbnail?`<img src="${x.thumbnail}" alt="">`:''}
+        <span><b>${escapeHtml(x.title)}</b><small>${escapeHtml(x.channel)}</small><p>${escapeHtml(x.description)}</p></span>
+      </button>`).join('')||'<div class="panel muted">No videos found.</div>';
+      results.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>playRaw('https://www.youtube.com/watch?v='+x.dataset.id));
+    }catch(e){
+      results.innerHTML='<div class="panel bad">'+escapeHtml(e.message)+'</div>';
+    }
+  };
 }
 function vaultB64(bytes){
   let s='';

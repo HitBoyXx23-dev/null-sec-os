@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "6.7.0",
+  "version": "6.8.0",
   "private": true,
-  "description": "Null Sec OS 6.7 with HitBoyStream-style TMDB Movies/Series and fixed Ultraviolet stock worker",
+  "description": "Null Sec OS 6.8 with hardened UV, native YouTube playback/search, HitBoyStream-style TMDB media and voice fixes",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

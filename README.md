@@ -1,4 +1,4 @@
-# Null Sec OS 6.7
+# Null Sec OS 6.8
 
 ## Changes
 
@@ -45,3 +45,18 @@ Movies and Series now follow the HitBoyStream catalog pattern:
 - provider metadata / official pages where TMDB exposes them
 
 The browser UI stays native to Null Sec OS. Unauthorized third-party movie/episode embed mirrors are not bundled.
+
+
+## 6.8 YouTube + proxy hardening
+
+- Replaced the UV wrapper with the stock `UVServiceWorker().fetch(event)` pattern.
+- Added a local `/uv/uv.config.js` so the UV prefix and asset paths are deterministic.
+- Removed global COOP/COEP headers. They are not required for Null Sec's proxy setup and can interfere with direct third-party embeds.
+- YouTube video URLs now play through YouTube's official `youtube.com/embed` player directly inside Null Sec.
+- YouTube home/search URLs in Browser AUTO mode route to the native YouTube app rather than depending on UV/Scramjet.
+- `/null-data/youtube/oembed` supplies metadata for exact video URLs without an API key.
+- Optional native YouTube search uses `YOUTUBE_API_KEY` on the server. The key is never sent to the browser.
+- Movies and Series remain on the HitBoyStream-style TMDB trending/search/season flow introduced in 6.7.
+- Voice still supports STUN by default and optional TURN through `TURN_URL`, `TURN_USERNAME`, and `TURN_CREDENTIAL`.
+
+After deployment, clear site data/service workers once because older UV and Scramjet worker registrations can survive a redeploy.
