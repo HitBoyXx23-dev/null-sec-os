@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "6.8.0",
+  "version": "6.9.0",
   "private": true,
-  "description": "Null Sec OS 6.8 with hardened UV, native YouTube playback/search, HitBoyStream-style TMDB media and voice fixes",
+  "description": "Null Sec OS 6.9 with hardened dual-engine browser, native YouTube, TMDB media, voice and native TV",
   "main": "app.js",
   "type": "commonjs",
   "engines": {
@@ -22,7 +22,7 @@
     "@mercuryworkshop/libcurl-transport": "2.0.5",
     "@mercuryworkshop/wisp-js": "0.4.1",
     "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
-    "@mercuryworkshop/bare-mux": "^2.1.8",
+    "@mercuryworkshop/bare-mux": "^2.1.9",
     "@mercuryworkshop/epoxy-transport": "2.1.28",
     "hls.js": "^1.6.13"
   }

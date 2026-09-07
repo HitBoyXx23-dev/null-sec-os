@@ -89,17 +89,28 @@ async function ensureRealUV(){
   return nullUvConnection;
 }
 
-async function waitForServiceWorkerControl(){
-  if(navigator.serviceWorker.controller)return navigator.serviceWorker.controller;
-  const reg=await navigator.serviceWorker.ready;
-  if(navigator.serviceWorker.controller)return navigator.serviceWorker.controller;
-  return await new Promise((resolve,reject)=>{
-    const timer=setTimeout(()=>reject(new Error('Service worker did not take control. Reload once after deployment.')),10000);
-    navigator.serviceWorker.addEventListener('controllerchange',()=>{
-      clearTimeout(timer);
-      resolve(navigator.serviceWorker.controller||reg.active);
-    },{once:true});
-  });
+async function waitForExactServiceWorker(reg, expectedPath, timeoutMs=12000){
+  const expected=new URL(expectedPath,location.origin).pathname;
+  const workerPath=w=>{try{return new URL(w?.scriptURL||'',location.origin).pathname}catch{return ''}};
+
+  let worker=[reg.installing,reg.waiting,reg.active].find(w=>workerPath(w)===expected);
+  if(!worker)throw new Error('Expected service worker not found: '+expected);
+
+  if(worker.state!=='activated'){
+    await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error('Service worker activation timed out: '+expected)),timeoutMs);
+      const finish=()=>{clearTimeout(timer);resolve()};
+      worker.addEventListener('statechange',()=>{
+        if(worker.state==='activated')finish();
+        else if(worker.state==='redundant'){
+          clearTimeout(timer);
+          reject(new Error('Service worker became redundant: '+expected));
+        }
+      });
+      if(worker.state==='activated')finish();
+    });
+  }
+  return worker;
 }
 
 async function ensureScramjet(){
@@ -107,22 +118,39 @@ async function ensureScramjet(){
     let detail='controller.api.js was not loaded';
     try{
       const r=await fetch('/api/scramjet-status',{cache:'no-store'});
-      const d=await r.json();
-      if(!r.ok||!d.ok)detail=d.error||detail;
-      else detail='server resolved Scramjet assets, but /vendor/controller/controller.api.js did not initialize in the page';
+      const text=await r.text();
+      let d={};try{d=JSON.parse(text)}catch{}
+      if(!r.ok||!d.ok)detail=d.error||('status returned '+r.status);
+      else detail='server assets exist but controller API did not initialize';
     }catch{}
-    throw new Error('Scramjet controller assets did not load: '+detail);
+    throw new Error('Scramjet controller unavailable: '+detail);
   }
-  if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable in this browser');
+  if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
 
-  const required=['/vendor/controller/controller.api.js','/vendor/controller/controller.sw.js','/vendor/controller/controller.inject.js','/vendor/scramjet/scramjet.js','/vendor/scramjet/scramjet.wasm','/vendor/libcurl/index.mjs'];
+  const required=[
+    '/vendor/controller/controller.api.js',
+    '/vendor/controller/controller.sw.js',
+    '/vendor/controller/controller.inject.js',
+    '/vendor/scramjet/scramjet.js',
+    '/vendor/scramjet/scramjet.wasm',
+    '/vendor/libcurl/index.mjs'
+  ];
   for(const asset of required){
-    const r=await fetch(asset,{method:'GET',cache:'no-store'});
-    if(!r.ok)throw new Error(asset+' returned HTTP '+r.status);
+    const r=await fetch(asset,{cache:'no-store'});
+    if(!r.ok)throw new Error('Missing Scramjet asset '+asset+' ('+r.status+')');
   }
 
-  await navigator.serviceWorker.register('/sw.js',{scope:'/'});
-  const sw=await waitForServiceWorkerControl();
+  let reg=await navigator.serviceWorker.getRegistration('/');
+  const pathOf=w=>{try{return new URL(w?.scriptURL||'',location.origin).pathname}catch{return ''}};
+  const hasExact=reg&&[reg.active,reg.waiting,reg.installing].some(w=>pathOf(w)==='/sw.js');
+
+  if(reg&&!hasExact){
+    await reg.unregister().catch(()=>{});
+    reg=null;
+  }
+  if(!reg)reg=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});
+  await reg.update().catch(()=>{});
+  const sw=await waitForExactServiceWorker(reg,'/sw.js');
 
   if(!nullSjController){
     const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
@@ -201,44 +229,289 @@ function nullYoutubeEmbedUrl(id){
 }
 
 function renderBrowser(b){
-  const storedEngine=localStorage.getItem('nullsec.proxyEngine')||'auto';
+  const saved=localStorage.getItem('nullsec.proxyEngine')||'auto';
+  const history=[],historyEngines=[];
+  let historyIndex=-1,current='',activeEngine='',sjFrame=null,busy=false;
+
   b.innerHTML=`<div class="browser classic-browser">
     <div class="browser-bar">
-      <button class="back">←</button><button class="home">⌂</button><button class="reload">↻</button>
-      <select class="field proxy-engine"><option value="auto">AUTO</option><option value="scramjet">SJ</option><option value="uv">UV</option></select>
-      <div class="browser-address"><input class="url" placeholder="Search or enter address"></div><button class="go">GO</button>
+      <button class="back" title="Back">←</button>
+      <button class="forward" title="Forward">→</button>
+      <button class="home" title="Home">⌂</button>
+      <button class="reload" title="Reload">↻</button>
+      <select class="field proxy-engine">
+        <option value="auto">AUTO</option>
+        <option value="scramjet">SJ</option>
+        <option value="uv">UV</option>
+      </select>
+      <div class="browser-address"><input class="url" placeholder="Search or enter address"></div>
+      <button class="go">GO</button>
+      <button class="browser-more" title="Diagnostics">⋮</button>
     </div>
+
+    <div class="browser-diagnostics hidden">
+      <div><b>PROXY STATUS</b><span class="diag-summary">NOT TESTED</span></div>
+      <div class="diag-grid">
+        <span>SCRAMJET</span><b class="diag-sj">...</b>
+        <span>ULTRAVIOLET</span><b class="diag-uv">...</b>
+        <span>WISP</span><b class="diag-wisp">...</b>
+        <span>ACTIVE</span><b class="diag-active">NONE</b>
+      </div>
+      <button class="btn diag-run">RUN CHECK</button>
+      <button class="btn diag-reset">RESET WORKERS</button>
+    </div>
+
     <div class="browser-view">
-      <div class="browser-home"><div class="browser-card classic-browser-home"><div class="glyph">◎</div><h1>NULL BROWSER</h1><form><input placeholder="Search or enter address"><button>GO</button></form><div class="quick-sites"><button data-url="https://www.google.com">Google</button><button data-url="https://www.youtube.com">YouTube</button><button data-url="https://www.wikipedia.org">Wikipedia</button></div></div></div>
+      <div class="browser-home">
+        <div class="browser-card classic-browser-home">
+          <div class="glyph">◎</div>
+          <h1>NULL BROWSER</h1>
+          <form><input placeholder="Search or enter address"><button>GO</button></form>
+          <div class="quick-sites">
+            <button data-url="https://www.google.com">Google</button>
+            <button data-url="https://www.youtube.com">YouTube</button>
+            <button data-url="https://www.wikipedia.org">Wikipedia</button>
+          </div>
+        </div>
+      </div>
       <div class="sj-host"></div>
       <iframe class="frame uv-frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write"></iframe>
-      <iframe class="frame yt-frame" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-      <div class="browser-error"><div><b>PAGE FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
+      <iframe class="frame yt-frame" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+      <div class="browser-loading hidden"><div>CONNECTING...</div></div>
+      <div class="browser-error">
+        <div>
+          <b>PAGE FAILED</b>
+          <span></span>
+          <div class="browser-error-actions">
+            <button class="btn retry">RETRY</button>
+            <button class="btn try-other">TRY OTHER ENGINE</button>
+            <button class="btn show-diag">DIAGNOSTICS</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="browser-note"><span class="engine-state">AUTO</span><span class="browser-url-state">READY</span></div>
+
+    <div class="browser-note">
+      <span>ENGINE <b class="engine-state">AUTO</b></span>
+      <span class="browser-url-state">READY</span>
+    </div>
   </div>`;
 
-  const host=b.querySelector('.sj-host'),uvFrame=b.querySelector('.uv-frame'),ytFrame=b.querySelector('.yt-frame'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error'),select=b.querySelector('.proxy-engine'),engineState=b.querySelector('.engine-state'),urlState=b.querySelector('.browser-url-state');
-  select.value=storedEngine;let current='',sjFrame=null,activeEngine='';
-  function frameElement(){return activeEngine==='uv'?uvFrame:activeEngine==='youtube'?ytFrame:(sjFrame?.element||null)}
-  function showEngine(name){activeEngine=name;engineState.textContent=name.toUpperCase();host.style.display=name==='scramjet'?'block':'none';uvFrame.style.display=name==='uv'?'block':'none';ytFrame.style.display=name==='youtube'?'block':'none'}
-  async function ensureSjFrame(){const controller=await ensureScramjet();if(!sjFrame){const iframe=document.createElement('iframe');iframe.className='frame sj-frame';iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');host.replaceChildren(iframe);installNullBrowserShield(iframe,(href)=>go(href));sjFrame=controller.createFrame(iframe)}return sjFrame}
-  async function goScramjet(target){const frame=await ensureSjFrame();showEngine('scramjet');frame.go(target)}
-  async function goUv(target){await ensureRealUV();showEngine('uv');uvFrame.src=__uv$config.prefix+__uv$config.encodeUrl(target)}
-  function goYoutube(target){const id=nullYoutubeVideoId(target)||youtubeId(target);if(!id)throw new Error('No YouTube video ID');showEngine('youtube');ytFrame.src=nullYoutubeEmbedUrl(id);urlState.textContent='YOUTUBE PLAYER'}
-  function autoOrder(target){try{const h=new URL(target).hostname.toLowerCase();if(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be')return ['uv','scramjet']}catch{}return ['scramjet','uv']}
-  async function go(raw){const target=normalizeTarget(raw||url.value);if(!target)return;current=target;url.value=target;urlState.textContent='LOADING';home.style.display='none';err.style.display='none';const vid=nullYoutubeVideoId(target)||youtubeId(target);if(vid){try{goYoutube(target);return}catch{}}
+  const host=b.querySelector('.sj-host'),uvFrame=b.querySelector('.uv-frame'),ytFrame=b.querySelector('.yt-frame'),
+        home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error'),
+        select=b.querySelector('.proxy-engine'),engineState=b.querySelector('.engine-state'),
+        urlState=b.querySelector('.browser-url-state'),loading=b.querySelector('.browser-loading'),
+        diag=b.querySelector('.browser-diagnostics');
+
+  select.value=saved;
+  err.style.display='none';
+
+  function showEngine(name){
+    activeEngine=name;
+    engineState.textContent=name.toUpperCase();
+    b.querySelector('.diag-active').textContent=name.toUpperCase();
+    host.style.display=name==='scramjet'?'block':'none';
+    uvFrame.style.display=name==='uv'?'block':'none';
+    ytFrame.style.display=name==='youtube'?'block':'none';
+  }
+
+  function setBusy(v,msg='CONNECTING'){
+    busy=v;
+    loading.classList.toggle('hidden',!v);
+    if(v)loading.firstElementChild.textContent=msg;
+  }
+
+  async function ensureSjFrame(){
+    const controller=await ensureScramjet();
+    if(!sjFrame){
+      const iframe=document.createElement('iframe');
+      iframe.className='frame sj-frame';
+      iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');
+      host.replaceChildren(iframe);
+      installNullBrowserShield(iframe,href=>navigate(href));
+      sjFrame=controller.createFrame(iframe);
+    }
+    return sjFrame;
+  }
+
+  async function loadWith(engine,target){
+    if(engine==='scramjet'){
+      const frame=await ensureSjFrame();
+      showEngine('scramjet');
+      await Promise.resolve(frame.go(target));
+      return;
+    }
+    if(engine==='uv'){
+      await ensureRealUV();
+      showEngine('uv');
+      uvFrame.src=__uv$config.prefix+__uv$config.encodeUrl(target);
+      return;
+    }
+    throw new Error('Unknown engine '+engine);
+  }
+
+  function engineOrder(target,forced){
+    if(forced)return [forced];
+    const pref=select.value;
+    if(pref!=='auto')return [pref];
+    try{
+      const h=new URL(target).hostname.replace(/^www\./,'').toLowerCase();
+      if(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be')return ['uv','scramjet'];
+    }catch{}
+    return ['scramjet','uv'];
+  }
+
+  function pushHistory(target,engine){
+    if(historyIndex<history.length-1){
+      history.splice(historyIndex+1);
+      historyEngines.splice(historyIndex+1);
+    }
+    history.push(target);
+    historyEngines.push(engine||'auto');
+    historyIndex=history.length-1;
+  }
+
+  async function navigate(raw,opts={}){
+    if(busy)return;
+    const target=normalizeTarget(raw||url.value);
+    if(!target)return;
+    current=target;
+    url.value=target;
+    home.style.display='none';
+    err.style.display='none';
+    setBusy(true);
+    urlState.textContent='CONNECTING';
+
+    const vid=nullYoutubeVideoId(target)||youtubeId(target);
+    if(vid){
+      showEngine('youtube');
+      ytFrame.src=nullYoutubeEmbedUrl(vid);
+      urlState.textContent='YOUTUBE PLAYER';
+      if(!opts.noHistory)pushHistory(target,'youtube');
+      setBusy(false);
+      return;
+    }
+
     try{
       const u=new URL(target);
       const h=u.hostname.replace(/^www\./,'').toLowerCase();
       if(select.value==='auto'&&(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be')){
-        openApp('youtube');urlState.textContent='NATIVE YOUTUBE';home.style.display='grid';return;
+        openApp('youtube');
+        home.style.display='grid';
+        urlState.textContent='NATIVE YOUTUBE';
+        setBusy(false);
+        return;
       }
     }catch{}
-    const pref=select.value,order=pref==='auto'?autoOrder(target):[pref];let lastErr=null;for(const eng of order){try{if(eng==='uv')await goUv(target);else await goScramjet(target);urlState.textContent='LOADED';return}catch(e){lastErr=e}}
-    err.style.display='grid';urlState.textContent='FAILED';err.querySelector('span').textContent=lastErr?.message||String(lastErr||'Proxy failed')}
-  select.onchange=()=>{localStorage.setItem('nullsec.proxyEngine',select.value);if(current)go(current)};b.querySelector('.go').onclick=()=>go();url.onkeydown=e=>{if(e.key==='Enter')go()};b.querySelector('form').onsubmit=e=>{e.preventDefault();go(e.target.querySelector('input').value)};b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>go(x.dataset.url));b.querySelector('.home').onclick=()=>{current='';url.value='';host.style.display='none';uvFrame.style.display='none';ytFrame.style.display='none';ytFrame.src='about:blank';home.style.display='grid';err.style.display='none';engineState.textContent=select.value.toUpperCase();urlState.textContent='READY'};b.querySelector('.back').onclick=()=>{try{frameElement()?.contentWindow?.history.back()}catch{}};b.querySelector('.reload').onclick=()=>current&&go(current);b.querySelector('.retry').onclick=()=>current&&go(current);
+
+    let lastErr=null,workedEngine='';
+    for(const eng of engineOrder(target,opts.forceEngine)){
+      try{
+        await loadWith(eng,target);
+        workedEngine=eng;
+        urlState.textContent='LOADED';
+        if(!opts.noHistory)pushHistory(target,eng);
+        setBusy(false);
+        return;
+      }catch(e){
+        lastErr=e;
+      }
+    }
+
+    setBusy(false);
+    err.style.display='grid';
+    urlState.textContent='FAILED';
+    err.querySelector('span').textContent=lastErr?.message||String(lastErr||'Proxy failed');
+  }
+
+  async function runDiagnostics(){
+    const sj=b.querySelector('.diag-sj'),uv=b.querySelector('.diag-uv'),wisp=b.querySelector('.diag-wisp'),summary=b.querySelector('.diag-summary');
+    sj.textContent=uv.textContent=wisp.textContent='CHECKING';
+    summary.textContent='RUNNING';
+    let ok=0;
+    try{
+      const r=await fetch('/api/proxy-status',{cache:'no-store'});
+      const text=await r.text();
+      const d=JSON.parse(text);
+      sj.textContent=d?.engines?.scramjet?.ok?'OK':'FAIL';
+      uv.textContent=d?.engines?.ultraviolet?.ok?'OK':'FAIL';
+      if(d?.engines?.scramjet?.ok)ok++;
+      if(d?.engines?.ultraviolet?.ok)ok++;
+    }catch{
+      sj.textContent='FAIL';
+      uv.textContent='FAIL';
+    }
+    try{
+      const proto=location.protocol==='https:'?'wss:':'ws:';
+      await new Promise((resolve,reject)=>{
+        const ws=new WebSocket(proto+'//'+location.host+'/wisp/');
+        const timer=setTimeout(()=>{try{ws.close()}catch{};reject(new Error('timeout'))},4000);
+        ws.onopen=()=>{clearTimeout(timer);ws.close();resolve()};
+        ws.onerror=()=>{clearTimeout(timer);reject(new Error('websocket'))};
+      });
+      wisp.textContent='OK';ok++;
+    }catch{wisp.textContent='FAIL'}
+    summary.textContent=ok===3?'ALL SYSTEMS READY':ok+' / 3 READY';
+  }
+
+  async function resetWorkers(){
+    try{
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const reg of regs){
+        const scope=new URL(reg.scope).pathname;
+        if(scope==='/'||scope==='/uv/service/'||scope.startsWith('/uv/service/'))await reg.unregister();
+      }
+      nullSjController=null;
+      nullSjTransport=null;
+      nullUvConnection=null;
+      sjFrame=null;
+      host.replaceChildren();
+      urlState.textContent='WORKERS RESET';
+      b.querySelector('.diag-summary').textContent='RESET COMPLETE';
+    }catch(e){
+      b.querySelector('.diag-summary').textContent='RESET FAILED: '+e.message;
+    }
+  }
+
+  select.onchange=()=>{
+    localStorage.setItem('nullsec.proxyEngine',select.value);
+    engineState.textContent=select.value.toUpperCase();
+    if(current)navigate(current,{noHistory:true,forceEngine:select.value==='auto'?null:select.value});
+  };
+  b.querySelector('.go').onclick=()=>navigate();
+  url.onkeydown=e=>{if(e.key==='Enter')navigate()};
+  b.querySelector('form').onsubmit=e=>{e.preventDefault();navigate(e.target.querySelector('input').value)};
+  b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>navigate(x.dataset.url));
+
+  b.querySelector('.back').onclick=()=>{
+    if(historyIndex<=0)return;
+    historyIndex--;
+    navigate(history[historyIndex],{noHistory:true,forceEngine:historyEngines[historyIndex]==='youtube'?null:historyEngines[historyIndex]});
+  };
+  b.querySelector('.forward').onclick=()=>{
+    if(historyIndex>=history.length-1)return;
+    historyIndex++;
+    navigate(history[historyIndex],{noHistory:true,forceEngine:historyEngines[historyIndex]==='youtube'?null:historyEngines[historyIndex]});
+  };
+  b.querySelector('.home').onclick=()=>{
+    current='';url.value='';host.style.display='none';uvFrame.style.display='none';ytFrame.style.display='none';ytFrame.src='about:blank';
+    home.style.display='grid';err.style.display='none';setBusy(false);
+    engineState.textContent=select.value.toUpperCase();urlState.textContent='READY';
+  };
+  b.querySelector('.reload').onclick=()=>current&&navigate(current,{noHistory:true,forceEngine:activeEngine==='youtube'?null:activeEngine});
+  b.querySelector('.retry').onclick=()=>current&&navigate(current,{noHistory:true});
+  b.querySelector('.try-other').onclick=()=>{
+    if(!current)return;
+    const other=activeEngine==='scramjet'?'uv':'scramjet';
+    navigate(current,{noHistory:true,forceEngine:other});
+  };
+
+  b.querySelector('.browser-more').onclick=()=>diag.classList.toggle('hidden');
+  b.querySelector('.show-diag').onclick=()=>{diag.classList.remove('hidden');runDiagnostics()};
+  b.querySelector('.diag-run').onclick=runDiagnostics;
+  b.querySelector('.diag-reset').onclick=resetWorkers;
 }
+
 function renderTerminal(b){
   b.innerHTML=`<div class="terminal-app"><div class="term-output"></div><div class="term-line"><span>null@sec:$</span><input class="term-input" autocomplete="off" spellcheck="false" placeholder="type help"></div></div>`;
   const out=b.querySelector('.term-output'),input=b.querySelector('.term-input');

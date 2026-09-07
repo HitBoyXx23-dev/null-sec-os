@@ -1,4 +1,4 @@
-# Null Sec OS 6.8
+# Null Sec OS 6.9
 
 ## Changes
 
@@ -60,3 +60,17 @@ The browser UI stays native to Null Sec OS. Unauthorized third-party movie/episo
 - Voice still supports STUN by default and optional TURN through `TURN_URL`, `TURN_USERNAME`, and `TURN_CREDENTIAL`.
 
 After deployment, clear site data/service workers once because older UV and Scramjet worker registrations can survive a redeploy.
+
+
+## 6.9 browser reliability
+
+- BareMux updated to 2.1.9 for the UV 3.x generation.
+- Scramjet now validates the exact root `/sw.js` registration and waits for that worker to activate.
+- UV continues using its own narrower `/uv/service/` worker scope.
+- Browser Back/Forward now use Null Browser's own navigation history instead of depending on cross-frame `history`.
+- Added `TRY OTHER ENGINE` after failures.
+- Added an in-browser diagnostics panel for Scramjet assets, UV assets, and Wisp WebSocket connectivity.
+- Added a worker reset button so stale deployments can be repaired without manually finding browser DevTools.
+- YouTube exact video URLs still use the native official player because full YouTube proxy browsing can be unreliable from datacenter-hosted deployments.
+
+No web proxy can make every modern site work perfectly. DRM, anti-bot checks, browser integrity checks, CAPTCHA, and sites that depend on unsupported browser APIs can still fail.
