@@ -3,11 +3,10 @@ const desktop=$('#desktop'),boot=$('#boot'),layer=$('#window-layer'),tpl=$('#win
 let z=20,seq=0;const wins=new Map();
 const state={notes:localStorage.getItem('nullsec.notes')||'[ NULL SEC SCRATCHPAD ]\n\nOperator notes are stored locally in this browser.',browserMode:(localStorage.getItem('nullsec.browserMode')==='relay'?'relay':'smart')};
 
-const bootLines=['NULL SEC BOOTLOADER 4.2 CLASSIC','[OK] verifying browser runtime','[OK] mounting local vault','[OK] loading 50+ application manifests','[OK] binding Vercel relay','[OK] initializing media bridge','[OK] operator: hitboyxx23','[OK] desktop ready'];
+const bootLines=['NULL SEC BOOTLOADER','[OK] verifying browser runtime','[OK] mounting local vault','[OK] loading 50+ application manifests','[OK] binding Vercel relay','[OK] initializing media bridge','[OK] operator: hitboyxx23','[OK] desktop ready'];
 let bi=0;const bootLog=$('#boot-log');const bt=setInterval(()=>{if(bi<bootLines.length)bootLog.textContent+=bootLines[bi++]+'\n';else clearInterval(bt)},120);
 setTimeout(()=>{boot.classList.add('hidden');desktop.classList.remove('hidden');openApp('dashboard')},1650);
 
-function tick(){const d=new Date();$('#clock').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});$('#hud-time').textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})} tick();setInterval(tick,1000);
 function updateNet(){const e=$('#net-status');e.textContent=navigator.onLine?'NET ●':'NET ○';e.className=navigator.onLine?'ok':'bad'} addEventListener('online',updateNet);addEventListener('offline',updateNet);updateNet();
 async function checkApi(){const e=$('#api-status');try{const r=await fetch('/api/health',{cache:'no-store'});if(!r.ok)throw 0;e.textContent='RELAY ●';e.className='ok'}catch{e.textContent='RELAY ○';e.className='bad'}} checkApi();
 
@@ -15,7 +14,7 @@ const appDefs=[
 ['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Virtual files'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
 ['media','Null Media','media','▶','Media hub'],['player','Media Player','media','▷','Direct media URL player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
 ['calculator','Calculator','tools','∑','Fast calculator'],['clock','World Clock','tools','◷','Clock and date'],['calendar','Calendar','tools','▣','Monthly calendar'],['stopwatch','Stopwatch','tools','⏱','Time laps'],['timer','Timer','tools','⌛','Countdown timer'],['paint','Null Paint','tools','✣','Canvas sketchpad'],['markdown','Markdown Pad','tools','M↓','Markdown preview'],['json','JSON Lab','tools','{}','Format JSON'],['base64','Base64','tools','64','Encode and decode'],['urlcodec','URL Codec','tools','%','URL encode/decode'],['uuid','UUID Forge','tools','ID','Generate UUIDs'],['password','Password Forge','tools','***','Generate passwords'],['hash','Hash Lab','tools','#','SHA-256 digest'],['regex','Regex Lab','tools','.*','Test patterns'],['color','Color Lab','tools','◈','Color converter'],['text','Text Lab','tools','Aa','Case and stats'],['ascii','ASCII Studio','tools','A#','Text banners'],['unit','Unit Convert','tools','⇄','Common conversions'],['random','Random Lab','tools','?','Random values'],['clipboard','Clipboard','tools','▤','Copy helper'],['systemmon','System Monitor','tools','▥','Browser runtime info'],['storage','Storage Inspector','tools','◧','LocalStorage viewer'],['network','Network Tools','tools','⌁','URL and connection info'],['qrcode','QR Forge','tools','QR','Node-powered QR generator'],
-['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['nullcrypt','Null Crypt Chat','comms','◈','E2EE peer-to-peer encrypted chat'],
+['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['nullcrypt','Null Chat','comms','◈','Public chat + E2EE private DMs by username'],
 ['nullvoice','Null Voice','comms','◉','Encrypted peer-to-peer voice call'],['dnsintel','DNS Lens','intel','DNS','Public DNS records'],['rdapintel','RDAP Lens','intel','R','Domain and IP registration'],['ctintel','Cert Lens','intel','CRT','Certificate transparency'],['headerintel','Header Scope','intel','HDR','Security header inspector'],['robotsintel','Robots Viewer','intel','BOT','Public robots.txt viewer'],['urlclean','URL Sanitizer','intel','URL','Strip tracking parameters'],['leakscan','Leak Scanner','intel','LS','Local text exposure scan'],['fileintel','File Intel','intel','FILE','Local file metadata and hash'],['jwtscope','JWT Peek','intel','JWT','Decode JWT locally'],['passaudit','Password Audit','intel','KEY','Local entropy estimate'],['privacycheck','OPSEC Checklist','intel','OP','Privacy hygiene checklist'],
 ['snake','Snake','games','S','Classic snake'],['pong','Pong','games','P','Arcade pong'],['breakout','Breakout','games','B','Brick breaker'],['tictactoe','Tic Tac Toe','games','XO','3x3 game'],['memory','Memory','games','◇','Match cards'],['mines','Mines','games','✹','Mine puzzle'],['clicker','Null Clicker','games','+1','Score clicker'],['reaction','Reaction Test','games','!','Reaction speed'],['typing','Typing Test','games','⌨','Typing speed'],['guess','Number Guess','games','?','Guess 1 to 100'],['dice','Dice','games','⚄','Dice roller'],['coin','Coin Flip','games','◐','Heads or tails'],['rps','Rock Paper Scissors','games','RPS','Play CPU'],['lights','Lights Out','games','▦','Toggle grid'],['simon','Simon','games','●','Memory sequence'],['maze','Maze Runner','games','⌗','Keyboard maze'],['2048','2048','games','2K','Number merge']
 ];
@@ -38,20 +37,59 @@ function renderDashboard(b){b.innerHTML=`<div class="app-pad"><div class="sectio
 
 function normalizeTarget(raw){raw=(raw||'').trim();if(!raw)return'';if(/^https?:\/\//i.test(raw))return raw;if(raw.includes('.')&&!raw.includes(' '))return'https://'+raw;return'https://www.google.com/search?q='+encodeURIComponent(raw)}
 function youtubeId(u){try{const x=new URL(u);if(x.hostname.includes('youtu.be'))return x.pathname.split('/')[1]||'';if(x.hostname.includes('youtube.com'))return x.searchParams.get('v')||((x.pathname.match(/\/shorts\/([^/?]+)/)||[])[1]||'')}catch{}return''}
-function nullProxyEncode(url){
-  const bytes=new TextEncoder().encode(url);
-  let bin='';bytes.forEach(v=>bin+=String.fromCharCode(v));
-  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+let nullUvConnection=null;
+async function ensureRealUV(){
+  if(!window.BareMux||!window.__uv$config)throw new Error('Ultraviolet assets did not load');
+  if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
+  await navigator.serviceWorker.register('/uv/sw.js',{scope:'/uv/'});
+  await navigator.serviceWorker.ready;
+  if(!nullUvConnection)nullUvConnection=new BareMux.BareMuxConnection('/baremux/worker.js');
+  const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
+  if((await nullUvConnection.getTransport())!=='/epoxy/index.mjs'){
+    await nullUvConnection.setTransport('/epoxy/index.mjs',[{wisp}]);
+  }
 }
-async function ensureNullProxySW(){
-  if(!('serviceWorker' in navigator)) return false;
-  try{
-    await navigator.serviceWorker.register('/null-sw.js',{scope:'/'});
-    await navigator.serviceWorker.ready;
-    return true;
-  }catch{return false}
+function renderBrowser(b){
+  b.innerHTML=`<div class="browser">
+    <div class="browser-bar">
+      <button class="back" title="Back">←</button><button class="home" title="Home">⌂</button><button class="reload" title="Reload">↻</button>
+      <div class="browser-address"><span>UV</span><input class="url" placeholder="URL or search"></div>
+      <button class="go">CONNECT</button>
+    </div>
+    <div class="browser-view">
+      <div class="browser-home"><div class="browser-card">
+        <div class="browser-kicker">ULTRAVIOLET SERVICE WORKER</div><div class="glyph">◎</div><h1>NULL BROWSER</h1>
+        <p>Real Ultraviolet client rewriting with BareMux, Epoxy transport and an in-project Wisp endpoint.</p>
+        <form><input placeholder="Search or enter address"><button>CONNECT</button></form>
+        <div class="quick-sites"><button data-url="https://www.google.com">GOOGLE</button><button data-url="https://www.youtube.com">YOUTUBE</button><button data-url="https://www.wikipedia.org">WIKIPEDIA</button><button data-url="https://archive.org">ARCHIVE</button></div>
+      </div></div>
+      <iframe class="frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera"></iframe>
+      <div class="browser-error"><div><b>ULTRAVIOLET CONNECTION FAILED</b><span></span><br><br><button class="btn retry">RETRY</button></div></div>
+    </div>
+    <div class="browser-note"><span>ENGINE: <b>REAL UV 3</b></span><span>TRANSPORT: EPOXY / WISP</span><span>SERVICE WORKER: /uv/sw.js</span></div>
+  </div>`;
+  const frame=b.querySelector('.frame'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error');
+  let current='';
+  async function go(raw){
+    const t=normalizeTarget(raw||url.value); if(!t)return;
+    current=t;url.value=t;home.style.display='none';frame.style.display='block';err.style.display='none';
+    try{
+      await ensureRealUV();
+      frame.src=__uv$config.prefix+__uv$config.encodeUrl(t);
+    }catch(e){
+      err.style.display='grid';
+      err.querySelector('span').textContent=e.message;
+    }
+  }
+  b.querySelector('.go').onclick=()=>go();
+  url.onkeydown=e=>{if(e.key==='Enter')go()};
+  b.querySelector('form').onsubmit=e=>{e.preventDefault();go(e.target.querySelector('input').value)};
+  b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>go(x.dataset.url));
+  b.querySelector('.home').onclick=()=>{frame.src='about:blank';home.style.display='grid';current='';url.value=''};
+  b.querySelector('.back').onclick=()=>{try{frame.contentWindow.history.back()}catch{}};
+  b.querySelector('.reload').onclick=()=>current&&go(current);
+  b.querySelector('.retry').onclick=()=>current&&go(current);
 }
-function renderBrowser(b){b.innerHTML=`<div class="browser"><div class="browser-bar"><button class="back" title="Back">←</button><button class="home" title="Home">⌂</button><button class="reload" title="Reload">↻</button><div class="browser-address"><span>SECURE</span><input class="url" placeholder="URL or search"></div><select class="mode"><option value="smart">SMART</option><option value="relay">RELAY</option></select><button class="go">CONNECT</button></div><div class="browser-view"><div class="browser-home"><div class="browser-card"><div class="browser-kicker">NULL NETWORK ACCESS LAYER</div><div class="glyph">◎</div><h1>NULL BROWSER</h1><p>UV-style encoded browsing inside Null Sec OS. Smart mode handles compatible sites through the internal relay and routes YouTube watch links into the official embedded player instead of framing youtube.com.</p><form><input placeholder="Search or enter address"><button>CONNECT</button></form><div class="quick-sites"><button data-url="https://www.wikipedia.org">WIKIPEDIA</button><button data-url="https://archive.org">ARCHIVE</button><button data-youtube="1">YOUTUBE PLAYER</button><button data-open="media">NULL MEDIA</button></div></div></div><iframe class="frame" sandbox="allow-forms allow-scripts allow-same-origin allow-downloads allow-presentation"></iframe><div class="browser-special"><div class="special-card"><div class="special-icon">YT</div><div class="section-tag">YOUTUBE COMPATIBILITY MODE</div><h2>Paste a video URL</h2><p>Full youtube.com pages block framing and rely on browser features a relay cannot faithfully reproduce. Null Browser keeps playback in-OS by using YouTube's official embed player for watch, Shorts, and youtu.be links.</p><div class="special-row"><input class="field yt-special" placeholder="https://youtube.com/watch?v=..."><button class="btn yt-special-go">LOAD VIDEO</button></div><button class="btn open-yt-app">OPEN YOUTUBE BRIDGE</button></div></div><div class="browser-error"><div><b>PAGE COULD NOT BE RENDERED</b><span></span><br><br><button class="btn retry">RETRY THROUGH NULL PROXY</button></div></div></div><div class="browser-note"><span>MODE: <b class="mode-label">SMART</b></span><span>NULL SW: ENCODED ROUTE</span><span>NEW TABS: DISABLED</span></div></div>`;const frame=b.querySelector('.frame'),home=b.querySelector('.browser-home'),special=b.querySelector('.browser-special'),url=b.querySelector('.url'),mode=b.querySelector('.mode'),label=b.querySelector('.mode-label'),err=b.querySelector('.browser-error');mode.value=state.browserMode;let current='';function isYouTubeSite(t){try{const h=new URL(t).hostname.toLowerCase();return h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be'}catch{return false}}function showYouTube(t){home.style.display='none';frame.style.display='none';special.style.display='grid';err.style.display='none';const input=special.querySelector('.yt-special');if(youtubeId(t))input.value=t}function go(raw){const t=normalizeTarget(raw||url.value);if(!t)return;current=t;url.value=t;home.style.display='none';special.style.display='none';frame.style.display='block';err.style.display='none';const yid=youtubeId(t);if(mode.value==='smart'&&yid){frame.src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(yid)}?autoplay=0&rel=0`;return}if(isYouTubeSite(t)){showYouTube(t);return}ensureNullProxySW().finally(()=>{frame.src='/uvproxy/'+nullProxyEncode(t)})}mode.onchange=()=>{state.browserMode=mode.value;localStorage.setItem('nullsec.browserMode',mode.value);label.textContent=mode.value.toUpperCase();if(current)go(current)};mode.onchange();b.querySelector('.go').onclick=()=>go();url.onkeydown=e=>{if(e.key==='Enter')go()};b.querySelector('form').onsubmit=e=>{e.preventDefault();go(e.target.querySelector('input').value)};b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>go(x.dataset.url));b.querySelector('[data-youtube]').onclick=()=>showYouTube('https://www.youtube.com');b.querySelector('.home').onclick=()=>{frame.src='about:blank';frame.style.display='block';special.style.display='none';home.style.display='grid';current='';url.value=''};b.querySelector('.back').onclick=()=>{try{frame.contentWindow.history.back()}catch{}};b.querySelector('.reload').onclick=()=>current&&go(current);b.querySelector('.retry').onclick=()=>current&&go(current);special.querySelector('.yt-special-go').onclick=()=>go(special.querySelector('.yt-special').value);special.querySelector('.yt-special').onkeydown=e=>{if(e.key==='Enter')go(e.target.value)};special.querySelector('.open-yt-app').onclick=()=>openApp('youtube')}
 
 function openInNullBrowser(url){openApp('browser');setTimeout(()=>{const w=wins.get('browser');const inp=w?.el.querySelector('.url');if(inp){inp.value=url;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},40)}
 function renderMedia(b){const cards=[['Internet Archive','Public domain films, audio, software and books','https://archive.org/details/feature_films','◉'],['Prelinger Archives','Historic public domain and educational films','https://archive.org/details/prelinger','▤'],['NASA Video','Space and science video collections','https://www.nasa.gov/multimedia/','✦'],['YouTube Bridge','Paste a YouTube watch URL into the in-OS player','app:youtube','YT'],['Media Player','Play a direct video or audio URL','app:player','▷'],['Null Radio','Browse radio directories inside Null Sec OS','app:radio','◌']];b.innerHTML=`<div class="media-hero"><div class="section-tag">NULL MEDIA HUB</div><h1>Watch. Listen. Explore.</h1><p>A built-in media center for legal public-domain collections, direct media URLs, and official embedded playback. Media sources open inside Null Sec OS instead of a new browser tab.</p><div class="media-search"><input class="field media-q" placeholder="Paste YouTube or media URL"><button class="btn media-go">OPEN IN NULL</button></div></div><div class="media-grid">${cards.map(c=>`<div class="media-card" data-dest="${c[2]}"><div class="poster">${c[3]}</div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('')}</div>`;b.querySelectorAll('.media-card').forEach(c=>c.onclick=()=>{const d=c.dataset.dest;if(d.startsWith('app:'))openApp(d.slice(4));else openInNullBrowser(d)});b.querySelector('.media-go').onclick=()=>{const v=b.querySelector('.media-q').value.trim();if(youtubeId(v)){openApp('youtube');setTimeout(()=>{const w=wins.get('youtube');const inp=w?.el.querySelector('.yt-url');if(inp){inp.value=v;inp.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))}},30)}else{openApp('player');setTimeout(()=>{const w=wins.get('player');const inp=w?.el.querySelector('.media-url');if(inp){inp.value=v;w.el.querySelector('.media-load').click()}},30)}}}
@@ -59,12 +97,12 @@ function renderPlayer(b){b.innerHTML=`<div class="video-shell"><video class="med
 function renderYouTube(b){b.innerHTML=`<div class="video-shell"><iframe class="yt-frame" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe><div class="video-tools"><input class="field yt-url" placeholder="Paste a YouTube watch or youtu.be URL"><button class="btn yt-load">LOAD OFFICIAL EMBED</button></div></div>`;const load=()=>{const id=youtubeId(b.querySelector('.yt-url').value.trim());if(!id)return alert('Enter a valid YouTube video URL.');b.querySelector('.yt-frame').src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`};b.querySelector('.yt-load').onclick=load;b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')load()}}
 function renderRadio(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SIGNAL RADIO</div><h2>In-OS Radio Browser</h2><p class="muted">Radio directories stay inside Null Browser. No new-tab launchers.</p><div class="grid3"><button class="panel btn" data-link="https://radio.garden">RADIO GARDEN</button><button class="panel btn" data-link="https://www.internet-radio.com">INTERNET RADIO</button><button class="panel btn" data-link="https://archive.org/details/audio">ARCHIVE AUDIO</button></div></div>`;b.querySelectorAll('[data-link]').forEach(x=>x.onclick=()=>openInNullBrowser(x.dataset.link))}
 
-function renderTerminal(b){b.innerHTML=`<div class="terminal"><div class="term-output">NULLSH 3.3\nType help for commands.\n\n</div><div class="term-line"><span class="term-prompt">hitboyxx23@nullsec:~$</span><input class="term-input" autofocus></div></div>`;const out=b.querySelector('.term-output'),inp=b.querySelector('.term-input');function run(s){const [c,...a]=s.trim().split(/\s+/);const m={help:'help clear date echo whoami uname ls pwd status apps open [app] neofetch',date:()=>new Date().toString(),whoami:'hitboyxx23',uname:'Null Sec OS 4.2 / browser runtime',pwd:'/home/operator',ls:'README.NFO notes/ apps/ media/ relay.cfg',status:()=>`network: ${navigator.onLine?'online':'offline'}\nrelay: /api/proxy\napps: ${appDefs.length}`,apps:appDefs.map(x=>x[0]).join('  '),neofetch:`NULL SEC OS 3.3\napps: ${appDefs.length}\nruntime: browser + Vercel Functions\noperator: hitboyxx23`};if(c==='clear'){out.textContent='';return''}if(c==='echo')return a.join(' ');if(c==='open'){openApp(a[0]||'browser');return`opened ${a[0]||'browser'}`};return typeof m[c]==='function'?m[c]():m[c]??`nullsh: command not found: ${c}`};inp.onkeydown=e=>{if(e.key==='Enter'){const s=inp.value;out.textContent+=`hitboyxx23@nullsec:~$ ${s}\n${run(s)}\n`;inp.value='';b.scrollTop=b.scrollHeight}}}
+function renderTerminal(b){b.innerHTML=`<div class="terminal"><div class="term-output">NULLSH\nType help for commands.\n\n</div><div class="term-line"><span class="term-prompt">hitboyxx23@nullsec:~$</span><input class="term-input" autofocus></div></div>`;const out=b.querySelector('.term-output'),inp=b.querySelector('.term-input');function run(s){const [c,...a]=s.trim().split(/\s+/);const m={help:'help clear date echo whoami uname ls pwd status apps open [app] neofetch',date:()=>new Date().toString(),whoami:'hitboyxx23',uname:'Null Sec OS / browser runtime',pwd:'/home/operator',ls:'README.NFO notes/ apps/ media/ relay.cfg',status:()=>`network: ${navigator.onLine?'online':'offline'}\nrelay: /api/proxy\napps: ${appDefs.length}`,apps:appDefs.map(x=>x[0]).join('  '),neofetch:`NULL SEC OS\napps: ${appDefs.length}\nruntime: browser + Vercel Functions\noperator: hitboyxx23`};if(c==='clear'){out.textContent='';return''}if(c==='echo')return a.join(' ');if(c==='open'){openApp(a[0]||'browser');return`opened ${a[0]||'browser'}`};return typeof m[c]==='function'?m[c]():m[c]??`nullsh: command not found: ${c}`};inp.onkeydown=e=>{if(e.key==='Enter'){const s=inp.value;out.textContent+=`hitboyxx23@nullsec:~$ ${s}\n${run(s)}\n`;inp.value='';b.scrollTop=b.scrollHeight}}}
 function renderFiles(b){b.innerHTML=`<div class="file-layout"><aside class="file-sidebar">${['/home','/apps','/media','/notes','/system','/relay','/logs'].map(x=>`<button>${x}</button>`).join('')}</aside><main class="file-main"><div class="section-tag">VIRTUAL VAULT</div><h3>/home/operator</h3><div class="file-cards">${['README.NFO','notes/','apps/','media/','relay.cfg','session.log','preferences.json','games/'].map((x,i)=>`<div class="file-card">${i%2?'▦':'▤'}<br><br><b>${x}</b></div>`).join('')}</div></main></div>`}
 function renderOps(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TELEMETRY</div><h2>Ops Center</h2><p class="muted">Visual system telemetry only. No remote scanning is performed.</p><div class="ops-grid"><div class="metric"><label>APP COUNT</label><strong>${appDefs.length}</strong></div><div class="metric"><label>OPEN WINDOWS</label><strong id="ow">${wins.size+1}</strong></div><div class="metric"><label>MEMORY EST.</label><strong>${performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576)+'MB':'N/A'}</strong></div><div class="metric"><label>ONLINE</label><strong>${navigator.onLine?'YES':'NO'}</strong></div><div class="metric"><label>CORES</label><strong>${navigator.hardwareConcurrency||'?'}</strong></div><div class="metric"><label>LANG</label><strong>${navigator.language}</strong></div></div><div class="panel" style="margin-top:10px"><pre id="oplog">[OK] desktop compositor\n[OK] local vault\n[OK] app registry\n[OK] media bridge\n[OK] relay health probe queued</pre></div></div>`;fetch('/api/health').then(r=>b.querySelector('#oplog').textContent+=r.ok?'\n[OK] relay online':'\n[WARN] relay unavailable').catch(()=>b.querySelector('#oplog').textContent+='\n[LOCAL] static preview mode')}
 function renderNotes(b){b.innerHTML=`<textarea class="notes-area"></textarea>`;const t=b.querySelector('textarea');t.value=state.notes;t.oninput=()=>{state.notes=t.value;localStorage.setItem('nullsec.notes',state.notes)}}
-function renderSettings(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SYSTEM CONFIG</div><h2>Null Sec Preferences</h2><div class="settings-list"><div class="setting"><div><b>Default Browser Mode</b><div class="muted">Smart, relay, or direct frame</div></div><select class="field mode"><option value="smart">SMART</option><option value="relay">RELAY</option><option value="direct">DIRECT</option></select></div><div class="setting"><div><b>Local Data</b><div class="muted">Notes and preferences stored in this browser</div></div><button class="btn clear">CLEAR LOCAL DATA</button></div><div class="setting"><div><b>Relay Health</b><div class="muted">Check backend function</div></div><button class="btn health">CHECK</button></div></div></div>`;const m=b.querySelector('.mode');m.value=state.browserMode;m.onchange=()=>{state.browserMode=m.value;localStorage.setItem('nullsec.browserMode',m.value)};b.querySelector('.clear').onclick=()=>{localStorage.clear();alert('Local Null Sec data cleared.')};b.querySelector('.health').onclick=async e=>{try{const r=await fetch('/api/health');e.target.textContent=r.ok?'ONLINE':'FAILED'}catch{e.target.textContent='OFFLINE'}}}
-function renderAbout(b){b.innerHTML=`<div class="app-pad"><div class="about-logo">NULL SEC</div><h2>OS 3.0</h2><p class="muted">A browser-native cyber desktop with ${appDefs.length} built-in apps and games, local storage, a Vercel Node relay, official YouTube embed handling, and a legal media hub.</p><div class="panel"><b>Operator</b><p>hitboyxx23</p><b>Runtime</b><p>HTML + CSS + JavaScript + Node.js Vercel Functions</p><b>Deployment</b><p>GitHub to Vercel</p></div></div>`}
+function renderSettings(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SYSTEM CONFIG</div><h2>Null Sec Preferences</h2><div class="settings-list"><div class="setting"><div><b>Default Browser Mode</b><div class="muted">Ultraviolet is the built-in browser engine</div></div><select class="field mode"><option value="smart">SMART</option><option value="relay">RELAY</option><option value="direct">DIRECT</option></select></div><div class="setting"><div><b>Local Data</b><div class="muted">Notes and preferences stored in this browser</div></div><button class="btn clear">CLEAR LOCAL DATA</button></div><div class="setting"><div><b>Relay Health</b><div class="muted">Check backend function</div></div><button class="btn health">CHECK</button></div></div></div>`;const m=b.querySelector('.mode');m.value=state.browserMode;m.onchange=()=>{state.browserMode=m.value;localStorage.setItem('nullsec.browserMode',m.value)};b.querySelector('.clear').onclick=()=>{localStorage.clear();alert('Local Null Sec data cleared.')};b.querySelector('.health').onclick=async e=>{try{const r=await fetch('/api/health');e.target.textContent=r.ok?'ONLINE':'FAILED'}catch{e.target.textContent='OFFLINE'}}}
+function renderAbout(b){b.innerHTML=`<div class="app-pad"><div class="about-logo">NULL SEC</div><h2>OS 3.0</h2><p class="muted">A browser-native cyber desktop with ${appDefs.length} built-in apps and games, local storage, real Ultraviolet browsing, realtime username chat, E2EE private DMs, OSINT tools, media apps, and games.</p><div class="panel"><b>Operator</b><p>hitboyxx23</p><b>Runtime</b><p>HTML + CSS + JavaScript + Node.js Vercel Functions</p><b>Deployment</b><p>GitHub to Vercel</p></div></div>`}
 
 function renderCalculator(b){b.innerHTML=`<div class="app-pad"><input class="field calc-display" value="0"><div class="calc-grid">${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+','(',')','%','='].map(x=>`<button class="btn">${x}</button>`).join('')}</div></div>`;const d=b.querySelector('.calc-display');b.querySelectorAll('.calc-grid button').forEach(x=>x.onclick=()=>{const v=x.textContent;if(v==='C')d.value='0';else if(v==='='){try{if(!/^[0-9+\-*/().%\s]+$/.test(d.value))throw 0;d.value=Function(`"use strict";return (${d.value})`)()}catch{d.value='ERR'}}else d.value=d.value==='0'?v:d.value+v})}
 function renderClock(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TIME</div><div class="clock-big"></div><h2 class="date"></h2><div class="panel muted">Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}</div></div>`;const f=()=>{const d=new Date();b.querySelector('.clock-big').textContent=d.toLocaleTimeString();b.querySelector('.date').textContent=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})};f();const i=setInterval(f,1000);b.closest('.window')?.querySelector('[data-action=close]')?.addEventListener('click',()=>clearInterval(i),{once:true})}
@@ -119,119 +157,153 @@ function intelShell(b,title,subtitle,placeholder,button='QUERY'){
 async function intelFetch(out,url){out.textContent='QUERYING...';try{const r=await fetch(url,{cache:'no-store'});const text=await r.text();let data;try{data=JSON.parse(text)}catch{data={error:text}}if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}catch(e){out.textContent='ERROR: '+e.message;throw e}}
 function pretty(v){return JSON.stringify(v,null,2)}
 function renderOSINTCenter(b){const ids=['usernameintel','dnsintel','rdapintel','ctintel','headerintel','robotsintel','urlclean','leakscan','fileintel','jwtscope','passaudit','privacycheck'];b.innerHTML=`<div class="intel-shell"><div class="intel-head"><div><div class="section-tag">NULL SEC INTELLIGENCE WORKBENCH</div><h2>OSINT + OPSEC Center</h2></div><span class="intel-badge">PASSIVE MODE</span></div><p class="intel-note">Public-record lookups and local privacy tools. Network modules avoid port scanning, credential testing, private-network access, or intrusive collection.</p><div class="intel-grid">${ids.map(id=>`<button class="intel-card btn" data-open="${id}"><b>${apps[id].icon} ${apps[id].title}</b><span>${apps[id].desc}</span></button>`).join('')}</div></div>`}
-function b64bytes(bytes){
-  let s=''; bytes.forEach(v=>s+=String.fromCharCode(v));
+
+function chatB64(bytes){
+  let s='';bytes.forEach(v=>s+=String.fromCharCode(v));
   return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
-function unb64bytes(s){
-  s=s.replace(/-/g,'+').replace(/_/g,'/');
+function chatUnb64(s){
+  s=String(s).replace(/-/g,'+').replace(/_/g,'/');
   s+='='.repeat((4-s.length%4)%4);
-  const raw=atob(s); return Uint8Array.from(raw,c=>c.charCodeAt(0));
+  return Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 }
-async function exportPub(key){
-  return b64bytes(new Uint8Array(await crypto.subtle.exportKey('raw',key)));
+async function chatExportPub(key){
+  return chatB64(new Uint8Array(await crypto.subtle.exportKey('raw',key)));
 }
-async function deriveNullKey(privateKey, remoteRaw){
-  const remote=await crypto.subtle.importKey('raw',unb64bytes(remoteRaw),{name:'ECDH',namedCurve:'P-256'},false,[]);
-  const bits=await crypto.subtle.deriveBits({name:'ECDH',public:remote},privateKey,256);
+async function chatImportPub(raw){
+  return crypto.subtle.importKey('raw',chatUnb64(raw),{name:'ECDH',namedCurve:'P-256'},false,[]);
+}
+async function chatSharedKey(priv,remoteRaw){
+  const remote=await chatImportPub(remoteRaw);
+  const bits=await crypto.subtle.deriveBits({name:'ECDH',public:remote},priv,256);
   return crypto.subtle.importKey('raw',bits,{name:'AES-GCM'},false,['encrypt','decrypt']);
 }
-async function encryptNull(key,text){
+async function chatEncrypt(key,text){
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(text)));
-  return {iv:b64bytes(iv),ct:b64bytes(ct)};
+  return {iv:chatB64(iv),ct:chatB64(ct)};
 }
-async function decryptNull(key,p){
-  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64bytes(p.iv)},key,unb64bytes(p.ct));
-  return new TextDecoder().decode(pt);
+async function chatDecrypt(key,iv,ct){
+  const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:chatUnb64(iv)},key,chatUnb64(ct));
+  return new TextDecoder().decode(raw);
 }
-function encodeSignal(obj){ return b64bytes(new TextEncoder().encode(JSON.stringify(obj))); }
-function decodeSignal(s){ return JSON.parse(new TextDecoder().decode(unb64bytes(s.trim()))); }
-async function waitIce(pc){
-  if(pc.iceGatheringState==='complete') return;
-  await new Promise(resolve=>{
-    const f=()=>{if(pc.iceGatheringState==='complete'){pc.removeEventListener('icegatheringstatechange',f);resolve()}};
-    pc.addEventListener('icegatheringstatechange',f);
-    setTimeout(resolve,5000);
-  });
+async function chatFingerprint(pubRaw){
+  const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',chatUnb64(pubRaw)));
+  return [...hash.slice(0,12)].map(v=>v.toString(16).padStart(2,'0')).join(':');
 }
-function nullRtcConfig(){
-  return {iceServers:[]};
-}
-
 function renderNullCrypt(b){
-  b.innerHTML=`<div class="intel-shell">
-    <div class="intel-head"><div><div class="section-tag">NULL COMMUNICATIONS</div><h2>Null Crypt Chat</h2></div><span class="intel-badge">AES-GCM + WEBRTC</span></div>
-    <p class="intel-note">Peer-to-peer chat. Connection codes are exchanged manually, so no external signaling service is required. Chat payloads are encrypted again with an ECDH-derived AES-GCM key before they enter the WebRTC data channel.</p>
-    <div class="intel-row"><button class="btn host">CREATE OFFER</button><button class="btn answer">ANSWER OFFER</button><button class="btn apply">APPLY ANSWER</button></div>
-    <textarea class="field signalin" style="height:92px;width:100%;margin-top:8px" placeholder="Paste the other peer's connection code here"></textarea>
-    <textarea class="field signalout" style="height:92px;width:100%;margin-top:8px" readonly placeholder="Your connection code appears here"></textarea>
-    <div class="intel-out log" style="height:170px;overflow:auto">OFFLINE.</div>
-    <div class="intel-row"><input class="field msg" placeholder="encrypted message" disabled><button class="btn send" disabled>SEND</button></div>
+  b.innerHTML=`<div class="chat-shell">
+    <aside class="chat-side">
+      <div class="section-tag">NULL COMMS</div><h2>NULL CHAT</h2>
+      <div class="chat-login">
+        <input class="field username" maxlength="20" placeholder="username">
+        <button class="btn connect">GO ONLINE</button>
+      </div>
+      <div class="chat-me">OFFLINE</div>
+      <div class="chat-section">CHANNELS</div>
+      <button class="chat-peer active" data-public="1"># PUBLIC</button>
+      <div class="chat-section">ONLINE USERS</div>
+      <div class="peer-list"></div>
+    </aside>
+    <main class="chat-main">
+      <header class="chat-head"><div><b class="chat-target"># PUBLIC</b><small class="chat-security">WSS transport encrypted</small></div><span class="chat-state">OFFLINE</span></header>
+      <div class="chat-log"><div class="chat-system">Choose a username to join.</div></div>
+      <div class="chat-compose"><input class="field message" placeholder="Message" disabled><button class="btn send" disabled>SEND</button></div>
+    </main>
   </div>`;
 
-  let pc=null,dc=null,keypair=null,aesKey=null;
-  const log=b.querySelector('.log'), inp=b.querySelector('.signalin'), out=b.querySelector('.signalout');
-  const msg=b.querySelector('.msg'), send=b.querySelector('.send');
-  const add=t=>{log.textContent += '\n'+t;log.scrollTop=log.scrollHeight};
+  let ws=null,keypair=null,myPub='',me='',target='public';
+  const peers=new Map();
+  const side=b.querySelector('.peer-list'),log=b.querySelector('.chat-log'),stateEl=b.querySelector('.chat-state');
+  const targetEl=b.querySelector('.chat-target'),secEl=b.querySelector('.chat-security');
+  const input=b.querySelector('.message'),sendBtn=b.querySelector('.send');
 
-  async function setupCrypto(){
-    keypair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
-    return exportPub(keypair.publicKey);
+  function add(kind,from,text){
+    const row=document.createElement('div');row.className='chat-msg '+kind;
+    const who=document.createElement('b');who.textContent=from;
+    const body=document.createElement('span');body.textContent=text;
+    row.append(who,body);log.append(row);log.scrollTop=log.scrollHeight;
   }
-  function bind(dc0){
-    dc=dc0;
-    dc.onopen=()=>{add('[LINK] DATA CHANNEL OPEN'); if(aesKey){msg.disabled=false;send.disabled=false;add('[CRYPTO] AES-GCM READY')}};
-    dc.onclose=()=>{add('[LINK] CLOSED');msg.disabled=true;send.disabled=true};
-    dc.onmessage=async e=>{
-      try{
-        const p=JSON.parse(e.data);
-        if(p.t==='hello'&&keypair){aesKey=await deriveNullKey(keypair.privateKey,p.pub);add('[CRYPTO] SHARED KEY DERIVED');if(dc.readyState==='open'){msg.disabled=false;send.disabled=false}}
-        if(p.t==='msg'&&aesKey){add('PEER> '+await decryptNull(aesKey,p))}
-      }catch(err){add('[ERR] '+err.message)}
-    };
+  function system(t){add('system','SYSTEM',t)}
+  function choose(next){
+    target=next;
+    b.querySelectorAll('.chat-peer').forEach(x=>x.classList.toggle('active',(next==='public'&&x.dataset.public)||(x.dataset.user===next)));
+    if(next==='public'){
+      targetEl.textContent='# PUBLIC';secEl.textContent='Public channel, encrypted in transit with WSS';
+    }else{
+      targetEl.textContent='@'+next;
+      const p=peers.get(next);
+      secEl.textContent=p?'E2EE DM • verify '+p.fp:'E2EE DM';
+    }
   }
-  async function base(){
-    pc=new RTCPeerConnection(nullRtcConfig());
-    pc.onconnectionstatechange=()=>add('[RTC] '+pc.connectionState.toUpperCase());
-    return setupCrypto();
+  async function redrawUsers(list){
+    peers.clear();
+    side.innerHTML='';
+    for(const u of list){
+      if(u.username===me)continue;
+      const fp=await chatFingerprint(u.pub).catch(()=>'?');
+      peers.set(u.username,{pub:u.pub,fp});
+      const btn=document.createElement('button');
+      btn.className='chat-peer';btn.dataset.user=u.username;
+      btn.innerHTML=`<span>@${escapeHtml(u.username)}</span><small>${escapeHtml(fp)}</small>`;
+      btn.onclick=()=>choose(u.username);
+      side.append(btn);
+    }
+    if(target!=='public'&&!peers.has(target))choose('public');
   }
-  b.querySelector('.host').onclick=async()=>{
+  async function connect(){
+    const name=b.querySelector('.username').value.trim();
+    if(!/^[A-Za-z0-9_]{3,20}$/.test(name)){system('Username must be 3-20 letters, numbers, or underscore.');return}
     try{
-      log.textContent='CREATING OFFER...';
-      const pub=await base(); bind(pc.createDataChannel('nullcrypt'));
-      const offer=await pc.createOffer(); await pc.setLocalDescription(offer); await waitIce(pc);
-      out.value=encodeSignal({sdp:pc.localDescription,pub});
-      dc.addEventListener('open',()=>dc.send(JSON.stringify({t:'hello',pub})),{once:true});
-      add('[READY] SEND THIS CODE TO PEER');
-    }catch(e){add('[ERR] '+e.message)}
-  };
-  b.querySelector('.answer').onclick=async()=>{
-    try{
-      log.textContent='ANSWERING OFFER...';
-      const remote=decodeSignal(inp.value); const pub=await base();
-      aesKey=await deriveNullKey(keypair.privateKey,remote.pub);
-      pc.ondatachannel=e=>{bind(e.channel);e.channel.addEventListener('open',()=>e.channel.send(JSON.stringify({t:'hello',pub})),{once:true})};
-      await pc.setRemoteDescription(remote.sdp);
-      const ans=await pc.createAnswer();await pc.setLocalDescription(ans);await waitIce(pc);
-      out.value=encodeSignal({sdp:pc.localDescription,pub});
-      add('[READY] SEND ANSWER CODE BACK');
-    }catch(e){add('[ERR] '+e.message)}
-  };
-  b.querySelector('.apply').onclick=async()=>{
-    try{
-      const remote=decodeSignal(inp.value);
-      if(!pc||!keypair) throw new Error('Create an offer first');
-      aesKey=await deriveNullKey(keypair.privateKey,remote.pub);
-      await pc.setRemoteDescription(remote.sdp);
-      add('[READY] ANSWER APPLIED');
-    }catch(e){add('[ERR] '+e.message)}
-  };
-  async function sendMsg(){
-    const t=msg.value.trim();if(!t||!dc||dc.readyState!=='open'||!aesKey)return;
-    const p=await encryptNull(aesKey,t);p.t='msg';dc.send(JSON.stringify(p));add('YOU> '+t);msg.value='';
+      keypair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+      myPub=await chatExportPub(keypair.publicKey);me=name;
+      const proto=location.protocol==='https:'?'wss':'ws';
+      ws=new WebSocket(`${proto}://${location.host}/chat/`);
+      stateEl.textContent='CONNECTING';
+      ws.onopen=()=>ws.send(JSON.stringify({type:'hello',username:me,pub:myPub}));
+      ws.onclose=()=>{stateEl.textContent='OFFLINE';input.disabled=true;sendBtn.disabled=true;system('Connection closed.')};
+      ws.onerror=()=>system('Realtime chat connection error.');
+      ws.onmessage=async e=>{
+        let m;try{m=JSON.parse(e.data)}catch{return}
+        if(m.type==='ready'){
+          stateEl.textContent='ONLINE';b.querySelector('.chat-me').textContent='@'+me;
+          input.disabled=false;sendBtn.disabled=false;system('Connected as @'+me);
+          return;
+        }
+        if(m.type==='presence'){await redrawUsers(m.users||[]);return}
+        if(m.type==='system'){system(m.text);return}
+        if(m.type==='error'){system('ERROR: '+m.message);return}
+        if(m.type==='public'){add('public','@'+m.from,m.text);return}
+        if(m.type==='dm'){
+          try{
+            const key=await chatSharedKey(keypair.privateKey,m.pub);
+            const text=await chatDecrypt(key,m.iv,m.ct);
+            add('private','@'+m.from,text);
+          }catch{system('Could not decrypt DM from @'+m.from)}
+        }
+      };
+    }catch(e){system('ERROR: '+e.message)}
   }
-  send.onclick=sendMsg;msg.onkeydown=e=>{if(e.key==='Enter')sendMsg()};
+  async function send(){
+    const text=input.value.trim();if(!text||!ws||ws.readyState!==1)return;
+    if(target==='public'){
+      ws.send(JSON.stringify({type:'public',text}));
+      input.value='';return;
+    }
+    const p=peers.get(target);if(!p){system('That user is offline.');return}
+    try{
+      const key=await chatSharedKey(keypair.privateKey,p.pub);
+      const enc=await chatEncrypt(key,text);
+      ws.send(JSON.stringify({type:'dm',to:target,...enc}));
+      add('private','YOU → @'+target,text);
+      input.value='';
+    }catch(e){system('Encryption failed: '+e.message)}
+  }
+  b.querySelector('.connect').onclick=connect;
+  b.querySelector('.chat-peer[data-public]').onclick=()=>choose('public');
+  sendBtn.onclick=send;input.onkeydown=e=>{if(e.key==='Enter')send()};
+  const close=b.closest('.window')?.querySelector('[data-action=close]');
+  close?.addEventListener('click',()=>{try{ws&&ws.close()}catch{}},{once:true});
 }
 
 function renderNullVoice(b){

@@ -1,39 +1,35 @@
-# Null Sec OS 4.2
+# Null Sec OS 5.0
 
-Classic Null Sec OS UI with a UV-style browser route and Username OSINT.
+This build replaces the UV-style relay with the actual Ultraviolet stack used by the official Ultraviolet app architecture.
 
-## Proxy architecture
+## Real Ultraviolet browser
 
-Null Browser now navigates to encoded same-origin paths:
+The server exposes the installed vendor assets from:
 
-`/uvproxy/<encoded-target>`
+- `@titaniumnetwork-dev/ultraviolet`
+- `@mercuryworkshop/bare-mux`
+- `@mercuryworkshop/epoxy-transport`
 
-`public/null-sw.js` intercepts those routes and sends them through the Node `/api/proxy` relay. The root Node server also provides a `/uvproxy/:encoded` fallback for the first navigation before the service worker controls the page.
+The browser registers `/uv/sw.js`, configures BareMux, connects Epoxy to `/wisp/`, and navigates using `/uv/service/` plus Ultraviolet's XOR URL codec.
 
-This is UV-style architecture rather than a vendored copy of Ultraviolet. It keeps the Vercel-compatible HTTP relay and avoids requiring a Wisp/WebSocket transport.
+The Node server routes Wisp WebSocket upgrades with `wisp-server-node`.
 
-## Username OSINT
+## Null Chat
 
-`/api/osint/username?username=...` passively checks public profile URLs on selected services and classifies responses as found, not found, or uncertain. It does not attempt logins, password checks, private APIs, or authenticated enumeration.
+Null Chat is realtime over `/chat/` WebSockets.
 
-## Deploy
+- Usernames are active-session handles, 3-20 letters/numbers/underscore.
+- `# PUBLIC` is a realtime public channel. It is protected in transit by HTTPS/WSS, but is intentionally public and is visible to the chat server.
+- Private DMs are encrypted in the browser with ECDH P-256 + AES-GCM. The server forwards only ciphertext.
+- Each online user's public key gets a SHA-256 safety fingerprint in the UI. Verify fingerprints out of band if sender authenticity matters.
+- There is no account database in this build, so usernames are claimed while connected and do not persist as registered accounts.
 
-Keep the Vercel Node.js preset. Delete old repo files, put the contents of this ZIP at repo root, commit, and redeploy.
+## UI cleanup
 
-Important files:
-- `app.js` server-only Express entry
-- `public/client.js` browser-only OS code
-- `public/null-sw.js` Null Proxy service worker
-- `api/proxy/index.js` Node relay
-- `api/osint/username.js` public Username OSINT
+The always-on desktop time and old `BUILD 3.4 CLASSIC` label were removed. The Clock app remains available. A large subtle `NULL SEC` watermark is rendered behind the desktop.
 
-## Null Crypt communications
+## Vercel
 
-Two self-contained communication apps are included:
+This build targets Node 24 and uses Vercel's Node server + WebSocket support.
 
-- **Null Crypt Chat** uses a WebRTC DataChannel plus an additional application-layer ECDH P-256 key agreement and AES-GCM encryption for every chat payload.
-- **Null Voice** uses WebRTC voice with DTLS-SRTP transport encryption.
-
-Both use manual offer/answer connection codes, so there is no hosted signaling service or external chat provider. Because this build intentionally ships with no external STUN/TURN server, direct peer connectivity depends on the peers' NAT/network environment. On restrictive networks, a TURN service would be required for reliable calls.
-
-Voice is encrypted in transit by WebRTC, but this build does not add a second Insertable Streams application-encryption layer to audio.
+Put the ZIP contents at the repository root, keep the Node.js framework preset, and redeploy.
