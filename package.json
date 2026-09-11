@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "6.9.0",
+  "version": "7.2.0",
   "private": true,
-  "description": "Null Sec OS 6.9 with hardened dual-engine browser, native YouTube, TMDB media, voice and native TV",
+  "description": "Null Sec UBG 7.2 with expanded local arcade, game categories, stats, command launcher and full YouTube website mode",
   "main": "app.js",
   "type": "commonjs",
   "engines": {
@@ -21,9 +21,6 @@
     "@mercuryworkshop/scramjet-utils": "0.0.3",
     "@mercuryworkshop/libcurl-transport": "2.0.5",
     "@mercuryworkshop/wisp-js": "0.4.1",
-    "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
-    "@mercuryworkshop/bare-mux": "^2.1.9",
-    "@mercuryworkshop/epoxy-transport": "2.1.28",
     "hls.js": "^1.6.13"
   }
 }

@@ -3,90 +3,315 @@ const desktop=$('#desktop'),boot=$('#boot'),layer=$('#window-layer'),tpl=$('#win
 let z=20,seq=0;const wins=new Map();
 const state={notes:localStorage.getItem('nullsec.notes')||'[ NULL SEC SCRATCHPAD ]\n\nOperator notes are stored locally in this browser.',browserMode:(localStorage.getItem('nullsec.browserMode')==='relay'?'relay':'smart')};
 
-const bootLines=['NULL SEC BOOTLOADER','[OK] verifying browser runtime','[OK] mounting local vault','[OK] loading 50+ application manifests','[OK] binding Vercel relay','[OK] initializing media bridge','[OK] operator: hitboyxx23','[OK] desktop ready'];
-let bi=0;const bootLog=$('#boot-log');const bt=setInterval(()=>{if(bi<bootLines.length)bootLog.textContent+=bootLines[bi++]+'\n';else clearInterval(bt)},120);
-setTimeout(()=>{boot.classList.add('hidden');desktop.classList.remove('hidden');openApp('dashboard')},1650);
+const bootPhases=[
+  ['WAKE ARCADE CORE',12],
+  ['INDEX LOCAL GAMES',28],
+  ['MOUNT SAVE DATA',43],
+  ['START MEDIA RUNTIME',58],
+  ['BIND SCRAMJET RELAY',72],
+  ['LOAD CHAT + VAULT',84],
+  ['SYNC DESKTOP',94],
+  ['READY',100]
+];
+const bootGameCount=()=>appDefs.filter(x=>x[2]==='games').length;
+const bootPhase=$('#boot-phase'),bootBar=$('#boot-progress-bar'),bootCount=$('#boot-game-count');
+if(bootCount)bootCount.textContent=String(bootGameCount());
+let bp=0;
+const bootTimer=setInterval(()=>{
+  const row=bootPhases[bp++];
+  if(!row){clearInterval(bootTimer);return}
+  if(bootPhase)bootPhase.textContent=row[0];
+  if(bootBar)bootBar.style.width=row[1]+'%';
+},135);
+setTimeout(()=>{
+  boot.classList.add('boot-exit');
+  setTimeout(()=>{
+    boot.classList.add('hidden');
+    desktop.classList.remove('hidden');
+    openApp('arcade');
+  },360);
+},1320);
 
 function updateNet(){const e=$('#net-status');e.textContent=navigator.onLine?'NET ●':'NET ○';e.className=navigator.onLine?'ok':'bad'} addEventListener('online',updateNet);addEventListener('offline',updateNet);updateNet();
 async function checkApi(){const e=$('#api-status');try{const r=await fetch('/api/health',{cache:'no-store'});if(!r.ok)throw 0;e.textContent='RELAY ●';e.className='ok'}catch{e.textContent='RELAY ○';e.className='bad'}} checkApi();
 
 const appDefs=[
-['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Encrypted local secrets and notes'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
+['arcade','Null Arcade','games','✦','UBG game library'],['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Encrypted local secrets and notes'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
 ['media','Null Media','media','▶','Media'],['movies','Movies','media','M','Movie browser'],['series','Series','media','S','Series browser'],['livetv','Null Live TV','media','TV','Live channels'],['cinema','Null Cinema','media','◫','Movies and series'],['player','Media Player','media','▷','Direct player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
 ['calculator','Calculator','tools','∑','Fast calculator'],['clock','World Clock','tools','◷','Clock and date'],['calendar','Calendar','tools','▣','Monthly calendar'],['stopwatch','Stopwatch','tools','⏱','Time laps'],['timer','Timer','tools','⌛','Countdown timer'],['paint','Null Paint','tools','✣','Canvas sketchpad'],['markdown','Markdown Pad','tools','M↓','Markdown preview'],['json','JSON Lab','tools','{}','Format JSON'],['base64','Base64','tools','64','Encode and decode'],['urlcodec','URL Codec','tools','%','URL encode/decode'],['uuid','UUID Forge','tools','ID','Generate UUIDs'],['password','Password Forge','tools','***','Generate passwords'],['hash','Hash Lab','tools','#','SHA-256 digest'],['regex','Regex Lab','tools','.*','Test patterns'],['color','Color Lab','tools','◈','Color converter'],['text','Text Lab','tools','Aa','Case and stats'],['ascii','ASCII Studio','tools','A#','Text banners'],['unit','Unit Convert','tools','⇄','Common conversions'],['random','Random Lab','tools','?','Random values'],['clipboard','Clipboard','tools','▤','Copy helper'],['systemmon','System Monitor','tools','▥','Browser runtime info'],['storage','Storage Inspector','tools','◧','LocalStorage viewer'],['network','Network Tools','tools','⌁','URL and connection info'],['qrcode','QR Forge','tools','QR','Node-powered QR generator'],
 ['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['nullcrypt','Null Chat','comms','◈','Public chat + E2EE private DMs by username'],
 ['dnsintel','DNS Lens','intel','DNS','Public DNS records'],['rdapintel','RDAP Lens','intel','R','Domain and IP registration'],['ctintel','Cert Lens','intel','CRT','Certificate transparency'],['headerintel','Header Scope','intel','HDR','Security header inspector'],['robotsintel','Robots Viewer','intel','BOT','Public robots.txt viewer'],['urlclean','URL Sanitizer','intel','URL','Strip tracking parameters'],['leakscan','Leak Scanner','intel','LS','Local text exposure scan'],['fileintel','File Intel','intel','FILE','Local file metadata and hash'],['jwtscope','JWT Peek','intel','JWT','Decode JWT locally'],['passaudit','Password Audit','intel','KEY','Local entropy estimate'],['privacycheck','OPSEC Checklist','intel','OP','Privacy hygiene checklist'],
-['snake','Snake','games','S','Classic snake'],['pong','Pong','games','P','Arcade pong'],['breakout','Breakout','games','B','Brick breaker'],['tictactoe','Tic Tac Toe','games','XO','3x3 game'],['memory','Memory','games','◇','Match cards'],['mines','Mines','games','✹','Mine puzzle'],['clicker','Null Clicker','games','+1','Score clicker'],['reaction','Reaction Test','games','!','Reaction speed'],['typing','Typing Test','games','⌨','Typing speed'],['guess','Number Guess','games','?','Guess 1 to 100'],['dice','Dice','games','⚄','Dice roller'],['coin','Coin Flip','games','◐','Heads or tails'],['rps','Rock Paper Scissors','games','RPS','Play CPU'],['lights','Lights Out','games','▦','Toggle grid'],['simon','Simon','games','●','Memory sequence'],['maze','Maze Runner','games','⌗','Keyboard maze'],['2048','2048','games','2K','Number merge']
+['snake','Snake','games','S','Classic snake'],['pong','Pong','games','P','Arcade pong'],['flappy','Flappy Null','games','F','One-button flyer'],['dodger','Neon Dodger','games','D','Dodge incoming blocks'],['connect4','Connect Four','games','C4','Four in a row'],['invaders','Null Invaders','games','NI','Arcade shooter'],['stacker','Stacker','games','▤','Precision stacking'],['breakout','Breakout','games','B','Brick breaker'],['tictactoe','Tic Tac Toe','games','XO','3x3 game'],['memory','Memory','games','◇','Match cards'],['mines','Mines','games','✹','Mine puzzle'],['clicker','Null Clicker','games','+1','Score clicker'],['reaction','Reaction Test','games','!','Reaction speed'],['typing','Typing Test','games','⌨','Typing speed'],['guess','Number Guess','games','?','Guess 1 to 100'],['dice','Dice','games','⚄','Dice roller'],['coin','Coin Flip','games','◐','Heads or tails'],['rps','Rock Paper Scissors','games','RPS','Play CPU'],['lights','Lights Out','games','▦','Toggle grid'],['simon','Simon','games','●','Memory sequence'],['maze','Maze Runner','games','⌗','Keyboard maze'],['2048','2048','games','2K','Number merge']
 ];
 const apps={};appDefs.forEach(([id,title,cat,icon,desc])=>apps[id]={id,title,cat,icon,desc,render:resolveRenderer(id)});
-function resolveRenderer(id){return ({dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,movies:renderMovies,series:renderSeries,livetv:renderLiveTV,cinema:renderCinema,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
+function resolveRenderer(id){return ({arcade:renderArcade,dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,movies:renderMovies,series:renderSeries,livetv:renderLiveTV,cinema:renderCinema,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,flappy:renderFlappy,dodger:renderDodger,connect4:renderConnect4,invaders:renderInvaders,stacker:renderStacker,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
 
-function buildLaunchers(){const favorites=['browser','osintcenter','terminal','files','ops','media','snake','calculator'];$('#desktop-icons').innerHTML=favorites.map(id=>`<button class="desktop-icon" data-open="${id}"><span class="ico">${apps[id].icon}</span><small>${apps[id].title}</small></button>`).join('');renderAppGrid()}
+function buildLaunchers(){const favorites=['arcade','youtube','media','browser','snake','2048','nullcrypt','calculator'];$('#desktop-icons').innerHTML=favorites.map(id=>`<button class="desktop-icon" data-open="${id}"><span class="ico">${apps[id].icon}</span><small>${apps[id].title}</small></button>`).join('');renderAppGrid()}
 function renderAppGrid(filter='',cat='all'){const q=filter.toLowerCase();$('#app-grid').innerHTML=appDefs.filter(([id,title,c,,desc])=>(cat==='all'||c===cat)&&(`${title} ${desc}`.toLowerCase().includes(q))).map(([id,title,,icon,desc])=>`<button class="app-tile" data-open="${id}"><b>${icon}</b><span>${title}</span><small>${desc}</small></button>`).join('')}
 buildLaunchers();
 $('#app-search').addEventListener('input',e=>renderAppGrid(e.target.value,$('.start-tabs .active').dataset.cat));$$('.start-tabs button').forEach(b=>b.onclick=()=>{$$('.start-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderAppGrid($('#app-search').value,b.dataset.cat)});
 document.addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o){openApp(o.dataset.open);startMenu.classList.add('hidden')}});$('#start-btn').onclick=()=>startMenu.classList.toggle('hidden');$('#restart-btn').onclick=()=>location.reload();
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('#start-menu')&&!e.target.closest('#start-btn'))startMenu.classList.add('hidden')});
+document.addEventListener('keydown',e=>{
+  if(e.key==='/' && !e.ctrlKey && !e.metaKey && !e.altKey && !['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){
+    const w=wins.get('arcade');
+    if(!w){openApp('arcade')}
+    else{w.el.classList.remove('hidden');focusWin(w.el)}
+  }
+});
+
 
 function openApp(id){if(wins.has(id)){const w=wins.get(id).el;w.classList.remove('hidden');focusWin(w);return}const app=apps[id];if(!app)return;const el=tpl.content.firstElementChild.cloneNode(true);el.dataset.app=id;el.style.left=`${10+(seq%9)*2.1}%`;el.style.top=`${5+(seq%8)*1.8}%`;seq++;el.querySelector('.title').textContent=`${app.title.toUpperCase()} // NULL SEC`;layer.append(el);app.render(el.querySelector('.window-body'),el);const task=document.createElement('button');task.className='task-app active';task.textContent=app.title;task.onclick=()=>toggleTask(id);taskButtons.append(task);wins.set(id,{el,task});wireWindow(el,id);focusWin(el)}
 function wireWindow(el,id){const bar=el.querySelector('.titlebar');let drag=null;bar.onpointerdown=e=>{if(e.target.closest('button')||el.classList.contains('maximized'))return;focusWin(el);drag={x:e.clientX,y:e.clientY,l:el.offsetLeft,t:el.offsetTop};bar.setPointerCapture(e.pointerId)};bar.onpointermove=e=>{if(!drag)return;el.style.left=Math.max(0,drag.l+e.clientX-drag.x)+'px';el.style.top=Math.max(0,drag.t+e.clientY-drag.y)+'px'};bar.onpointerup=()=>drag=null;el.onpointerdown=()=>focusWin(el);el.querySelector('[data-action=close]').onclick=()=>closeWin(id);el.querySelector('[data-action=minimize]').onclick=()=>{el.classList.add('hidden');wins.get(id).task.classList.remove('active')};el.querySelector('[data-action=maximize]').onclick=()=>el.classList.toggle('maximized');const r=el.querySelector('.resize-handle');let rs=null;r.onpointerdown=e=>{rs={x:e.clientX,y:e.clientY,w:el.offsetWidth,h:el.offsetHeight};r.setPointerCapture(e.pointerId)};r.onpointermove=e=>{if(!rs||el.classList.contains('maximized'))return;el.style.width=Math.max(350,rs.w+e.clientX-rs.x)+'px';el.style.height=Math.max(240,rs.h+e.clientY-rs.y)+'px'};r.onpointerup=()=>rs=null}
 function focusWin(el){z++;el.style.zIndex=z;$$('.window').forEach(w=>w.classList.toggle('focused',w===el));for(const {el:w,task} of wins.values())task.classList.toggle('active',w===el&&!w.classList.contains('hidden'))}
 function closeWin(id){const x=wins.get(id);if(!x)return;x.el.remove();x.task.remove();wins.delete(id)}function toggleTask(id){const x=wins.get(id);if(!x)return;if(x.el.classList.contains('hidden')){x.el.classList.remove('hidden');focusWin(x.el)}else if(x.el.classList.contains('focused')){x.el.classList.add('hidden');x.task.classList.remove('active')}else focusWin(x.el)}
 
-function renderDashboard(b){b.innerHTML=`<div class="app-pad classic-dash"><div class="section-tag">SYSTEM</div><h1>NULL SEC</h1><div class="ops-grid"><div class="metric"><label>APPS</label><strong>${appDefs.length}</strong><small>INSTALLED</small></div><div class="metric"><label>NETWORK</label><strong>${navigator.onLine?'UP':'DOWN'}</strong><small>CLIENT</small></div><div class="metric"><label>RELAY</label><strong id="dash-relay">...</strong><small>SERVER</small></div></div><div class="classic-launch">${['browser','media','nullcrypt','terminal','files','osintcenter'].map(id=>`<button class="panel btn" data-open="${id}">${apps[id].icon}<span>${apps[id].title}</span></button>`).join('')}</div></div>`;fetch('/api/health').then(r=>{const e=b.querySelector('#dash-relay');e.textContent=r.ok?'UP':'DOWN'}).catch(()=>{b.querySelector('#dash-relay').textContent='DOWN'})}
 
-function normalizeTarget(raw){raw=(raw||'').trim();if(!raw)return'';if(/^https?:\/\//i.test(raw))return raw;if(raw.includes('.')&&!raw.includes(' '))return'https://'+raw;return'https://www.google.com/search?q='+encodeURIComponent(raw)}
-function youtubeId(u){try{const x=new URL(u);if(x.hostname.includes('youtu.be'))return x.pathname.split('/')[1]||'';if(x.hostname.includes('youtube.com'))return x.searchParams.get('v')||((x.pathname.match(/\/shorts\/([^/?]+)/)||[])[1]||'')}catch{}return''}
-let nullSjController=null;
-let nullSjTransport=null;
+function renderArcade(b){
+  const FAVORITES='nullubg.gameFavorites.v2';
+  const RECENTS='nullubg.gameRecents.v2';
+  const STATS='nullubg.gameStats.v1';
 
-let nullUvConnection=null;
+  const meta={
+    snake:{cat:'CLASSIC',controls:'ARROWS',tag:'ENDLESS'},
+    pong:{cat:'ARCADE',controls:'MOUSE',tag:'VS CPU'},
+    flappy:{cat:'ARCADE',controls:'SPACE / CLICK',tag:'SCORE'},
+    dodger:{cat:'ACTION',controls:'A D / ARROWS',tag:'SURVIVE'},
+    connect4:{cat:'PUZZLE',controls:'CLICK',tag:'VS CPU'},
+    invaders:{cat:'ACTION',controls:'A D + SPACE',tag:'SHOOTER'},
+    stacker:{cat:'SKILL',controls:'SPACE / CLICK',tag:'TIMING'},
+    breakout:{cat:'ARCADE',controls:'MOUSE',tag:'BRICKS'},
+    tictactoe:{cat:'PUZZLE',controls:'CLICK',tag:'CLASSIC'},
+    memory:{cat:'PUZZLE',controls:'CLICK',tag:'MEMORY'},
+    mines:{cat:'PUZZLE',controls:'CLICK',tag:'MINES'},
+    clicker:{cat:'CASUAL',controls:'CLICK',tag:'SCORE'},
+    reaction:{cat:'SKILL',controls:'CLICK',tag:'REFLEX'},
+    typing:{cat:'SKILL',controls:'KEYBOARD',tag:'WPM'},
+    guess:{cat:'CASUAL',controls:'KEYBOARD',tag:'NUMBER'},
+    dice:{cat:'CASUAL',controls:'CLICK',tag:'RNG'},
+    coin:{cat:'CASUAL',controls:'CLICK',tag:'RNG'},
+    rps:{cat:'CASUAL',controls:'CLICK',tag:'VS CPU'},
+    lights:{cat:'PUZZLE',controls:'CLICK',tag:'GRID'},
+    simon:{cat:'PUZZLE',controls:'CLICK',tag:'SEQUENCE'},
+    maze:{cat:'SKILL',controls:'ARROWS',tag:'ESCAPE'},
+    '2048':{cat:'PUZZLE',controls:'ARROWS',tag:'MERGE'}
+  };
 
-async function ensureRealUV(){
-  if(!window.BareMux||!window.__uv$config)throw new Error('Ultraviolet assets did not load');
-  if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
+  const gameDefs=appDefs.filter(x=>x[2]==='games'&&x[0]!=='arcade');
+  const get=(k,d=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}};
+  const put=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+  let mode='all',category='ALL',query='';
 
-  for(const asset of ['/uv/uv.bundle.js','/uv/uv.config.js','/uv/uv.sw.js','/uv/sw.js','/baremux/index.js','/epoxy/index.mjs']){
-    const r=await fetch(asset,{cache:'no-store'});
-    if(!r.ok)throw new Error('Missing UV asset: '+asset+' ('+r.status+')');
+  b.innerHTML=`<div class="ubg-shell ubg-v2">
+    <header class="ubg-hero ubg-hero-v2">
+      <div>
+        <div class="ubg-eyebrow">NULL SEC UBG // LOCAL-FIRST</div>
+        <h1>PLAY SOMETHING.</h1>
+        <p>${gameDefs.length} bundled games, instant launch, no game-site dependency.</p>
+      </div>
+      <div class="ubg-hero-stats">
+        <div><b class="ubg-stat-games">${gameDefs.length}</b><span>GAMES</span></div>
+        <div><b class="ubg-stat-launches">0</b><span>PLAYS</span></div>
+        <div><b class="ubg-stat-favs">0</b><span>FAVS</span></div>
+      </div>
+    </header>
+
+    <div class="ubg-command">
+      <span>⌕</span>
+      <input class="ubg-search" placeholder="Search games or press /">
+      <button class="ubg-random">RANDOM</button>
+    </div>
+
+    <div class="ubg-modebar">
+      <div class="ubg-filters">
+        <button class="ubg-filter active" data-mode="all">LIBRARY</button>
+        <button class="ubg-filter" data-mode="favorites">★ FAVORITES</button>
+        <button class="ubg-filter" data-mode="recent">RECENT</button>
+      </div>
+      <div class="ubg-categories"></div>
+    </div>
+
+    <section class="ubg-featured-v2">
+      <button data-game="invaders"><i>01</i><span>NI</span><div><b>NULL INVADERS</b><small>ACTION // SHOOTER</small></div><em>PLAY</em></button>
+      <button data-game="flappy"><i>02</i><span>F</span><div><b>FLAPPY NULL</b><small>ARCADE // SCORE</small></div><em>PLAY</em></button>
+      <button data-game="2048"><i>03</i><span>2K</span><div><b>2048</b><small>PUZZLE // MERGE</small></div><em>PLAY</em></button>
+    </section>
+
+    <div class="ubg-section-head"><b>GAME LIBRARY</b><span class="ubg-count"></span></div>
+    <section class="ubg-grid ubg-grid-v2"></section>
+
+    <div class="ubg-launcher hidden">
+      <div class="ubg-launcher-card">
+        <button class="ubg-launcher-close">×</button>
+        <div class="ubg-launch-icon"></div>
+        <div class="ubg-launch-copy">
+          <div class="section-tag ubg-launch-cat"></div>
+          <h2 class="ubg-launch-title"></h2>
+          <p class="ubg-launch-desc"></p>
+          <div class="ubg-launch-meta">
+            <span>CONTROLS <b class="ubg-launch-controls"></b></span>
+            <span>PLAYS <b class="ubg-launch-plays"></b></span>
+          </div>
+          <div class="ubg-launch-actions">
+            <button class="ubg-primary ubg-play-now">PLAY NOW</button>
+            <button class="ubg-secondary ubg-fav-now">☆ FAVORITE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  const grid=b.querySelector('.ubg-grid'),count=b.querySelector('.ubg-count'),search=b.querySelector('.ubg-search');
+  const launcher=b.querySelector('.ubg-launcher');
+  let selected=null;
+
+  function favs(){return get(FAVORITES,[])}
+  function recents(){return get(RECENTS,[])}
+  function stats(){return get(STATS,{})}
+  function saveStats(v){put(STATS,v)}
+  function gameMeta(id){return meta[id]||{cat:'ARCADE',controls:'KEYBOARD / MOUSE',tag:'GAME'}}
+
+  function markRecent(id){
+    put(RECENTS,[id,...recents().filter(x=>x!==id)].slice(0,16));
   }
 
-  const swUrl='/uv/sw.js';
-  const scope='/uv/service/';
-  let reg=await navigator.serviceWorker.getRegistration(scope);
+  function registerPlay(id){
+    const s=stats();
+    const row=s[id]||{plays:0,lastPlayed:0};
+    row.plays=(row.plays||0)+1;
+    row.lastPlayed=Date.now();
+    s[id]=row;
+    saveStats(s);
+  }
 
-  if(reg){
-    const scripts=[reg.active,reg.waiting,reg.installing].filter(Boolean).map(w=>{try{return new URL(w.scriptURL).pathname}catch{return ''}});
-    if(!scripts.includes(swUrl)){
-      await reg.unregister();
-      reg=null;
+  function launch(id){
+    registerPlay(id);
+    markRecent(id);
+    launcher.classList.add('hidden');
+    openApp(id);
+    const w=wins.get(id)?.el;
+    if(w)w.classList.add('maximized');
+    draw();
+  }
+
+  function toggleFav(id){
+    const f=favs();
+    put(FAVORITES,f.includes(id)?f.filter(x=>x!==id):[id,...f]);
+    draw();
+    if(selected===id)fillLauncher(id);
+  }
+
+  function openLauncher(id){
+    selected=id;
+    fillLauncher(id);
+    launcher.classList.remove('hidden');
+  }
+
+  function fillLauncher(id){
+    const row=gameDefs.find(x=>x[0]===id);
+    if(!row)return;
+    const [,title,,,desc]=row,m=gameMeta(id),s=stats()[id]||{};
+    b.querySelector('.ubg-launch-icon').textContent=row[3];
+    b.querySelector('.ubg-launch-cat').textContent=m.cat+' // '+m.tag;
+    b.querySelector('.ubg-launch-title').textContent=title;
+    b.querySelector('.ubg-launch-desc').textContent=desc;
+    b.querySelector('.ubg-launch-controls').textContent=m.controls;
+    b.querySelector('.ubg-launch-plays').textContent=String(s.plays||0);
+    b.querySelector('.ubg-fav-now').textContent=favs().includes(id)?'★ FAVORITED':'☆ FAVORITE';
+  }
+
+  function filtered(){
+    let rows=gameDefs;
+    if(mode==='favorites'){
+      const f=favs();
+      rows=rows.filter(x=>f.includes(x[0]));
+    }else if(mode==='recent'){
+      const order=recents();
+      rows=order.map(id=>gameDefs.find(x=>x[0]===id)).filter(Boolean);
     }
-  }
-
-  if(!reg)reg=await navigator.serviceWorker.register(swUrl,{scope,updateViaCache:'none'});
-  await reg.update().catch(()=>{});
-
-  const worker=reg.installing||reg.waiting||reg.active;
-  if(worker&&worker.state!=='activated'){
-    await new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>reject(new Error('UV worker activation timed out')),12000);
-      const done=()=>{clearTimeout(timer);resolve()};
-      worker.addEventListener('statechange',()=>{
-        if(worker.state==='activated')done();
-        else if(worker.state==='redundant'){clearTimeout(timer);reject(new Error('UV worker became redundant'))}
-      });
-      if(worker.state==='activated')done();
+    if(category!=='ALL')rows=rows.filter(x=>gameMeta(x[0]).cat===category);
+    const q=query.trim().toLowerCase();
+    if(q)rows=rows.filter(x=>{
+      const m=gameMeta(x[0]);
+      return `${x[1]} ${x[4]} ${m.cat} ${m.tag} ${m.controls}`.toLowerCase().includes(q);
     });
+    return rows;
   }
-  if(!reg.active)throw new Error('UV worker did not activate');
 
-  if(!nullUvConnection)nullUvConnection=new BareMux.BareMuxConnection('/baremux/worker.js');
-  const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
-  const current=await nullUvConnection.getTransport();
-  if(current!=='/epoxy/index.mjs'){
-    await nullUvConnection.setTransport('/epoxy/index.mjs',[{wisp}]);
+  function draw(){
+    const rows=filtered(),f=favs(),s=stats();
+    const totalPlays=Object.values(s).reduce((n,x)=>n+Number(x?.plays||0),0);
+    b.querySelector('.ubg-stat-launches').textContent=String(totalPlays);
+    b.querySelector('.ubg-stat-favs').textContent=String(f.length);
+    count.textContent=rows.length+' / '+gameDefs.length+' GAMES';
+
+    grid.innerHTML=rows.map(([id,title,,icon,desc])=>{
+      const m=gameMeta(id),plays=s[id]?.plays||0;
+      return `<article class="ubg-game ubg-game-v2">
+        <button class="ubg-game-main" data-info="${id}">
+          <div class="ubg-game-icon">${icon}</div>
+          <div class="ubg-game-copy">
+            <div><b>${escapeHtml(title)}</b><span>${escapeHtml(m.cat)}</span></div>
+            <small>${escapeHtml(desc)}</small>
+            <em>${escapeHtml(m.controls)}${plays?' // '+plays+' PLAYS':''}</em>
+          </div>
+          <span class="ubg-open-arrow">›</span>
+        </button>
+        <button class="ubg-fav ${f.includes(id)?'active':''}" data-fav="${id}">${f.includes(id)?'★':'☆'}</button>
+      </article>`;
+    }).join('')||'<div class="panel muted">No games match this filter.</div>';
+
+    grid.querySelectorAll('[data-info]').forEach(x=>x.onclick=()=>openLauncher(x.dataset.info));
+    grid.querySelectorAll('[data-fav]').forEach(x=>x.onclick=e=>{e.stopPropagation();toggleFav(x.dataset.fav)});
   }
-  return nullUvConnection;
+
+  const cats=['ALL',...new Set(gameDefs.map(x=>gameMeta(x[0]).cat))];
+  b.querySelector('.ubg-categories').innerHTML=cats.map((x,i)=>`<button class="ubg-cat ${i===0?'active':''}" data-cat="${x}">${x}</button>`).join('');
+
+  b.querySelectorAll('.ubg-featured-v2 [data-game]').forEach(x=>x.onclick=()=>openLauncher(x.dataset.game));
+  search.oninput=e=>{query=e.target.value;draw()};
+  b.querySelectorAll('.ubg-filter').forEach(btn=>btn.onclick=()=>{
+    b.querySelectorAll('.ubg-filter').forEach(x=>x.classList.toggle('active',x===btn));
+    mode=btn.dataset.mode;draw();
+  });
+  b.querySelectorAll('.ubg-cat').forEach(btn=>btn.onclick=()=>{
+    b.querySelectorAll('.ubg-cat').forEach(x=>x.classList.toggle('active',x===btn));
+    category=btn.dataset.cat;draw();
+  });
+  b.querySelector('.ubg-random').onclick=()=>{
+    const rows=filtered().length?filtered():gameDefs;
+    if(rows.length)openLauncher(rows[Math.floor(Math.random()*rows.length)][0]);
+  };
+  b.querySelector('.ubg-launcher-close').onclick=()=>launcher.classList.add('hidden');
+  b.querySelector('.ubg-play-now').onclick=()=>selected&&launch(selected);
+  b.querySelector('.ubg-fav-now').onclick=()=>selected&&toggleFav(selected);
+  launcher.onclick=e=>{if(e.target===launcher)launcher.classList.add('hidden')};
+
+  const slashHandler=e=>{
+    if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&document.activeElement?.tagName!=='INPUT'&&document.activeElement?.tagName!=='TEXTAREA'){
+      e.preventDefault();
+      search.focus();
+    }
+    if(e.key==='Escape')launcher.classList.add('hidden');
+  };
+  addEventListener('keydown',slashHandler);
+
+  draw();
+}
+function renderDashboard(b){
+  const games=appDefs.filter(x=>x[2]==='games').length;
+  b.innerHTML=`<div class="app-pad classic-dash ubg-dash">
+    <div class="section-tag">NULL SEC UBG</div>
+    <h1>PLAY LOCAL.</h1>
+    <p class="muted">Arcade-first desktop with local games, media, chat and tools.</p>
+    <div class="ops-grid">
+      <div class="metric"><label>GAMES</label><strong>${games}</strong><small>LOCAL</small></div>
+      <div class="metric"><label>NETWORK</label><strong>${navigator.onLine?'UP':'DOWN'}</strong><small>CLIENT</small></div>
+      <div class="metric"><label>RELAY</label><strong id="dash-relay">...</strong><small>SCRAMJET</small></div>
+    </div>
+    <div class="classic-launch">${['arcade','youtube','media','browser','nullcrypt','terminal'].map(id=>`<button class="panel btn" data-open="${id}">${apps[id].icon}<span>${apps[id].title}</span></button>`).join('')}</div>
+  </div>`;
+  fetch('/api/health').then(r=>{const e=b.querySelector('#dash-relay');e.textContent=r.ok?'UP':'DOWN'}).catch(()=>{b.querySelector('#dash-relay').textContent='DOWN'})
 }
 
 async function waitForExactServiceWorker(reg, expectedPath, timeoutMs=12000){
@@ -229,99 +454,60 @@ function nullYoutubeEmbedUrl(id){
 }
 
 function renderBrowser(b){
-  const saved=localStorage.getItem('nullsec.proxyEngine')||'auto';
-  const history=[],historyEngines=[];
-  let historyIndex=-1,current='',activeEngine='',sjFrame=null,busy=false;
+  const history=[];
+  let historyIndex=-1,current='',sjFrame=null,busy=false;
 
-  b.innerHTML=`<div class="browser classic-browser">
+  b.innerHTML=`<div class="browser ubg-browser">
     <div class="browser-bar">
-      <button class="back" title="Back">←</button>
-      <button class="forward" title="Forward">→</button>
-      <button class="home" title="Home">⌂</button>
-      <button class="reload" title="Reload">↻</button>
-      <select class="field proxy-engine">
-        <option value="auto">AUTO</option>
-        <option value="scramjet">SJ</option>
-        <option value="uv">UV</option>
-      </select>
+      <button class="back">←</button>
+      <button class="forward">→</button>
+      <button class="home">⌂</button>
+      <button class="reload">↻</button>
       <div class="browser-address"><input class="url" placeholder="Search or enter address"></div>
       <button class="go">GO</button>
-      <button class="browser-more" title="Diagnostics">⋮</button>
+      <button class="browser-more" title="Status">⋮</button>
     </div>
-
     <div class="browser-diagnostics hidden">
-      <div><b>PROXY STATUS</b><span class="diag-summary">NOT TESTED</span></div>
+      <div><b>SCRAMJET STATUS</b><span class="diag-summary">NOT TESTED</span></div>
       <div class="diag-grid">
-        <span>SCRAMJET</span><b class="diag-sj">...</b>
-        <span>ULTRAVIOLET</span><b class="diag-uv">...</b>
+        <span>ASSETS</span><b class="diag-sj">...</b>
         <span>WISP</span><b class="diag-wisp">...</b>
-        <span>ACTIVE</span><b class="diag-active">NONE</b>
+        <span>WORKER</span><b class="diag-worker">...</b>
       </div>
       <button class="btn diag-run">RUN CHECK</button>
-      <button class="btn diag-reset">RESET WORKERS</button>
+      <button class="btn diag-reset">RESET WORKER</button>
     </div>
-
     <div class="browser-view">
       <div class="browser-home">
         <div class="browser-card classic-browser-home">
           <div class="glyph">◎</div>
           <h1>NULL BROWSER</h1>
+          <p>Scramjet browser for ordinary pages. YouTube videos use the native YouTube app instead.</p>
           <form><input placeholder="Search or enter address"><button>GO</button></form>
           <div class="quick-sites">
-            <button data-url="https://www.google.com">Google</button>
-            <button data-url="https://www.youtube.com">YouTube</button>
-            <button data-url="https://www.wikipedia.org">Wikipedia</button>
+            <button data-url="https://www.google.com">GOOGLE</button>
+            <button data-url="https://www.youtube.com/">YOUTUBE</button>
+            <button data-url="https://www.wikipedia.org">WIKIPEDIA</button>
           </div>
         </div>
       </div>
       <div class="sj-host"></div>
-      <iframe class="frame uv-frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write"></iframe>
-      <iframe class="frame yt-frame" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
       <div class="browser-loading hidden"><div>CONNECTING...</div></div>
-      <div class="browser-error">
-        <div>
-          <b>PAGE FAILED</b>
-          <span></span>
-          <div class="browser-error-actions">
-            <button class="btn retry">RETRY</button>
-            <button class="btn try-other">TRY OTHER ENGINE</button>
-            <button class="btn show-diag">DIAGNOSTICS</button>
-          </div>
-        </div>
-      </div>
+      <div class="browser-error"><div><b>PAGE FAILED</b><span></span><div class="browser-error-actions"><button class="btn retry">RETRY</button><button class="btn show-diag">STATUS</button></div></div></div>
     </div>
-
-    <div class="browser-note">
-      <span>ENGINE <b class="engine-state">AUTO</b></span>
-      <span class="browser-url-state">READY</span>
-    </div>
+    <div class="browser-note"><span>ENGINE <b>SCRAMJET</b></span><span class="browser-url-state">READY</span></div>
   </div>`;
 
-  const host=b.querySelector('.sj-host'),uvFrame=b.querySelector('.uv-frame'),ytFrame=b.querySelector('.yt-frame'),
-        home=b.querySelector('.browser-home'),url=b.querySelector('.url'),err=b.querySelector('.browser-error'),
-        select=b.querySelector('.proxy-engine'),engineState=b.querySelector('.engine-state'),
-        urlState=b.querySelector('.browser-url-state'),loading=b.querySelector('.browser-loading'),
-        diag=b.querySelector('.browser-diagnostics');
-
-  select.value=saved;
+  const host=b.querySelector('.sj-host'),home=b.querySelector('.browser-home'),url=b.querySelector('.url'),
+        err=b.querySelector('.browser-error'),state=b.querySelector('.browser-url-state'),
+        loading=b.querySelector('.browser-loading'),diag=b.querySelector('.browser-diagnostics');
   err.style.display='none';
 
-  function showEngine(name){
-    activeEngine=name;
-    engineState.textContent=name.toUpperCase();
-    b.querySelector('.diag-active').textContent=name.toUpperCase();
-    host.style.display=name==='scramjet'?'block':'none';
-    uvFrame.style.display=name==='uv'?'block':'none';
-    ytFrame.style.display=name==='youtube'?'block':'none';
-  }
-
-  function setBusy(v,msg='CONNECTING'){
+  function setBusy(v){
     busy=v;
     loading.classList.toggle('hidden',!v);
-    if(v)loading.firstElementChild.textContent=msg;
   }
-
-  async function ensureSjFrame(){
+  async function ensureFrame(){
     const controller=await ensureScramjet();
     if(!sjFrame){
       const iframe=document.createElement('iframe');
@@ -333,185 +519,86 @@ function renderBrowser(b){
     }
     return sjFrame;
   }
-
-  async function loadWith(engine,target){
-    if(engine==='scramjet'){
-      const frame=await ensureSjFrame();
-      showEngine('scramjet');
-      await Promise.resolve(frame.go(target));
-      return;
-    }
-    if(engine==='uv'){
-      await ensureRealUV();
-      showEngine('uv');
-      uvFrame.src=__uv$config.prefix+__uv$config.encodeUrl(target);
-      return;
-    }
-    throw new Error('Unknown engine '+engine);
+  function push(target){
+    if(historyIndex<history.length-1)history.splice(historyIndex+1);
+    history.push(target);historyIndex=history.length-1;
   }
-
-  function engineOrder(target,forced){
-    if(forced)return [forced];
-    const pref=select.value;
-    if(pref!=='auto')return [pref];
-    try{
-      const h=new URL(target).hostname.replace(/^www\./,'').toLowerCase();
-      if(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be')return ['uv','scramjet'];
-    }catch{}
-    return ['scramjet','uv'];
-  }
-
-  function pushHistory(target,engine){
-    if(historyIndex<history.length-1){
-      history.splice(historyIndex+1);
-      historyEngines.splice(historyIndex+1);
-    }
-    history.push(target);
-    historyEngines.push(engine||'auto');
-    historyIndex=history.length-1;
-  }
-
   async function navigate(raw,opts={}){
     if(busy)return;
     const target=normalizeTarget(raw||url.value);
     if(!target)return;
-    current=target;
-    url.value=target;
-    home.style.display='none';
-    err.style.display='none';
-    setBusy(true);
-    urlState.textContent='CONNECTING';
-
-    const vid=nullYoutubeVideoId(target)||youtubeId(target);
-    if(vid){
-      showEngine('youtube');
-      ytFrame.src=nullYoutubeEmbedUrl(vid);
-      urlState.textContent='YOUTUBE PLAYER';
-      if(!opts.noHistory)pushHistory(target,'youtube');
-      setBusy(false);
-      return;
-    }
-
     try{
       const u=new URL(target);
       const h=u.hostname.replace(/^www\./,'').toLowerCase();
-      if(select.value==='auto'&&(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be')){
-        openApp('youtube');
-        home.style.display='grid';
-        urlState.textContent='NATIVE YOUTUBE';
-        setBusy(false);
-        return;
+      if(h==='youtube.com'||h.endsWith('.youtube.com')||h==='youtu.be'){
+        openApp('youtube');return;
       }
     }catch{}
 
-    let lastErr=null,workedEngine='';
-    for(const eng of engineOrder(target,opts.forceEngine)){
-      try{
-        await loadWith(eng,target);
-        workedEngine=eng;
-        urlState.textContent='LOADED';
-        if(!opts.noHistory)pushHistory(target,eng);
-        setBusy(false);
-        return;
-      }catch(e){
-        lastErr=e;
-      }
-    }
-
-    setBusy(false);
-    err.style.display='grid';
-    urlState.textContent='FAILED';
-    err.querySelector('span').textContent=lastErr?.message||String(lastErr||'Proxy failed');
+    current=target;url.value=target;home.style.display='none';err.style.display='none';setBusy(true);state.textContent='CONNECTING';
+    try{
+      const frame=await ensureFrame();
+      await Promise.resolve(frame.go(target));
+      state.textContent='LOADED';
+      if(!opts.noHistory)push(target);
+    }catch(e){
+      state.textContent='FAILED';
+      err.style.display='grid';
+      err.querySelector('span').textContent=e?.message||String(e);
+    }finally{setBusy(false)}
   }
 
-  async function runDiagnostics(){
-    const sj=b.querySelector('.diag-sj'),uv=b.querySelector('.diag-uv'),wisp=b.querySelector('.diag-wisp'),summary=b.querySelector('.diag-summary');
-    sj.textContent=uv.textContent=wisp.textContent='CHECKING';
-    summary.textContent='RUNNING';
+  async function diagnostics(){
+    const sj=b.querySelector('.diag-sj'),wisp=b.querySelector('.diag-wisp'),worker=b.querySelector('.diag-worker'),summary=b.querySelector('.diag-summary');
+    sj.textContent=wisp.textContent=worker.textContent='CHECKING';summary.textContent='RUNNING';
     let ok=0;
     try{
-      const r=await fetch('/api/proxy-status',{cache:'no-store'});
-      const text=await r.text();
-      const d=JSON.parse(text);
-      sj.textContent=d?.engines?.scramjet?.ok?'OK':'FAIL';
-      uv.textContent=d?.engines?.ultraviolet?.ok?'OK':'FAIL';
-      if(d?.engines?.scramjet?.ok)ok++;
-      if(d?.engines?.ultraviolet?.ok)ok++;
-    }catch{
-      sj.textContent='FAIL';
-      uv.textContent='FAIL';
-    }
+      const r=await fetch('/api/proxy-status',{cache:'no-store'}),d=await r.json();
+      sj.textContent=r.ok&&d.scramjet?.ok?'OK':'FAIL';
+      if(r.ok&&d.scramjet?.ok)ok++;
+    }catch{sj.textContent='FAIL'}
+    try{
+      const reg=await navigator.serviceWorker.getRegistration('/');
+      const p=reg?.active?new URL(reg.active.scriptURL).pathname:'';
+      worker.textContent=p==='/sw.js'?'OK':'MISSING';
+      if(p==='/sw.js')ok++;
+    }catch{worker.textContent='FAIL'}
     try{
       const proto=location.protocol==='https:'?'wss:':'ws:';
       await new Promise((resolve,reject)=>{
         const ws=new WebSocket(proto+'//'+location.host+'/wisp/');
-        const timer=setTimeout(()=>{try{ws.close()}catch{};reject(new Error('timeout'))},4000);
+        const timer=setTimeout(()=>{try{ws.close()}catch{};reject()},4000);
         ws.onopen=()=>{clearTimeout(timer);ws.close();resolve()};
-        ws.onerror=()=>{clearTimeout(timer);reject(new Error('websocket'))};
+        ws.onerror=()=>{clearTimeout(timer);reject()};
       });
       wisp.textContent='OK';ok++;
     }catch{wisp.textContent='FAIL'}
-    summary.textContent=ok===3?'ALL SYSTEMS READY':ok+' / 3 READY';
+    summary.textContent=ok===3?'READY':ok+'/3 READY';
   }
 
-  async function resetWorkers(){
-    try{
-      const regs=await navigator.serviceWorker.getRegistrations();
-      for(const reg of regs){
-        const scope=new URL(reg.scope).pathname;
-        if(scope==='/'||scope==='/uv/service/'||scope.startsWith('/uv/service/'))await reg.unregister();
-      }
-      nullSjController=null;
-      nullSjTransport=null;
-      nullUvConnection=null;
-      sjFrame=null;
-      host.replaceChildren();
-      urlState.textContent='WORKERS RESET';
-      b.querySelector('.diag-summary').textContent='RESET COMPLETE';
-    }catch(e){
-      b.querySelector('.diag-summary').textContent='RESET FAILED: '+e.message;
-    }
+  async function reset(){
+    const reg=await navigator.serviceWorker.getRegistration('/');
+    if(reg)await reg.unregister();
+    nullSjController=null;nullSjTransport=null;sjFrame=null;host.replaceChildren();
+    b.querySelector('.diag-summary').textContent='RESET';
+    state.textContent='WORKER RESET';
   }
 
-  select.onchange=()=>{
-    localStorage.setItem('nullsec.proxyEngine',select.value);
-    engineState.textContent=select.value.toUpperCase();
-    if(current)navigate(current,{noHistory:true,forceEngine:select.value==='auto'?null:select.value});
-  };
   b.querySelector('.go').onclick=()=>navigate();
   url.onkeydown=e=>{if(e.key==='Enter')navigate()};
   b.querySelector('form').onsubmit=e=>{e.preventDefault();navigate(e.target.querySelector('input').value)};
   b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>navigate(x.dataset.url));
-
-  b.querySelector('.back').onclick=()=>{
-    if(historyIndex<=0)return;
-    historyIndex--;
-    navigate(history[historyIndex],{noHistory:true,forceEngine:historyEngines[historyIndex]==='youtube'?null:historyEngines[historyIndex]});
-  };
-  b.querySelector('.forward').onclick=()=>{
-    if(historyIndex>=history.length-1)return;
-    historyIndex++;
-    navigate(history[historyIndex],{noHistory:true,forceEngine:historyEngines[historyIndex]==='youtube'?null:historyEngines[historyIndex]});
-  };
-  b.querySelector('.home').onclick=()=>{
-    current='';url.value='';host.style.display='none';uvFrame.style.display='none';ytFrame.style.display='none';ytFrame.src='about:blank';
-    home.style.display='grid';err.style.display='none';setBusy(false);
-    engineState.textContent=select.value.toUpperCase();urlState.textContent='READY';
-  };
-  b.querySelector('.reload').onclick=()=>current&&navigate(current,{noHistory:true,forceEngine:activeEngine==='youtube'?null:activeEngine});
+  b.querySelectorAll('[data-native]').forEach(x=>x.onclick=()=>openApp(x.dataset.native));
+  b.querySelector('.back').onclick=()=>{if(historyIndex>0){historyIndex--;navigate(history[historyIndex],{noHistory:true})}};
+  b.querySelector('.forward').onclick=()=>{if(historyIndex<history.length-1){historyIndex++;navigate(history[historyIndex],{noHistory:true})}};
+  b.querySelector('.home').onclick=()=>{current='';url.value='';host.style.display='none';home.style.display='grid';err.style.display='none';state.textContent='READY'};
+  b.querySelector('.reload').onclick=()=>current&&navigate(current,{noHistory:true});
   b.querySelector('.retry').onclick=()=>current&&navigate(current,{noHistory:true});
-  b.querySelector('.try-other').onclick=()=>{
-    if(!current)return;
-    const other=activeEngine==='scramjet'?'uv':'scramjet';
-    navigate(current,{noHistory:true,forceEngine:other});
-  };
-
   b.querySelector('.browser-more').onclick=()=>diag.classList.toggle('hidden');
-  b.querySelector('.show-diag').onclick=()=>{diag.classList.remove('hidden');runDiagnostics()};
-  b.querySelector('.diag-run').onclick=runDiagnostics;
-  b.querySelector('.diag-reset').onclick=resetWorkers;
+  b.querySelector('.show-diag').onclick=()=>{diag.classList.remove('hidden');diagnostics()};
+  b.querySelector('.diag-run').onclick=diagnostics;
+  b.querySelector('.diag-reset').onclick=reset;
 }
-
 function renderTerminal(b){
   b.innerHTML=`<div class="terminal-app"><div class="term-output"></div><div class="term-line"><span>null@sec:$</span><input class="term-input" autocomplete="off" spellcheck="false" placeholder="type help"></div></div>`;
   const out=b.querySelector('.term-output'),input=b.querySelector('.term-input');
@@ -803,69 +890,127 @@ function renderRadio(b){
 }
 
 function renderYouTube(b){
-  b.innerHTML=`<div class="youtube-app yt-native">
-    <div class="catalog-toolbar">
-      <b>YOUTUBE</b>
-      <input class="field yt-url" placeholder="Paste watch / Shorts / youtu.be URL">
-      <button class="btn yt-load">PLAY</button>
+  let sjFrame=null;
+  let current='https://www.youtube.com/';
+  let fallbackId=null;
+
+  b.innerHTML=`<div class="youtube-site-app">
+    <div class="yt-site-bar">
+      <button class="btn yt-back">←</button>
+      <button class="btn yt-home">⌂</button>
+      <button class="btn yt-reload">↻</button>
+      <input class="field yt-site-url" value="https://www.youtube.com/" spellcheck="false">
+      <button class="btn yt-go">GO</button>
+      <button class="btn yt-fallback">PLAYER FALLBACK</button>
     </div>
-    <div class="yt-stage">
-      <div class="yt-empty">PASTE A YOUTUBE VIDEO LINK</div>
-      <iframe class="yt-official hidden" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+    <div class="yt-site-state">SCRAMJET // YOUTUBE</div>
+    <div class="yt-site-view">
+      <div class="yt-site-host"></div>
+      <div class="yt-site-loading">CONNECTING TO YOUTUBE...</div>
+      <div class="yt-site-error hidden">
+        <b>YOUTUBE PAGE FAILED</b>
+        <span></span>
+        <div>
+          <button class="btn yt-retry">RETRY</button>
+          <button class="btn yt-use-fallback">USE VIDEO PLAYER</button>
+        </div>
+      </div>
+      <iframe class="yt-fallback-frame hidden" referrerpolicy="strict-origin-when-cross-origin"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
     </div>
-    <div class="yt-meta hidden"></div>
-    <div class="yt-searchbox">
-      <input class="field yt-search" placeholder="Search YouTube">
-      <button class="btn yt-search-go">SEARCH</button>
-      <span class="yt-search-note">Native search uses YOUTUBE_API_KEY. Direct URL playback does not.</span>
+    <div class="yt-site-foot">
+      <span>FULL WEBSITE MODE</span>
+      <span>ENGINE: SCRAMJET</span>
     </div>
-    <div class="yt-results"></div>
   </div>`;
 
-  const frame=b.querySelector('.yt-official'),empty=b.querySelector('.yt-empty'),meta=b.querySelector('.yt-meta'),results=b.querySelector('.yt-results');
+  const host=b.querySelector('.yt-site-host');
+  const input=b.querySelector('.yt-site-url');
+  const loading=b.querySelector('.yt-site-loading');
+  const error=b.querySelector('.yt-site-error');
+  const fallback=b.querySelector('.yt-fallback-frame');
+  const state=b.querySelector('.yt-site-state');
 
-  async function playRaw(raw){
-    const id=nullYoutubeVideoId(raw)||youtubeId(raw);
-    if(!id){empty.textContent='INVALID YOUTUBE VIDEO URL';return}
-    empty.textContent='LOADING...';
-    frame.src=nullYoutubeEmbedUrl(id);
-    frame.classList.remove('hidden');
-    empty.classList.add('hidden');
-    meta.classList.add('hidden');
-
-    try{
-      const r=await fetch('/null-data/youtube/oembed?url='+encodeURIComponent('https://www.youtube.com/watch?v='+id),{cache:'no-store'});
-      const d=await r.json();
-      if(r.ok&&d.ok){
-        meta.innerHTML=`${d.thumbnail?`<img src="${d.thumbnail}" alt="">`:''}<div><b>${escapeHtml(d.title)}</b><small>${escapeHtml(d.author)}</small></div>`;
-        meta.classList.remove('hidden');
-      }
-    }catch{}
+  async function ensureFrame(){
+    const controller=await ensureScramjet();
+    if(!sjFrame){
+      const iframe=document.createElement('iframe');
+      iframe.className='yt-sj-frame';
+      iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');
+      host.replaceChildren(iframe);
+      installNullBrowserShield(iframe,href=>go(href));
+      sjFrame=controller.createFrame(iframe);
+    }
+    return sjFrame;
   }
 
-  b.querySelector('.yt-load').onclick=()=>playRaw(b.querySelector('.yt-url').value.trim());
-  b.querySelector('.yt-url').onkeydown=e=>{if(e.key==='Enter')playRaw(e.target.value.trim())};
+  function showSite(){
+    host.classList.remove('hidden');
+    fallback.classList.add('hidden');
+  }
 
-  b.querySelector('.yt-search-go').onclick=async()=>{
-    const q=b.querySelector('.yt-search').value.trim();
-    if(!q)return;
-    results.innerHTML='<div class="panel muted">SEARCHING...</div>';
-    try{
-      const r=await fetch('/null-data/youtube/search?q='+encodeURIComponent(q),{cache:'no-store'});
-      const d=await r.json();
-      if(!r.ok||!d.ok){
-        results.innerHTML=`<div class="panel ${d.needsKey?'muted':'bad'}">${escapeHtml(d.error||'Search failed')}</div>`;
-        return;
-      }
-      results.innerHTML=d.items.map(x=>`<button class="yt-result" data-id="${x.id}">
-        ${x.thumbnail?`<img src="${x.thumbnail}" alt="">`:''}
-        <span><b>${escapeHtml(x.title)}</b><small>${escapeHtml(x.channel)}</small><p>${escapeHtml(x.description)}</p></span>
-      </button>`).join('')||'<div class="panel muted">No videos found.</div>';
-      results.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>playRaw('https://www.youtube.com/watch?v='+x.dataset.id));
-    }catch(e){
-      results.innerHTML='<div class="panel bad">'+escapeHtml(e.message)+'</div>';
+  function showFallback(id){
+    if(!id){
+      error.classList.remove('hidden');
+      error.querySelector('span').textContent='Open a specific YouTube video before using fallback.';
+      return;
     }
+    host.classList.add('hidden');
+    fallback.src='https://www.youtube.com/embed/'+encodeURIComponent(id)+'?autoplay=1&playsinline=1&rel=0&origin='+encodeURIComponent(location.origin);
+    fallback.classList.remove('hidden');
+    loading.classList.add('hidden');
+    error.classList.add('hidden');
+    state.textContent='OFFICIAL EMBED FALLBACK';
+  }
+
+  async function go(raw){
+    let target=normalizeTarget(raw||input.value||'https://www.youtube.com/');
+    try{
+      const u=new URL(target);
+      const hostName=u.hostname.replace(/^www\./,'').toLowerCase();
+      if(!(hostName==='youtube.com'||hostName.endsWith('.youtube.com')||hostName==='youtu.be')){
+        target='https://www.youtube.com/results?search_query='+encodeURIComponent(raw);
+      }
+    }catch{
+      target='https://www.youtube.com/results?search_query='+encodeURIComponent(raw);
+    }
+
+    current=target;
+    input.value=target;
+    fallbackId=nullYoutubeVideoId(target)||youtubeId(target)||null;
+    showSite();
+    loading.classList.remove('hidden');
+    error.classList.add('hidden');
+    state.textContent='LOADING // '+target;
+
+    try{
+      const frame=await ensureFrame();
+      await Promise.resolve(frame.go(target));
+      state.textContent='YOUTUBE // FULL WEBSITE';
+      setTimeout(()=>loading.classList.add('hidden'),700);
+    }catch(e){
+      loading.classList.add('hidden');
+      error.classList.remove('hidden');
+      error.querySelector('span').textContent=e?.message||String(e);
+      state.textContent='FAILED';
+    }
+  }
+
+  b.querySelector('.yt-go').onclick=()=>go(input.value);
+  input.onkeydown=e=>{if(e.key==='Enter')go(input.value)};
+  b.querySelector('.yt-home').onclick=()=>go('https://www.youtube.com/');
+  b.querySelector('.yt-reload').onclick=()=>go(current);
+  b.querySelector('.yt-retry').onclick=()=>go(current);
+  b.querySelector('.yt-back').onclick=()=>{
+    try{
+      const iframe=host.querySelector('iframe');
+      iframe?.contentWindow?.history.back();
+    }catch{}
   };
+  b.querySelector('.yt-fallback').onclick=()=>showFallback(fallbackId);
+  b.querySelector('.yt-use-fallback').onclick=()=>showFallback(fallbackId);
+
+  go(current);
 }
 function vaultB64(bytes){
   let s='';
@@ -1002,7 +1147,7 @@ function renderFiles(b){
 function renderOps(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TELEMETRY</div><h2>Ops Center</h2><p class="muted">Visual system telemetry only. No remote scanning is performed.</p><div class="ops-grid"><div class="metric"><label>APP COUNT</label><strong>${appDefs.length}</strong></div><div class="metric"><label>OPEN WINDOWS</label><strong id="ow">${wins.size+1}</strong></div><div class="metric"><label>MEMORY EST.</label><strong>${performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576)+'MB':'N/A'}</strong></div><div class="metric"><label>ONLINE</label><strong>${navigator.onLine?'YES':'NO'}</strong></div><div class="metric"><label>CORES</label><strong>${navigator.hardwareConcurrency||'?'}</strong></div><div class="metric"><label>LANG</label><strong>${navigator.language}</strong></div></div><div class="panel" style="margin-top:10px"><pre id="oplog">[OK] desktop compositor\n[OK] local vault\n[OK] app registry\n[OK] media bridge\n[OK] relay health probe queued</pre></div></div>`;fetch('/api/health').then(r=>b.querySelector('#oplog').textContent+=r.ok?'\n[OK] relay online':'\n[WARN] relay unavailable').catch(()=>b.querySelector('#oplog').textContent+='\n[LOCAL] static preview mode')}
 function renderNotes(b){b.innerHTML=`<textarea class="notes-area"></textarea>`;const t=b.querySelector('textarea');t.value=state.notes;t.oninput=()=>{state.notes=t.value;localStorage.setItem('nullsec.notes',state.notes)}}
 function renderSettings(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SYSTEM CONFIG</div><h2>Null Sec Preferences</h2><div class="settings-list"><div class="setting"><div><b>Default Browser Mode</b><div class="muted">Scramjet 2 is the built-in browser engine</div></div><select class="field mode"><option value="smart">SMART</option><option value="relay">RELAY</option><option value="direct">DIRECT</option></select></div><div class="setting"><div><b>Local Data</b><div class="muted">Notes and preferences stored in this browser</div></div><button class="btn clear">CLEAR LOCAL DATA</button></div><div class="setting"><div><b>Relay Health</b><div class="muted">Check backend function</div></div><button class="btn health">CHECK</button></div></div></div>`;const m=b.querySelector('.mode');m.value=state.browserMode;m.onchange=()=>{state.browserMode=m.value;localStorage.setItem('nullsec.browserMode',m.value)};b.querySelector('.clear').onclick=()=>{localStorage.clear();alert('Local Null Sec data cleared.')};b.querySelector('.health').onclick=async e=>{try{const r=await fetch('/api/health');e.target.textContent=r.ok?'ONLINE':'FAILED'}catch{e.target.textContent='OFFLINE'}}}
-function renderAbout(b){b.innerHTML=`<div class="app-pad"><div class="about-logo">NULL SEC</div><h2>OS 3.0</h2><p class="muted">A browser-native cyber desktop with ${appDefs.length} built-in apps and games, local storage, Scramjet 2 browsing, realtime username chat, E2EE private DMs, OSINT tools, media apps, and games.</p><div class="panel"><b>Operator</b><p>hitboyxx23</p><b>Runtime</b><p>HTML + CSS + JavaScript + Node.js Vercel Functions</p><b>Deployment</b><p>GitHub to Vercel</p></div></div>`}
+function renderAbout(b){b.innerHTML=`<div class="app-pad"><div class="about-logo">NULL SEC</div><h2>OS 3.0</h2><p class="muted">A UBG-first browser arcade with ${appDefs.length} built-in apps and local games, Scramjet browsing, full YouTube website mode with player fallback, chat, Vault, media and tools.</p><div class="panel"><b>Operator</b><p>hitboyxx23</p><b>Runtime</b><p>HTML + CSS + JavaScript + Node.js Vercel Functions</p><b>Deployment</b><p>GitHub to Vercel</p></div></div>`}
 
 function renderCalculator(b){b.innerHTML=`<div class="app-pad"><input class="field calc-display" value="0"><div class="calc-grid">${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+','(',')','%','='].map(x=>`<button class="btn">${x}</button>`).join('')}</div></div>`;const d=b.querySelector('.calc-display');b.querySelectorAll('.calc-grid button').forEach(x=>x.onclick=()=>{const v=x.textContent;if(v==='C')d.value='0';else if(v==='='){try{if(!/^[0-9+\-*/().%\s]+$/.test(d.value))throw 0;d.value=Function(`"use strict";return (${d.value})`)()}catch{d.value='ERR'}}else d.value=d.value==='0'?v:d.value+v})}
 function renderClock(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TIME</div><div class="clock-big"></div><h2 class="date"></h2><div class="panel muted">Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}</div></div>`;const f=()=>{const d=new Date();b.querySelector('.clock-big').textContent=d.toLocaleTimeString();b.querySelector('.date').textContent=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})};f();const i=setInterval(f,1000);b.closest('.window')?.querySelector('[data-action=close]')?.addEventListener('click',()=>clearInterval(i),{once:true})}
@@ -1044,6 +1189,178 @@ function renderLights(b){gameTitle(b,'LIGHTS OUT','<div class="memory-grid light
 function renderSimon(b){gameTitle(b,'SIMON','<div class="grid2 simon"></div><p class="muted out">Press START</p><button class="btn start">START</button>');const g=b.querySelector('.simon');for(let i=0;i<4;i++){const x=document.createElement('button');x.className='btn';x.textContent=i+1;x.style.height='90px';g.append(x)}let seq=[],idx=0,locked=true;function flash(i){const x=g.children[i];x.style.background='#124322';setTimeout(()=>x.style.background='',300)}function play(){locked=true;let k=0;const t=setInterval(()=>{flash(seq[k++]);if(k===seq.length){clearInterval(t);setTimeout(()=>{locked=false;idx=0},350)}},500)}b.querySelector('.start').onclick=()=>{seq=[];next()};function next(){seq.push(Math.floor(Math.random()*4));b.querySelector('.out').textContent=`Round ${seq.length}`;play()}[...g.children].forEach((x,i)=>x.onclick=()=>{if(locked)return;flash(i);if(i!==seq[idx]){b.querySelector('.out').textContent='Game over';locked=true;return}if(++idx===seq.length)setTimeout(next,500)})}
 function renderMines(b){gameTitle(b,'MINES','<div class="mines"></div><p class="muted out">10 mines</p>');const N=81,mines=new Set();while(mines.size<10)mines.add(Math.floor(Math.random()*N));const g=b.querySelector('.mines'),opened=new Set();function count(i){let c=0;const r=Math.floor(i/9),col=i%9;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=col+dc,j=rr*9+cc;if(rr>=0&&rr<9&&cc>=0&&cc<9&&mines.has(j))c++}return c}for(let i=0;i<N;i++){const x=document.createElement('button');x.className='btn';x.onclick=()=>{if(opened.has(i))return;opened.add(i);if(mines.has(i)){x.textContent='✹';b.querySelector('.out').textContent='Boom'}else{x.textContent=count(i)||'';x.style.background='#09130c'}};g.append(x)}}
 function canvasGame(b,title,w,h,setup){gameTitle(b,title,`<canvas class="game-canvas" width="${w}" height="${h}"></canvas><p class="muted out"></p>`);setup(b.querySelector('canvas'),b.querySelector('.out'))}
+
+function renderFlappy(b){
+  canvasGame(b,'FLAPPY NULL',480,320,(c,out)=>{
+    const x=c.getContext('2d');
+    let y=150,vy=0,score=0,alive=true,tick=0;
+    const pipes=[];
+    function flap(){if(alive)vy=-5.4}
+    function key(e){if(e.code==='Space'){e.preventDefault();flap()}}
+    addEventListener('keydown',key);
+    c.onclick=flap;
+    const timer=setInterval(()=>{
+      if(!alive){clearInterval(timer);removeEventListener('keydown',key);return}
+      tick++;vy+=.31;y+=vy;
+      if(tick%92===0)pipes.push({x:500,gap:75+Math.random()*150,passed:false});
+      pipes.forEach(p=>p.x-=3.1);
+      while(pipes[0]&&pipes[0].x<-60)pipes.shift();
+      for(const p of pipes){
+        if(!p.passed&&p.x<80){p.passed=true;score++}
+        const hitX=p.x<94&&p.x+52>66;
+        const hitY=y-10<p.gap-48||y+10>p.gap+48;
+        if(hitX&&hitY)alive=false;
+      }
+      if(y<8||y>312)alive=false;
+      x.fillStyle='#010302';x.fillRect(0,0,480,320);
+      x.fillStyle='#0b2514';x.fillRect(0,280,480,40);
+      x.fillStyle='#4cff7e';
+      pipes.forEach(p=>{x.fillRect(p.x,0,52,p.gap-48);x.fillRect(p.x,p.gap+48,52,320-(p.gap+48))});
+      x.fillStyle='#d5ffe0';x.fillRect(68,y-9,20,18);
+      x.fillStyle='#49ff78';x.fillRect(84,y-4,8,8);
+      out.textContent=alive?`Score ${score} // SPACE or click`:`Game over. Score ${score}`;
+    },16);
+  })
+}
+
+function renderDodger(b){
+  canvasGame(b,'NEON DODGER',520,330,(c,out)=>{
+    const x=c.getContext('2d');
+    let px=240,score=0,alive=true,tick=0,left=false,right=false;
+    const blocks=[];
+    function kd(e){if(e.key==='ArrowLeft'||e.key==='a')left=true;if(e.key==='ArrowRight'||e.key==='d')right=true}
+    function ku(e){if(e.key==='ArrowLeft'||e.key==='a')left=false;if(e.key==='ArrowRight'||e.key==='d')right=false}
+    addEventListener('keydown',kd);addEventListener('keyup',ku);
+    const timer=setInterval(()=>{
+      if(!alive){clearInterval(timer);removeEventListener('keydown',kd);removeEventListener('keyup',ku);return}
+      tick++;score++;
+      if(left)px-=5;if(right)px+=5;px=Math.max(0,Math.min(488,px));
+      if(tick%28===0)blocks.push({x:Math.random()*485,y:-24,w:20+Math.random()*38,h:14+Math.random()*26,s:2.6+Math.min(3,score/800)});
+      blocks.forEach(q=>q.y+=q.s);
+      while(blocks[0]&&blocks[0].y>350)blocks.shift();
+      for(const q of blocks)if(q.x<px+32&&q.x+q.w>px&&q.y<304&&q.y+q.h>278)alive=false;
+      x.fillStyle='#010302';x.fillRect(0,0,520,330);
+      x.fillStyle='#42ff78';x.fillRect(px,282,32,18);
+      x.fillStyle='#173821';blocks.forEach(q=>x.fillRect(q.x,q.y,q.w,q.h));
+      out.textContent=alive?`Score ${Math.floor(score/10)} // A D or arrows`:`Crashed. Score ${Math.floor(score/10)}`;
+    },16);
+  })
+}
+
+function renderConnect4(b){
+  gameTitle(b,'CONNECT FOUR','<div class="connect4-board"></div><p class="muted out">You are green. Click a column.</p>');
+  const board=b.querySelector('.connect4-board'),out=b.querySelector('.out');
+  const a=Array.from({length:6},()=>Array(7).fill(0));
+  let over=false;
+
+  function win(p){
+    const dirs=[[1,0],[0,1],[1,1],[1,-1]];
+    for(let r=0;r<6;r++)for(let c=0;c<7;c++)for(const[dR,dC]of dirs){
+      let ok=true;
+      for(let k=0;k<4;k++){const rr=r+dR*k,cc=c+dC*k;if(rr<0||rr>=6||cc<0||cc>=7||a[rr][cc]!==p){ok=false;break}}
+      if(ok)return true;
+    }
+    return false;
+  }
+  function drop(col,p){
+    for(let r=5;r>=0;r--)if(!a[r][col]){a[r][col]=p;return true}
+    return false;
+  }
+  function cpu(){
+    const cols=[0,1,2,3,4,5,6].filter(c=>a[0][c]===0);
+    if(!cols.length)return;
+    for(const c of cols){drop(c,2);if(win(2)){draw();over=true;out.textContent='CPU wins';return}for(let r=0;r<6;r++)if(a[r][c]===2){a[r][c]=0;break}}
+    for(const c of cols){drop(c,1);if(win(1)){for(let r=0;r<6;r++)if(a[r][c]===1){a[r][c]=0;break};drop(c,2);draw();return}for(let r=0;r<6;r++)if(a[r][c]===1){a[r][c]=0;break}}
+    drop(cols[Math.floor(Math.random()*cols.length)],2);draw();
+    if(win(2)){over=true;out.textContent='CPU wins'}
+  }
+  function draw(){
+    board.innerHTML='';
+    for(let r=0;r<6;r++)for(let c=0;c<7;c++){
+      const q=document.createElement('button');q.dataset.c=c;q.className='connect4-cell p'+a[r][c];q.onclick=move;board.append(q)
+    }
+  }
+  function move(e){
+    if(over)return;
+    const c=Number(e.currentTarget.dataset.c);
+    if(!drop(c,1))return;
+    draw();
+    if(win(1)){over=true;out.textContent='You win';return}
+    setTimeout(cpu,220);
+  }
+  draw();
+}
+
+function renderInvaders(b){
+  canvasGame(b,'NULL INVADERS',560,360,(c,out)=>{
+    const x=c.getContext('2d');
+    let px=260,left=false,right=false,alive=true,score=0,tick=0;
+    const bullets=[],enemyBullets=[];
+    const enemies=[];
+    for(let r=0;r<4;r++)for(let col=0;col<8;col++)enemies.push({x:55+col*58,y:38+r*38,on:true});
+    let dir=1;
+
+    function shoot(){if(alive&&bullets.length<3)bullets.push({x:px+14,y:315})}
+    function kd(e){if(e.key==='ArrowLeft'||e.key==='a')left=true;if(e.key==='ArrowRight'||e.key==='d')right=true;if(e.code==='Space'){e.preventDefault();shoot()}}
+    function ku(e){if(e.key==='ArrowLeft'||e.key==='a')left=false;if(e.key==='ArrowRight'||e.key==='d')right=false}
+    addEventListener('keydown',kd);addEventListener('keyup',ku);
+
+    const timer=setInterval(()=>{
+      if(!alive){clearInterval(timer);removeEventListener('keydown',kd);removeEventListener('keyup',ku);return}
+      tick++;if(left)px-=4;if(right)px+=4;px=Math.max(4,Math.min(526,px));
+      if(tick%16===0){
+        let edge=false;
+        enemies.filter(e=>e.on).forEach(e=>{e.x+=dir*5;if(e.x<10||e.x>530)edge=true});
+        if(edge){dir*=-1;enemies.filter(e=>e.on).forEach(e=>{e.y+=12;e.x+=dir*8})}
+      }
+      if(tick%42===0){
+        const live=enemies.filter(e=>e.on);
+        if(live.length){const e=live[Math.floor(Math.random()*live.length)];enemyBullets.push({x:e.x+10,y:e.y+15})}
+      }
+      bullets.forEach(q=>q.y-=6);enemyBullets.forEach(q=>q.y+=4);
+      for(const q of bullets)for(const e of enemies)if(e.on&&q.x>e.x&&q.x<e.x+24&&q.y>e.y&&q.y<e.y+16){e.on=false;q.y=-50;score+=10}
+      for(const q of enemyBullets)if(q.x>px&&q.x<px+30&&q.y>320&&q.y<344)alive=false;
+      if(enemies.some(e=>e.on&&e.y>295))alive=false;
+      if(enemies.every(e=>!e.on)){alive=false;out.textContent='Wave cleared // '+score}
+      x.fillStyle='#010302';x.fillRect(0,0,560,360);
+      x.fillStyle='#5cff89';x.fillRect(px,330,30,8);x.fillRect(px+11,322,8,8);
+      x.fillStyle='#2fb956';enemies.filter(e=>e.on).forEach(e=>{x.fillRect(e.x,e.y,24,14);x.fillRect(e.x+4,e.y-4,16,4)});
+      x.fillStyle='#baffca';bullets.forEach(q=>x.fillRect(q.x,q.y,2,7));
+      x.fillStyle='#ff7284';enemyBullets.forEach(q=>x.fillRect(q.x,q.y,3,7));
+      out.textContent=alive?`Score ${score} // A D + SPACE`:out.textContent||`Game over // ${score}`;
+    },16);
+  })
+}
+
+function renderStacker(b){
+  canvasGame(b,'STACKER',440,360,(c,out)=>{
+    const x=c.getContext('2d');
+    const blocks=[{x:110,y:330,w:220}];
+    let moving={x:0,y:306,w:220,dx:3.2},score=0,alive=true;
+    function drop(){
+      if(!alive)return;
+      const below=blocks[blocks.length-1];
+      const left=Math.max(moving.x,below.x),right=Math.min(moving.x+moving.w,below.x+below.w);
+      const overlap=right-left;
+      if(overlap<=2){alive=false;out.textContent='Missed // Score '+score;return}
+      blocks.push({x:left,y:moving.y,w:overlap});score++;
+      if(blocks.length>10){blocks.forEach(q=>q.y+=24)}
+      moving={x:0,y:Math.max(18,306-score*24),w:overlap,dx:(3.2+score*.14)*(score%2?1:-1)};
+    }
+    function key(e){if(e.code==='Space'){e.preventDefault();drop()}}
+    addEventListener('keydown',key);c.onclick=drop;
+    const timer=setInterval(()=>{
+      if(!alive){clearInterval(timer);removeEventListener('keydown',key);return}
+      moving.x+=moving.dx;
+      if(moving.x<0||moving.x+moving.w>440){moving.dx*=-1;moving.x=Math.max(0,Math.min(440-moving.w,moving.x))}
+      x.fillStyle='#010302';x.fillRect(0,0,440,360);
+      blocks.forEach((q,i)=>{x.fillStyle=i===blocks.length-1?'#44ff7d':'#173c22';x.fillRect(q.x,q.y,q.w,20)});
+      x.fillStyle='#a7ffba';x.fillRect(moving.x,moving.y,moving.w,20);
+      out.textContent=`Score ${score} // SPACE or click`;
+    },16);
+  })
+}
+
 function renderSnake(b){canvasGame(b,'SNAKE',420,300,(c,out)=>{const x=c.getContext('2d'),S=15,cols=28,rows=20;let snake=[[8,10],[7,10],[6,10]],d=[1,0],food=[18,10],score=0,alive=true;function foodNew(){food=[Math.floor(Math.random()*cols),Math.floor(Math.random()*rows)]}addEventListener('keydown',key);function key(e){const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];if(m&&!(m[0]===-d[0]&&m[1]===-d[1]))d=m}const t=setInterval(()=>{if(!alive){clearInterval(t);removeEventListener('keydown',key);return}const h=[snake[0][0]+d[0],snake[0][1]+d[1]];if(h[0]<0||h[1]<0||h[0]>=cols||h[1]>=rows||snake.some(s=>s[0]===h[0]&&s[1]===h[1])){alive=false;out.textContent=`Game over. Score ${score}`;return}snake.unshift(h);if(h[0]===food[0]&&h[1]===food[1]){score++;foodNew()}else snake.pop();x.fillStyle='#010302';x.fillRect(0,0,c.width,c.height);x.fillStyle='#62ff98';snake.forEach(s=>x.fillRect(s[0]*S+1,s[1]*S+1,S-2,S-2));x.fillStyle='#ff5f79';x.fillRect(food[0]*S+2,food[1]*S+2,S-4,S-4);out.textContent=`Score ${score}`},100)})}
 function renderPong(b){canvasGame(b,'PONG',520,300,(c,out)=>{const x=c.getContext('2d');let py=120,ey=120,bx=260,by=150,dx=3,dy=2,ps=0,es=0;function move(e){const r=c.getBoundingClientRect();py=Math.max(0,Math.min(240,e.clientY-r.top-30))}c.addEventListener('pointermove',move);const t=setInterval(()=>{ey+=(by-ey-30)*.05;bx+=dx;by+=dy;if(by<5||by>295)dy*=-1;if(bx<22&&by>py&&by<py+60)dx=Math.abs(dx);if(bx>498&&by>ey&&by<ey+60)dx=-Math.abs(dx);if(bx<0){es++;bx=260}if(bx>520){ps++;bx=260}x.fillStyle='#010302';x.fillRect(0,0,520,300);x.fillStyle='#62ff98';x.fillRect(10,py,8,60);x.fillRect(502,ey,8,60);x.fillRect(bx-4,by-4,8,8);out.textContent=`${ps} : ${es}`},16);b.closest('.window').querySelector('[data-action=close]').addEventListener('click',()=>clearInterval(t),{once:true})})}
 function renderBreakout(b){canvasGame(b,'BREAKOUT',520,320,(c,out)=>{const x=c.getContext('2d');let paddle=220,bx=260,by=250,dx=3,dy=-3,score=0;let bricks=[];for(let r=0;r<4;r++)for(let k=0;k<8;k++)bricks.push({x:20+k*62,y:20+r*25,on:1});c.onpointermove=e=>{const r=c.getBoundingClientRect();paddle=Math.max(0,Math.min(440,e.clientX-r.left-40))};const t=setInterval(()=>{bx+=dx;by+=dy;if(bx<5||bx>515)dx*=-1;if(by<5)dy=Math.abs(dy);if(by>290&&by<305&&bx>paddle&&bx<paddle+80)dy=-Math.abs(dy);for(const q of bricks)if(q.on&&bx>q.x&&bx<q.x+54&&by>q.y&&by<q.y+16){q.on=0;dy*=-1;score++}if(by>330){out.textContent=`Game over. Score ${score}`;clearInterval(t)}x.fillStyle='#010302';x.fillRect(0,0,520,320);x.fillStyle='#62ff98';x.fillRect(paddle,300,80,8);x.fillRect(bx-4,by-4,8,8);bricks.filter(q=>q.on).forEach(q=>x.fillRect(q.x,q.y,54,16));out.textContent=`Score ${score}`},16)})}
