@@ -23,6 +23,7 @@ app.use((req, res, next) => {
 });
 
 app.get("/api/health", health);
+app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.4.0",platform:"vercel",proxy:"scramjet"}));
 app.get("/api/qr", qr);
 app.all("/api/proxy", proxy);
 app.get("/api/osint/dns", dns);
@@ -58,7 +59,7 @@ function getWispReady() {
   return wispReadyPromise;
 }
 
-app.get("/api/scramjet-status", (req, res) => {
+function getScramjetAssetStatus() {
   const fs = require("node:fs");
   const files = {
     controllerApi: path.join(publicDir, "vendor/controller/controller.api.js"),
@@ -68,11 +69,15 @@ app.get("/api/scramjet-status", (req, res) => {
     scramjetWasm: path.join(publicDir, "vendor/scramjet/scramjet.wasm"),
     libcurl: path.join(publicDir, "vendor/libcurl/index.mjs")
   };
-  const missing = Object.entries(files).filter(([, file]) => !fs.existsSync(file)).map(([name]) => name);
-  res.status(missing.length ? 500 : 200).json({
+  const missing = Object.entries(files)
+    .filter(([, file]) => !fs.existsSync(file))
+    .map(([name]) => name);
+  return {
     ok: missing.length === 0,
+    engine: "scramjet",
     mode: "vendored-static-assets",
     missing,
+    assets: Object.fromEntries(Object.keys(files).map(k => [k, !missing.includes(k)])),
     urls: {
       controllerApi: "/vendor/controller/controller.api.js",
       controllerSw: "/vendor/controller/controller.sw.js",
@@ -83,8 +88,17 @@ app.get("/api/scramjet-status", (req, res) => {
       serviceWorker: "/sw.js",
       wisp: "/wisp/"
     }
-  });
-});
+  };
+}
+
+function sendScramjetStatus(req, res) {
+  const status = getScramjetAssetStatus();
+  res.setHeader("Cache-Control", "no-store");
+  res.status(status.ok ? 200 : 500).json(status);
+}
+
+app.get("/api/scramjet-status", sendScramjetStatus);
+app.get("/api/proxy-status", sendScramjetStatus);
 
 
 // Scramjet rewritten navigations must reach the app shell so the root-scoped

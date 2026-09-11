@@ -1,73 +1,37 @@
-# Null Sec UBG 7.3
+# Null Sec OS 7.4
 
-This build shifts Null Sec from a proxy-first desktop into a UBG-style local arcade desktop.
+Vercel-targeted Null Sec OS build with the classic green-on-black desktop restored.
 
-## Changes
+## Fixed
 
-- Ultraviolet, BareMux and Epoxy removed completely.
-- Scramjet remains the single general-purpose browser engine.
-- YouTube is separated from the proxy browser and uses YouTube's official embed player for exact video URLs.
-- Optional native YouTube search still uses `YOUTUBE_API_KEY`.
-- New Null Arcade is the default startup app.
-- Game hub includes search, favorites, recent games, random game, featured games and one-click maximized launch.
-- Existing local games remain bundled, so the arcade itself does not depend on a web proxy.
-- Startup was rebuilt into an animated arcade-runtime boot sequence.
-- Existing Movies, Series, Live TV, chat, voice, Vault, OSINT and utilities remain.
+- Browser diagnostics now call a real `/api/proxy-status` endpoint.
+- `/api/proxy-status` and `/api/scramjet-status` share the same Vercel-safe asset check.
+- Added `build` and `vercel-build` scripts so Scramjet browser assets are copied into `public/vendor` during Vercel builds as well as install.
+- Added `/api/build-info` so a deployment can be checked quickly.
+- Worker status now renders as `OK` or `FAIL` with enough width to avoid clipped text.
+- Wisp diagnostics remain separate from asset and worker checks.
 
-## Notes
+## UI
 
-"UBG" here means the site is designed like an unblocked-games portal, with locally bundled games. It does not attempt to defeat school or organization network controls.
+- Project branding is back to **Null Sec OS**.
+- Restored the older classic desktop direction.
+- Compact square windows and controls.
+- Classic top bar, taskbar and start menu.
+- Subtle NULL SEC desktop watermark.
+- Dashboard opens on boot again.
+- Games remain available through Null Arcade, but no longer replace the OS identity.
+- Startup is a short classic system boot rather than a large animated arcade splash.
 
-YouTube embeds can still be unavailable for individual videos when the uploader disables embedding, or when YouTube applies account, region, age or policy restrictions.
+## Vercel
 
+This build is intended for GitHub -> Vercel with the Express framework preset.
 
-## 7.1 full YouTube website mode
+The generated Scramjet files are produced by:
 
-The YouTube app now opens the actual `youtube.com` website through Scramjet instead of replacing YouTube with a custom player UI.
+`npm run vercel-build`
 
-- YouTube homepage, search and normal website navigation use Scramjet.
-- Normal YouTube URLs typed into Null Browser also stay in the Scramjet browser.
-- The official YouTube embed player remains available only as a fallback for an individual watch URL.
-- Ultraviolet remains removed.
+After a successful deploy:
 
-Full YouTube proxy compatibility still depends on YouTube, Chromium, Scramjet and the hosting network. Login, DRM, anti-bot checks, some media requests and individual videos may still fail when proxied.
-
-
-## 7.2 arcade expansion
-
-Null Arcade is now the primary UBG experience.
-
-New local games:
-- Flappy Null
-- Neon Dodger
-- Connect Four
-- Null Invaders
-- Stacker
-
-Arcade upgrades:
-- game categories
-- favorites and recent games
-- per-game launch counts
-- total play stats
-- game detail/controls overlay before launch
-- random game
-- featured games
-- `/` keyboard shortcut for quick search
-- maximized launch for local games
-
-The games are bundled client-side and do not require Scramjet or another external game site.
-
-
-## 7.3 startup repair
-
-Fixed a fatal startup error introduced in 7.2.
-
-`bootGameCount()` was executed before `appDefs` had been initialized. Because `appDefs` is a `const`, that triggers a temporal-dead-zone `ReferenceError` and stops all client initialization.
-
-7.3 calculates the game count only after `appDefs` and `apps` exist.
-
-The startup screen was also redesigned into a compact terminal-style boot:
-- no orbit animations
-- no giant marketing logo
-- short system checks
-- fast sub-second transition into Null Arcade
+- `/api/build-info` should report version `7.4.0`
+- `/api/proxy-status` should return `"ok": true`
+- Null Browser -> status should show `ASSETS OK`, `WISP OK`, `WORKER OK`

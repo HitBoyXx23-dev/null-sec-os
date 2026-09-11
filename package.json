@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "7.3.0",
+  "version": "7.4.0",
   "private": true,
-  "description": "Null Sec UBG 7.3 with startup crash fixed and compact retro boot",
+  "description": "Null Sec OS 7.4 classic UI with Vercel-safe Scramjet assets, games, media, chat and tools",
   "main": "app.js",
   "type": "commonjs",
   "engines": {
@@ -10,7 +10,9 @@
   },
   "scripts": {
     "start": "node app.js",
-    "postinstall": "node scripts/copy-proxy-assets.cjs"
+    "postinstall": "node scripts/copy-proxy-assets.cjs",
+    "build": "node scripts/copy-proxy-assets.cjs",
+    "vercel-build": "node scripts/copy-proxy-assets.cjs"
   },
   "dependencies": {
     "express": "^5.2.1",

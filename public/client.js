@@ -25,7 +25,7 @@ function updateNet(){const e=$('#net-status');e.textContent=navigator.onLine?'NE
 async function checkApi(){const e=$('#api-status');try{const r=await fetch('/api/health',{cache:'no-store'});if(!r.ok)throw 0;e.textContent='RELAY ●';e.className='ok'}catch{e.textContent='RELAY ○';e.className='bad'}} checkApi();
 
 const appDefs=[
-['arcade','Null Arcade','games','✦','UBG game library'],['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Encrypted local secrets and notes'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
+['arcade','Null Arcade','games','✦','Game library'],['dashboard','Dashboard','system','⌁','System overview'],['browser','Null Browser','system','◎','Smart web relay'],['terminal','NullSH','system','>_','Local shell'],['files','Vault','system','▦','Encrypted local secrets and notes'],['ops','Ops Center','system','◫','Telemetry'],['notes','Scratchpad','system','✎','Local notes'],['settings','Config','system','⚙','OS settings'],['about','System Info','system','N','Build details'],
 ['media','Null Media','media','▶','Media'],['movies','Movies','media','M','Movie browser'],['series','Series','media','S','Series browser'],['livetv','Null Live TV','media','TV','Live channels'],['cinema','Null Cinema','media','◫','Movies and series'],['player','Media Player','media','▷','Direct player'],['radio','Signal Radio','media','◉','In-OS radio browser'],['youtube','YouTube Bridge','media','YT','Official embed helper'],
 ['calculator','Calculator','tools','∑','Fast calculator'],['clock','World Clock','tools','◷','Clock and date'],['calendar','Calendar','tools','▣','Monthly calendar'],['stopwatch','Stopwatch','tools','⏱','Time laps'],['timer','Timer','tools','⌛','Countdown timer'],['paint','Null Paint','tools','✣','Canvas sketchpad'],['markdown','Markdown Pad','tools','M↓','Markdown preview'],['json','JSON Lab','tools','{}','Format JSON'],['base64','Base64','tools','64','Encode and decode'],['urlcodec','URL Codec','tools','%','URL encode/decode'],['uuid','UUID Forge','tools','ID','Generate UUIDs'],['password','Password Forge','tools','***','Generate passwords'],['hash','Hash Lab','tools','#','SHA-256 digest'],['regex','Regex Lab','tools','.*','Test patterns'],['color','Color Lab','tools','◈','Color converter'],['text','Text Lab','tools','Aa','Case and stats'],['ascii','ASCII Studio','tools','A#','Text banners'],['unit','Unit Convert','tools','⇄','Common conversions'],['random','Random Lab','tools','?','Random values'],['clipboard','Clipboard','tools','▤','Copy helper'],['systemmon','System Monitor','tools','▥','Browser runtime info'],['storage','Storage Inspector','tools','◧','LocalStorage viewer'],['network','Network Tools','tools','⌁','URL and connection info'],['qrcode','QR Forge','tools','QR','Node-powered QR generator'],
 ['osintcenter','OSINT Center','intel','◎','Passive intelligence dashboard'],['usernameintel','Username OSINT','intel','@','Public username footprint checker'],['nullcrypt','Null Chat','comms','◈','Public chat + E2EE private DMs by username'],
@@ -46,7 +46,7 @@ setTimeout(()=>{
     setTimeout(()=>{
       boot.classList.add('hidden');
       desktop.classList.remove('hidden');
-      openApp('arcade');
+      openApp('dashboard');
     },140);
   },140);
 },820);
@@ -104,7 +104,7 @@ function renderArcade(b){
   b.innerHTML=`<div class="ubg-shell ubg-v2">
     <header class="ubg-hero ubg-hero-v2">
       <div>
-        <div class="ubg-eyebrow">NULL SEC UBG // LOCAL-FIRST</div>
+        <div class="ubg-eyebrow">NULL SEC OS // GAMES</div>
         <h1>PLAY SOMETHING.</h1>
         <p>${gameDefs.length} bundled games, instant launch, no game-site dependency.</p>
       </div>
@@ -298,19 +298,26 @@ function renderArcade(b){
   draw();
 }
 function renderDashboard(b){
-  const games=appDefs.filter(x=>x[2]==='games').length;
-  b.innerHTML=`<div class="app-pad classic-dash ubg-dash">
-    <div class="section-tag">NULL SEC UBG</div>
-    <h1>PLAY LOCAL.</h1>
-    <p class="muted">Arcade-first desktop with local games, media, chat and tools.</p>
+  const games=appDefs.filter(x=>x[2]==='games'&&x[0]!=='arcade').length;
+  b.innerHTML=`<div class="app-pad classic-dash">
+    <div class="classic-dash-head">
+      <div><div class="section-tag">NULL SEC OS</div><h1>SYSTEM // READY</h1></div>
+      <span class="classic-build">VERCEL // 7.4</span>
+    </div>
     <div class="ops-grid">
       <div class="metric"><label>GAMES</label><strong>${games}</strong><small>LOCAL</small></div>
       <div class="metric"><label>NETWORK</label><strong>${navigator.onLine?'UP':'DOWN'}</strong><small>CLIENT</small></div>
-      <div class="metric"><label>RELAY</label><strong id="dash-relay">...</strong><small>SCRAMJET</small></div>
+      <div class="metric"><label>PROXY</label><strong id="dash-relay">...</strong><small>SCRAMJET</small></div>
     </div>
-    <div class="classic-launch">${['arcade','youtube','media','browser','nullcrypt','terminal'].map(id=>`<button class="panel btn" data-open="${id}">${apps[id].icon}<span>${apps[id].title}</span></button>`).join('')}</div>
+    <div class="classic-section-label">QUICK LAUNCH</div>
+    <div class="classic-launch">${['arcade','browser','youtube','media','nullcrypt','terminal'].map(id=>`<button class="panel btn" data-open="${id}"><span class="classic-launch-icon">${apps[id].icon}</span><span>${apps[id].title}</span></button>`).join('')}</div>
+    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.4</span></div>
   </div>`;
-  fetch('/api/health').then(r=>{const e=b.querySelector('#dash-relay');e.textContent=r.ok?'UP':'DOWN'}).catch(()=>{b.querySelector('#dash-relay').textContent='DOWN'})
+  fetch('/api/proxy-status',{cache:'no-store'}).then(async r=>{
+    const d=await r.json();
+    const e=b.querySelector('#dash-relay');
+    e.textContent=r.ok&&d.ok?'UP':'DOWN';
+  }).catch(()=>{b.querySelector('#dash-relay').textContent='DOWN'});
 }
 
 async function waitForExactServiceWorker(reg, expectedPath, timeoutMs=12000){
@@ -467,7 +474,7 @@ function renderBrowser(b){
       <button class="browser-more" title="Status">⋮</button>
     </div>
     <div class="browser-diagnostics hidden">
-      <div><b>SCRAMJET STATUS</b><span class="diag-summary">NOT TESTED</span></div>
+      <div><b>NULL BROWSER STATUS</b><span class="diag-summary">NOT TESTED</span></div>
       <div class="diag-grid">
         <span>ASSETS</span><b class="diag-sj">...</b>
         <span>WISP</span><b class="diag-wisp">...</b>
@@ -552,14 +559,16 @@ function renderBrowser(b){
     sj.textContent=wisp.textContent=worker.textContent='CHECKING';summary.textContent='RUNNING';
     let ok=0;
     try{
-      const r=await fetch('/api/proxy-status',{cache:'no-store'}),d=await r.json();
-      sj.textContent=r.ok&&d.scramjet?.ok?'OK':'FAIL';
-      if(r.ok&&d.scramjet?.ok)ok++;
+      const r=await fetch('/api/proxy-status',{cache:'no-store'});
+      const text=await r.text();
+      let d={};try{d=JSON.parse(text)}catch{throw new Error('status returned non-JSON')}
+      sj.textContent=r.ok&&d.ok?'OK':'FAIL';
+      if(r.ok&&d.ok)ok++;
     }catch{sj.textContent='FAIL'}
     try{
       const reg=await navigator.serviceWorker.getRegistration('/');
       const p=reg?.active?new URL(reg.active.scriptURL).pathname:'';
-      worker.textContent=p==='/sw.js'?'OK':'MISSING';
+      worker.textContent=p==='/sw.js'?'OK':'FAIL';
       if(p==='/sw.js')ok++;
     }catch{worker.textContent='FAIL'}
     try{
@@ -572,7 +581,7 @@ function renderBrowser(b){
       });
       wisp.textContent='OK';ok++;
     }catch{wisp.textContent='FAIL'}
-    summary.textContent=ok===3?'READY':ok+'/3 READY';
+    summary.textContent=ok===3?'ALL OK':ok+'/3 OK';
   }
 
   async function reset(){
@@ -1146,7 +1155,18 @@ function renderFiles(b){
 function renderOps(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TELEMETRY</div><h2>Ops Center</h2><p class="muted">Visual system telemetry only. No remote scanning is performed.</p><div class="ops-grid"><div class="metric"><label>APP COUNT</label><strong>${appDefs.length}</strong></div><div class="metric"><label>OPEN WINDOWS</label><strong id="ow">${wins.size+1}</strong></div><div class="metric"><label>MEMORY EST.</label><strong>${performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576)+'MB':'N/A'}</strong></div><div class="metric"><label>ONLINE</label><strong>${navigator.onLine?'YES':'NO'}</strong></div><div class="metric"><label>CORES</label><strong>${navigator.hardwareConcurrency||'?'}</strong></div><div class="metric"><label>LANG</label><strong>${navigator.language}</strong></div></div><div class="panel" style="margin-top:10px"><pre id="oplog">[OK] desktop compositor\n[OK] local vault\n[OK] app registry\n[OK] media bridge\n[OK] relay health probe queued</pre></div></div>`;fetch('/api/health').then(r=>b.querySelector('#oplog').textContent+=r.ok?'\n[OK] relay online':'\n[WARN] relay unavailable').catch(()=>b.querySelector('#oplog').textContent+='\n[LOCAL] static preview mode')}
 function renderNotes(b){b.innerHTML=`<textarea class="notes-area"></textarea>`;const t=b.querySelector('textarea');t.value=state.notes;t.oninput=()=>{state.notes=t.value;localStorage.setItem('nullsec.notes',state.notes)}}
 function renderSettings(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">SYSTEM CONFIG</div><h2>Null Sec Preferences</h2><div class="settings-list"><div class="setting"><div><b>Default Browser Mode</b><div class="muted">Scramjet 2 is the built-in browser engine</div></div><select class="field mode"><option value="smart">SMART</option><option value="relay">RELAY</option><option value="direct">DIRECT</option></select></div><div class="setting"><div><b>Local Data</b><div class="muted">Notes and preferences stored in this browser</div></div><button class="btn clear">CLEAR LOCAL DATA</button></div><div class="setting"><div><b>Relay Health</b><div class="muted">Check backend function</div></div><button class="btn health">CHECK</button></div></div></div>`;const m=b.querySelector('.mode');m.value=state.browserMode;m.onchange=()=>{state.browserMode=m.value;localStorage.setItem('nullsec.browserMode',m.value)};b.querySelector('.clear').onclick=()=>{localStorage.clear();alert('Local Null Sec data cleared.')};b.querySelector('.health').onclick=async e=>{try{const r=await fetch('/api/health');e.target.textContent=r.ok?'ONLINE':'FAILED'}catch{e.target.textContent='OFFLINE'}}}
-function renderAbout(b){b.innerHTML=`<div class="app-pad"><div class="about-logo">NULL SEC</div><h2>OS 3.0</h2><p class="muted">A UBG-first browser arcade with ${appDefs.length} built-in apps and local games, Scramjet browsing, full YouTube website mode with player fallback, chat, Vault, media and tools.</p><div class="panel"><b>Operator</b><p>hitboyxx23</p><b>Runtime</b><p>HTML + CSS + JavaScript + Node.js Vercel Functions</p><b>Deployment</b><p>GitHub to Vercel</p></div></div>`}
+function renderAbout(b){
+  b.innerHTML=`<div class="app-pad">
+    <div class="about-logo">NULL SEC OS</div>
+    <h2>7.4</h2>
+    <p class="muted">Classic browser desktop with local games, Scramjet browsing, full YouTube website mode, chat, Vault, media and tools.</p>
+    <div class="panel">
+      <b>Runtime</b><p>HTML + CSS + JavaScript + Node.js</p>
+      <b>Deployment</b><p>Vercel</p>
+      <b>Proxy</b><p>Scramjet + Wisp</p>
+    </div>
+  </div>`;
+}
 
 function renderCalculator(b){b.innerHTML=`<div class="app-pad"><input class="field calc-display" value="0"><div class="calc-grid">${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+','(',')','%','='].map(x=>`<button class="btn">${x}</button>`).join('')}</div></div>`;const d=b.querySelector('.calc-display');b.querySelectorAll('.calc-grid button').forEach(x=>x.onclick=()=>{const v=x.textContent;if(v==='C')d.value='0';else if(v==='='){try{if(!/^[0-9+\-*/().%\s]+$/.test(d.value))throw 0;d.value=Function(`"use strict";return (${d.value})`)()}catch{d.value='ERR'}}else d.value=d.value==='0'?v:d.value+v})}
 function renderClock(b){b.innerHTML=`<div class="app-pad"><div class="section-tag">LOCAL TIME</div><div class="clock-big"></div><h2 class="date"></h2><div class="panel muted">Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}</div></div>`;const f=()=>{const d=new Date();b.querySelector('.clock-big').textContent=d.toLocaleTimeString();b.querySelector('.date').textContent=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})};f();const i=setInterval(f,1000);b.closest('.window')?.querySelector('[data-action=close]')?.addEventListener('click',()=>clearInterval(i),{once:true})}

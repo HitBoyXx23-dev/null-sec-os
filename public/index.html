@@ -4,25 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#020506" />
-  <meta name="description" content="Null Sec UBG, a browser arcade desktop with local games, media and tools." />
-  <title>NULL SEC UBG</title>
+  <meta name="description" content="Null Sec OS, a browser desktop with games, media, chat and tools." />
+  <title>NULL SEC OS</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <div id="boot" class="boot-screen">
-    <div class="boot-terminal">
-      <div class="boot-terminal-head">
-        <span>NULL SEC UBG</span>
-        <span>BOOT/7.3</span>
+    <div class="classic-boot">
+      <div class="classic-boot-title">NULL SEC OS</div>
+      <div class="classic-boot-log">
+        <div><span>[ OK ]</span> runtime</div>
+        <div><span>[ OK ]</span> local storage</div>
+        <div><span>[ .. ]</span> scramjet relay</div>
+        <div><span>[ .. ]</span> desktop</div>
       </div>
-      <div class="boot-terminal-body">
-        <div class="boot-line"><span>SYS</span><b>browser runtime</b><i>OK</i></div>
-        <div class="boot-line"><span>FS</span><b>local game library</b><i id="boot-game-count">...</i></div>
-        <div class="boot-line"><span>NET</span><b>scramjet relay</b><i>INIT</i></div>
-        <div class="boot-line"><span>APP</span><b id="boot-phase">starting</b><i id="boot-state">...</i></div>
-        <div class="boot-cursor">&gt; <span id="boot-command">boot null-ubg</span><em>█</em></div>
-      </div>
-      <div class="boot-progress"><i id="boot-progress-bar"></i></div>
+      <div class="classic-boot-row"><span id="boot-phase">initializing</span><b id="boot-state">...</b></div>
+      <div class="classic-boot-bar"><i id="boot-progress-bar"></i></div>
+      <small id="boot-game-count">games ...</small>
     </div>
   </div>
 
@@ -30,16 +28,16 @@
     <canvas id="matrix-bg"></canvas>
     <div class="scanlines"></div><div class="noise"></div>
     <header class="top-hud">
-      <div><b>NULL SEC UBG</b><span>ARCADE NODE</span></div>
+      <div><b>NULL SEC OS</b><span>NODE WEB-01</span></div>
       <div class="hud-center">SYSTEM // <span id="hud-status">NOMINAL</span></div>
-      <div class="hud-right"><span>UBG // READY</span></div>
+      <div class="hud-right"><span>NULL SEC // ONLINE</span></div>
     </header>
 
     <section id="desktop-icons" class="desktop-icons"></section>
     <section id="window-layer" class="window-layer"></section>
 
     <aside id="start-menu" class="start-menu hidden">
-      <div class="start-head"><div class="hex">N</div><div><b>NULL SEC UBG</b><small>Local arcade desktop</small></div></div>
+      <div class="start-head"><div class="hex">N</div><div><b>NULL SEC OS</b><small>classic web desktop</small></div></div>
       <div class="start-search"><input id="app-search" placeholder="Search games, apps and tools..." /></div>
       <div class="start-tabs"><button class="active" data-cat="all">ALL</button><button data-cat="system">SYSTEM</button><button data-cat="tools">TOOLS</button><button data-cat="games">GAMES</button><button data-cat="media">MEDIA</button><button data-cat="comms">COMMS</button><button data-cat="intel">OSINT</button></div>
       <div id="app-grid" class="app-grid"></div>
@@ -48,7 +46,7 @@
 
     <footer class="taskbar">
       <button id="start-btn" class="start-btn">N</button>
-      <div class="brand">NULL/UBG</div>
+      <div class="brand">NULL/SEC</div>
       <div id="task-buttons" class="task-buttons"></div>
       <div class="tray"><span id="api-status">RELAY ...</span><span id="net-status">NET ...</span></div>
     </footer>
