@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "7.2.0",
+  "version": "7.3.0",
   "private": true,
-  "description": "Null Sec UBG 7.2 with expanded local arcade, game categories, stats, command launcher and full YouTube website mode",
+  "description": "Null Sec UBG 7.3 with startup crash fixed and compact retro boot",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

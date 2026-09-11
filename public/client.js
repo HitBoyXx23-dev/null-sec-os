@@ -4,33 +4,22 @@ let z=20,seq=0;const wins=new Map();
 const state={notes:localStorage.getItem('nullsec.notes')||'[ NULL SEC SCRATCHPAD ]\n\nOperator notes are stored locally in this browser.',browserMode:(localStorage.getItem('nullsec.browserMode')==='relay'?'relay':'smart')};
 
 const bootPhases=[
-  ['WAKE ARCADE CORE',12],
-  ['INDEX LOCAL GAMES',28],
-  ['MOUNT SAVE DATA',43],
-  ['START MEDIA RUNTIME',58],
-  ['BIND SCRAMJET RELAY',72],
-  ['LOAD CHAT + VAULT',84],
-  ['SYNC DESKTOP',94],
-  ['READY',100]
+  ['mounting game library','OK',18],
+  ['restoring local saves','OK',34],
+  ['starting media modules','OK',50],
+  ['binding scramjet relay','OK',66],
+  ['loading desktop shell','OK',82],
+  ['ready','OK',100]
 ];
-const bootGameCount=()=>appDefs.filter(x=>x[2]==='games').length;
-const bootPhase=$('#boot-phase'),bootBar=$('#boot-progress-bar'),bootCount=$('#boot-game-count');
-if(bootCount)bootCount.textContent=String(bootGameCount());
+const bootPhase=$('#boot-phase'),bootBar=$('#boot-progress-bar'),bootCount=$('#boot-game-count'),bootState=$('#boot-state');
 let bp=0;
 const bootTimer=setInterval(()=>{
   const row=bootPhases[bp++];
   if(!row){clearInterval(bootTimer);return}
   if(bootPhase)bootPhase.textContent=row[0];
-  if(bootBar)bootBar.style.width=row[1]+'%';
-},135);
-setTimeout(()=>{
-  boot.classList.add('boot-exit');
-  setTimeout(()=>{
-    boot.classList.add('hidden');
-    desktop.classList.remove('hidden');
-    openApp('arcade');
-  },360);
-},1320);
+  if(bootState)bootState.textContent=row[1];
+  if(bootBar)bootBar.style.width=row[2]+'%';
+},115);
 
 function updateNet(){const e=$('#net-status');e.textContent=navigator.onLine?'NET ●':'NET ○';e.className=navigator.onLine?'ok':'bad'} addEventListener('online',updateNet);addEventListener('offline',updateNet);updateNet();
 async function checkApi(){const e=$('#api-status');try{const r=await fetch('/api/health',{cache:'no-store'});if(!r.ok)throw 0;e.textContent='RELAY ●';e.className='ok'}catch{e.textContent='RELAY ○';e.className='bad'}} checkApi();
@@ -44,6 +33,24 @@ const appDefs=[
 ['snake','Snake','games','S','Classic snake'],['pong','Pong','games','P','Arcade pong'],['flappy','Flappy Null','games','F','One-button flyer'],['dodger','Neon Dodger','games','D','Dodge incoming blocks'],['connect4','Connect Four','games','C4','Four in a row'],['invaders','Null Invaders','games','NI','Arcade shooter'],['stacker','Stacker','games','▤','Precision stacking'],['breakout','Breakout','games','B','Brick breaker'],['tictactoe','Tic Tac Toe','games','XO','3x3 game'],['memory','Memory','games','◇','Match cards'],['mines','Mines','games','✹','Mine puzzle'],['clicker','Null Clicker','games','+1','Score clicker'],['reaction','Reaction Test','games','!','Reaction speed'],['typing','Typing Test','games','⌨','Typing speed'],['guess','Number Guess','games','?','Guess 1 to 100'],['dice','Dice','games','⚄','Dice roller'],['coin','Coin Flip','games','◐','Heads or tails'],['rps','Rock Paper Scissors','games','RPS','Play CPU'],['lights','Lights Out','games','▦','Toggle grid'],['simon','Simon','games','●','Memory sequence'],['maze','Maze Runner','games','⌗','Keyboard maze'],['2048','2048','games','2K','Number merge']
 ];
 const apps={};appDefs.forEach(([id,title,cat,icon,desc])=>apps[id]={id,title,cat,icon,desc,render:resolveRenderer(id)});
+if(bootCount){
+  const localGameCount=appDefs.filter(x=>x[2]==='games'&&x[0]!=='arcade').length;
+  bootCount.textContent=localGameCount+' games';
+}
+setTimeout(()=>{
+  if(bootPhase)bootPhase.textContent='ready';
+  if(bootState)bootState.textContent='OK';
+  if(bootBar)bootBar.style.width='100%';
+  setTimeout(()=>{
+    boot.classList.add('boot-exit');
+    setTimeout(()=>{
+      boot.classList.add('hidden');
+      desktop.classList.remove('hidden');
+      openApp('arcade');
+    },140);
+  },140);
+},820);
+
 function resolveRenderer(id){return ({arcade:renderArcade,dashboard:renderDashboard,browser:renderBrowser,terminal:renderTerminal,files:renderFiles,ops:renderOps,notes:renderNotes,settings:renderSettings,about:renderAbout,media:renderMedia,movies:renderMovies,series:renderSeries,livetv:renderLiveTV,cinema:renderCinema,player:renderPlayer,radio:renderRadio,youtube:renderYouTube,calculator:renderCalculator,clock:renderClock,calendar:renderCalendar,stopwatch:renderStopwatch,timer:renderTimer,paint:renderPaint,markdown:renderMarkdown,json:renderJSON,base64:renderBase64,urlcodec:renderUrlCodec,uuid:renderUUID,password:renderPassword,hash:renderHash,regex:renderRegex,color:renderColor,text:renderText,ascii:renderAscii,unit:renderUnit,random:renderRandom,clipboard:renderClipboard,systemmon:renderSystemMon,storage:renderStorage,network:renderNetwork,qrcode:renderQR,osintcenter:renderOSINTCenter,usernameintel:renderUsernameIntel,nullcrypt:renderNullCrypt,dnsintel:renderDNSIntel,rdapintel:renderRDAPIntel,ctintel:renderCTIntel,headerintel:renderHeaderIntel,robotsintel:renderRobotsIntel,urlclean:renderURLClean,leakscan:renderLeakScan,fileintel:renderFileIntel,jwtscope:renderJWTPeek,passaudit:renderPassAudit,privacycheck:renderPrivacyCheck,snake:renderSnake,pong:renderPong,flappy:renderFlappy,dodger:renderDodger,connect4:renderConnect4,invaders:renderInvaders,stacker:renderStacker,breakout:renderBreakout,tictactoe:renderTicTacToe,memory:renderMemory,mines:renderMines,clicker:renderClicker,reaction:renderReaction,typing:renderTyping,guess:renderGuess,dice:renderDice,coin:renderCoin,rps:renderRPS,lights:renderLights,simon:renderSimon,maze:renderMaze,'2048':render2048}[id]||renderPlaceholder)}
 
 function buildLaunchers(){const favorites=['arcade','youtube','media','browser','snake','2048','nullcrypt','calculator'];$('#desktop-icons').innerHTML=favorites.map(id=>`<button class="desktop-icon" data-open="${id}"><span class="ico">${apps[id].icon}</span><small>${apps[id].title}</small></button>`).join('');renderAppGrid()}
@@ -52,14 +59,6 @@ buildLaunchers();
 $('#app-search').addEventListener('input',e=>renderAppGrid(e.target.value,$('.start-tabs .active').dataset.cat));$$('.start-tabs button').forEach(b=>b.onclick=()=>{$$('.start-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderAppGrid($('#app-search').value,b.dataset.cat)});
 document.addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o){openApp(o.dataset.open);startMenu.classList.add('hidden')}});$('#start-btn').onclick=()=>startMenu.classList.toggle('hidden');$('#restart-btn').onclick=()=>location.reload();
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('#start-menu')&&!e.target.closest('#start-btn'))startMenu.classList.add('hidden')});
-document.addEventListener('keydown',e=>{
-  if(e.key==='/' && !e.ctrlKey && !e.metaKey && !e.altKey && !['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){
-    const w=wins.get('arcade');
-    if(!w){openApp('arcade')}
-    else{w.el.classList.remove('hidden');focusWin(w.el)}
-  }
-});
-
 
 function openApp(id){if(wins.has(id)){const w=wins.get(id).el;w.classList.remove('hidden');focusWin(w);return}const app=apps[id];if(!app)return;const el=tpl.content.firstElementChild.cloneNode(true);el.dataset.app=id;el.style.left=`${10+(seq%9)*2.1}%`;el.style.top=`${5+(seq%8)*1.8}%`;seq++;el.querySelector('.title').textContent=`${app.title.toUpperCase()} // NULL SEC`;layer.append(el);app.render(el.querySelector('.window-body'),el);const task=document.createElement('button');task.className='task-app active';task.textContent=app.title;task.onclick=()=>toggleTask(id);taskButtons.append(task);wins.set(id,{el,task});wireWindow(el,id);focusWin(el)}
 function wireWindow(el,id){const bar=el.querySelector('.titlebar');let drag=null;bar.onpointerdown=e=>{if(e.target.closest('button')||el.classList.contains('maximized'))return;focusWin(el);drag={x:e.clientX,y:e.clientY,l:el.offsetLeft,t:el.offsetTop};bar.setPointerCapture(e.pointerId)};bar.onpointermove=e=>{if(!drag)return;el.style.left=Math.max(0,drag.l+e.clientX-drag.x)+'px';el.style.top=Math.max(0,drag.t+e.clientY-drag.y)+'px'};bar.onpointerup=()=>drag=null;el.onpointerdown=()=>focusWin(el);el.querySelector('[data-action=close]').onclick=()=>closeWin(id);el.querySelector('[data-action=minimize]').onclick=()=>{el.classList.add('hidden');wins.get(id).task.classList.remove('active')};el.querySelector('[data-action=maximize]').onclick=()=>el.classList.toggle('maximized');const r=el.querySelector('.resize-handle');let rs=null;r.onpointerdown=e=>{rs={x:e.clientX,y:e.clientY,w:el.offsetWidth,h:el.offsetHeight};r.setPointerCapture(e.pointerId)};r.onpointermove=e=>{if(!rs||el.classList.contains('maximized'))return;el.style.width=Math.max(350,rs.w+e.clientX-rs.x)+'px';el.style.height=Math.max(240,rs.h+e.clientY-rs.y)+'px'};r.onpointerup=()=>rs=null}

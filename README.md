@@ -1,4 +1,4 @@
-# Null Sec UBG 7.2
+# Null Sec UBG 7.3
 
 This build shifts Null Sec from a proxy-first desktop into a UBG-style local arcade desktop.
 
@@ -56,3 +56,18 @@ Arcade upgrades:
 - maximized launch for local games
 
 The games are bundled client-side and do not require Scramjet or another external game site.
+
+
+## 7.3 startup repair
+
+Fixed a fatal startup error introduced in 7.2.
+
+`bootGameCount()` was executed before `appDefs` had been initialized. Because `appDefs` is a `const`, that triggers a temporal-dead-zone `ReferenceError` and stops all client initialization.
+
+7.3 calculates the game count only after `appDefs` and `apps` exist.
+
+The startup screen was also redesigned into a compact terminal-style boot:
+- no orbit animations
+- no giant marketing logo
+- short system checks
+- fast sub-second transition into Null Arcade

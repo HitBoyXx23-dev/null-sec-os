@@ -10,19 +10,19 @@
 </head>
 <body>
   <div id="boot" class="boot-screen">
-    <div class="boot-orbit boot-orbit-a"></div>
-    <div class="boot-orbit boot-orbit-b"></div>
-    <div class="boot-core">
-      <div class="boot-mark">N</div>
-      <div class="boot-logo"><span>NULL</span><b>UBG</b></div>
-      <div class="boot-sub">ARCADE RUNTIME // LOCAL GAMES</div>
-      <div id="boot-phase" class="boot-phase">INITIALIZING</div>
-      <div class="boot-progress"><i id="boot-progress-bar"></i></div>
-      <div class="boot-stats">
-        <span><b id="boot-game-count">0</b> GAMES</span>
-        <span>SCRAMJET</span>
-        <span>MEDIA</span>
+    <div class="boot-terminal">
+      <div class="boot-terminal-head">
+        <span>NULL SEC UBG</span>
+        <span>BOOT/7.3</span>
       </div>
+      <div class="boot-terminal-body">
+        <div class="boot-line"><span>SYS</span><b>browser runtime</b><i>OK</i></div>
+        <div class="boot-line"><span>FS</span><b>local game library</b><i id="boot-game-count">...</i></div>
+        <div class="boot-line"><span>NET</span><b>scramjet relay</b><i>INIT</i></div>
+        <div class="boot-line"><span>APP</span><b id="boot-phase">starting</b><i id="boot-state">...</i></div>
+        <div class="boot-cursor">&gt; <span id="boot-command">boot null-ubg</span><em>█</em></div>
+      </div>
+      <div class="boot-progress"><i id="boot-progress-bar"></i></div>
     </div>
   </div>
 
