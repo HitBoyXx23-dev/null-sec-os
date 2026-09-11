@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 });
 
 app.get("/api/health", health);
-app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.4.0",platform:"vercel",proxy:"scramjet"}));
+app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.5.0",platform:"vercel",proxy:"scramjet"}));
 app.get("/api/qr", qr);
 app.all("/api/proxy", proxy);
 app.get("/api/osint/dns", dns);
@@ -59,25 +59,13 @@ function getWispReady() {
   return wispReadyPromise;
 }
 
-function getScramjetAssetStatus() {
-  const fs = require("node:fs");
-  const files = {
-    controllerApi: path.join(publicDir, "vendor/controller/controller.api.js"),
-    controllerSw: path.join(publicDir, "vendor/controller/controller.sw.js"),
-    controllerInject: path.join(publicDir, "vendor/controller/controller.inject.js"),
-    scramjetJs: path.join(publicDir, "vendor/scramjet/scramjet.js"),
-    scramjetWasm: path.join(publicDir, "vendor/scramjet/scramjet.wasm"),
-    libcurl: path.join(publicDir, "vendor/libcurl/index.mjs")
-  };
-  const missing = Object.entries(files)
-    .filter(([, file]) => !fs.existsSync(file))
-    .map(([name]) => name);
-  return {
-    ok: missing.length === 0,
+function sendScramjetStatus(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  res.json({
+    ok: true,
     engine: "scramjet",
-    mode: "vendored-static-assets",
-    missing,
-    assets: Object.fromEntries(Object.keys(files).map(k => [k, !missing.includes(k)])),
+    mode: "client-http-asset-check",
+    note: "Static assets are verified from the browser because Vercel may serve public files outside the function filesystem.",
     urls: {
       controllerApi: "/vendor/controller/controller.api.js",
       controllerSw: "/vendor/controller/controller.sw.js",
@@ -88,13 +76,7 @@ function getScramjetAssetStatus() {
       serviceWorker: "/sw.js",
       wisp: "/wisp/"
     }
-  };
-}
-
-function sendScramjetStatus(req, res) {
-  const status = getScramjetAssetStatus();
-  res.setHeader("Cache-Control", "no-store");
-  res.status(status.ok ? 200 : 500).json(status);
+  });
 }
 
 app.get("/api/scramjet-status", sendScramjetStatus);

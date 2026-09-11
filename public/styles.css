@@ -305,3 +305,18 @@ body{background:#010402}
 .ubg-hero-v2{background:#030805;border-color:#173a22}
 .ubg-featured-v2 button{background:#030805}
 @media(max-width:700px){.classic-launch{grid-template-columns:1fr 1fr}}
+
+
+/* 7.5 browser interaction fix */
+.browser{position:relative}
+.browser-bar{position:relative;z-index:40}
+.browser-bar button{pointer-events:auto;user-select:none}
+.browser-bar button:active,.quick-sites button:active{transform:translateY(1px);background:#0a1b0f}
+.browser-view{min-height:0;overflow:hidden}
+.sj-host{z-index:0}
+.sj-host[style*="block"]{display:block!important}
+.browser-home{z-index:3}
+.browser-loading{z-index:12;pointer-events:none}
+.browser-error{z-index:14}
+.browser-diagnostics{z-index:60}
+.diag-sj[title]{cursor:help}

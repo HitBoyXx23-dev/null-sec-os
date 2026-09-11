@@ -302,7 +302,7 @@ function renderDashboard(b){
   b.innerHTML=`<div class="app-pad classic-dash">
     <div class="classic-dash-head">
       <div><div class="section-tag">NULL SEC OS</div><h1>SYSTEM // READY</h1></div>
-      <span class="classic-build">VERCEL // 7.4</span>
+      <span class="classic-build">VERCEL // 7.5</span>
     </div>
     <div class="ops-grid">
       <div class="metric"><label>GAMES</label><strong>${games}</strong><small>LOCAL</small></div>
@@ -311,12 +311,10 @@ function renderDashboard(b){
     </div>
     <div class="classic-section-label">QUICK LAUNCH</div>
     <div class="classic-launch">${['arcade','browser','youtube','media','nullcrypt','terminal'].map(id=>`<button class="panel btn" data-open="${id}"><span class="classic-launch-icon">${apps[id].icon}</span><span>${apps[id].title}</span></button>`).join('')}</div>
-    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.4</span></div>
+    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.5</span></div>
   </div>`;
-  fetch('/api/proxy-status',{cache:'no-store'}).then(async r=>{
-    const d=await r.json();
-    const e=b.querySelector('#dash-relay');
-    e.textContent=r.ok&&d.ok?'UP':'DOWN';
+  checkScramjetAssets().then(s=>{
+    b.querySelector('#dash-relay').textContent=s.ok?'UP':'DOWN';
   }).catch(()=>{b.querySelector('#dash-relay').textContent='DOWN'});
 }
 
@@ -344,31 +342,57 @@ async function waitForExactServiceWorker(reg, expectedPath, timeoutMs=12000){
   return worker;
 }
 
-async function ensureScramjet(){
-  if(!window.$scramjetController){
-    let detail='controller.api.js was not loaded';
+const SCRAMJET_ASSETS=[
+  '/vendor/controller/controller.api.js',
+  '/vendor/controller/controller.sw.js',
+  '/vendor/controller/controller.inject.js',
+  '/vendor/scramjet/scramjet.js',
+  '/vendor/scramjet/scramjet.wasm',
+  '/vendor/libcurl/index.mjs'
+];
+
+async function checkScramjetAssets(){
+  const failed=[];
+  for(const asset of SCRAMJET_ASSETS){
     try{
-      const r=await fetch('/api/scramjet-status',{cache:'no-store'});
-      const text=await r.text();
-      let d={};try{d=JSON.parse(text)}catch{}
-      if(!r.ok||!d.ok)detail=d.error||('status returned '+r.status);
-      else detail='server assets exist but controller API did not initialize';
-    }catch{}
-    throw new Error('Scramjet controller unavailable: '+detail);
+      const r=await fetch(asset,{cache:'no-store'});
+      if(!r.ok)failed.push(asset+' ['+r.status+']');
+    }catch{
+      failed.push(asset+' [network]');
+    }
   }
+  return {ok:failed.length===0,failed};
+}
+
+async function reloadClassicScript(src,test){
+  if(test())return true;
+  await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=src+(src.includes('?')?'&':'?')+'v=7.5';
+    script.async=false;
+    script.onload=()=>resolve();
+    script.onerror=()=>reject(new Error('Failed to load '+src));
+    document.head.append(script);
+  });
+  return test();
+}
+
+async function ensureScramjet(){
   if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
 
-  const required=[
-    '/vendor/controller/controller.api.js',
-    '/vendor/controller/controller.sw.js',
-    '/vendor/controller/controller.inject.js',
-    '/vendor/scramjet/scramjet.js',
-    '/vendor/scramjet/scramjet.wasm',
-    '/vendor/libcurl/index.mjs'
-  ];
-  for(const asset of required){
-    const r=await fetch(asset,{cache:'no-store'});
-    if(!r.ok)throw new Error('Missing Scramjet asset '+asset+' ('+r.status+')');
+  const assetState=await checkScramjetAssets();
+  if(!assetState.ok){
+    throw new Error('Scramjet assets missing: '+assetState.failed.join(', '));
+  }
+
+  if(!window.$scramjet){
+    await reloadClassicScript('/vendor/scramjet/scramjet.js',()=>Boolean(window.$scramjet));
+  }
+  if(!window.$scramjetController){
+    await reloadClassicScript('/vendor/controller/controller.api.js',()=>Boolean(window.$scramjetController));
+  }
+  if(!window.$scramjetController){
+    throw new Error('controller.api.js loaded but $scramjetController did not initialize');
   }
 
   let reg=await navigator.serviceWorker.getRegistration('/');
@@ -385,7 +409,7 @@ async function ensureScramjet(){
 
   if(!nullSjController){
     const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
-    const mod=await import('/vendor/libcurl/index.mjs');
+    const mod=await import('/vendor/libcurl/index.mjs?v=7.5');
     const LibcurlClient=mod.default;
     nullSjTransport=new LibcurlClient({wisp});
     if(typeof nullSjTransport.init==='function')await nullSjTransport.init();
@@ -404,7 +428,6 @@ async function ensureScramjet(){
   }
   return nullSjController;
 }
-
 
 function installNullBrowserShield(iframe,onNavigate){
   const apply=()=>{
@@ -520,6 +543,7 @@ function renderBrowser(b){
       iframe.className='frame sj-frame';
       iframe.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture; microphone; camera; clipboard-read; clipboard-write');
       host.replaceChildren(iframe);
+      host.style.display='block';
       installNullBrowserShield(iframe,href=>navigate(href));
       sjFrame=controller.createFrame(iframe);
     }
@@ -541,7 +565,7 @@ function renderBrowser(b){
       }
     }catch{}
 
-    current=target;url.value=target;home.style.display='none';err.style.display='none';setBusy(true);state.textContent='CONNECTING';
+    current=target;url.value=target;home.style.display='none';host.style.display='block';err.style.display='none';setBusy(true);state.textContent='CONNECTING';
     try{
       const frame=await ensureFrame();
       await Promise.resolve(frame.go(target));
@@ -559,12 +583,15 @@ function renderBrowser(b){
     sj.textContent=wisp.textContent=worker.textContent='CHECKING';summary.textContent='RUNNING';
     let ok=0;
     try{
-      const r=await fetch('/api/proxy-status',{cache:'no-store'});
-      const text=await r.text();
-      let d={};try{d=JSON.parse(text)}catch{throw new Error('status returned non-JSON')}
-      sj.textContent=r.ok&&d.ok?'OK':'FAIL';
-      if(r.ok&&d.ok)ok++;
-    }catch{sj.textContent='FAIL'}
+      const assets=await checkScramjetAssets();
+      sj.textContent=assets.ok?'OK':'FAIL';
+      sj.title=assets.ok?'All Scramjet assets loaded':assets.failed.join('\n');
+      if(assets.ok)ok++;
+      else summary.textContent='MISSING: '+assets.failed[0].split('/').pop();
+    }catch(e){
+      sj.textContent='FAIL';
+      sj.title=e?.message||String(e);
+    }
     try{
       const reg=await navigator.serviceWorker.getRegistration('/');
       const p=reg?.active?new URL(reg.active.scriptURL).pathname:'';
@@ -597,10 +624,10 @@ function renderBrowser(b){
   b.querySelector('form').onsubmit=e=>{e.preventDefault();navigate(e.target.querySelector('input').value)};
   b.querySelectorAll('[data-url]').forEach(x=>x.onclick=()=>navigate(x.dataset.url));
   b.querySelectorAll('[data-native]').forEach(x=>x.onclick=()=>openApp(x.dataset.native));
-  b.querySelector('.back').onclick=()=>{if(historyIndex>0){historyIndex--;navigate(history[historyIndex],{noHistory:true})}};
-  b.querySelector('.forward').onclick=()=>{if(historyIndex<history.length-1){historyIndex++;navigate(history[historyIndex],{noHistory:true})}};
-  b.querySelector('.home').onclick=()=>{current='';url.value='';host.style.display='none';home.style.display='grid';err.style.display='none';state.textContent='READY'};
-  b.querySelector('.reload').onclick=()=>current&&navigate(current,{noHistory:true});
+  b.querySelector('.back').onclick=()=>{if(historyIndex>0){historyIndex--;state.textContent='BACK';navigate(history[historyIndex],{noHistory:true})}else state.textContent='NO BACK HISTORY'};
+  b.querySelector('.forward').onclick=()=>{if(historyIndex<history.length-1){historyIndex++;state.textContent='FORWARD';navigate(history[historyIndex],{noHistory:true})}else state.textContent='NO FORWARD HISTORY'};
+  b.querySelector('.home').onclick=()=>{current='';url.value='';host.style.display='none';home.style.display='grid';err.style.display='none';loading.classList.add('hidden');state.textContent='READY'};
+  b.querySelector('.reload').onclick=()=>{if(current)navigate(current,{noHistory:true});else state.textContent='NOTHING TO RELOAD'};
   b.querySelector('.retry').onclick=()=>current&&navigate(current,{noHistory:true});
   b.querySelector('.browser-more').onclick=()=>diag.classList.toggle('hidden');
   b.querySelector('.show-diag').onclick=()=>{diag.classList.remove('hidden');diagnostics()};

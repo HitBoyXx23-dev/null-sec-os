@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "7.4.0",
+  "version": "7.5.0",
   "private": true,
-  "description": "Null Sec OS 7.4 classic UI with Vercel-safe Scramjet assets, games, media, chat and tools",
+  "description": "Null Sec OS 7.5 with fixed browser controls and Vercel-safe Scramjet asset checks",
   "main": "app.js",
   "type": "commonjs",
   "engines": {
