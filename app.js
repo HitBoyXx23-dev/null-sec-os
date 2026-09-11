@@ -19,11 +19,13 @@ app.disable("x-powered-by");
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
   next();
 });
 
 app.get("/api/health", health);
-app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.5.0",platform:"vercel",proxy:"scramjet"}));
+app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.6.0",platform:"vercel",proxy:"scramjet"}));
 app.get("/api/qr", qr);
 app.all("/api/proxy", proxy);
 app.get("/api/osint/dns", dns);
@@ -33,6 +35,29 @@ app.get("/api/osint/headers", headers);
 app.get("/api/osint/robots", robots);
 app.get("/api/osint/username", username);
 
+
+const dirOf = (specifier) => path.dirname(require.resolve(specifier));
+const controllerDir = dirOf("@mercuryworkshop/scramjet-controller");
+const libcurlDir = dirOf("@mercuryworkshop/libcurl-transport");
+
+let scramjetStaticPromise = null;
+function getScramjetStatic() {
+  if (!scramjetStaticPromise) {
+    scramjetStaticPromise = import("@mercuryworkshop/scramjet/path").then((mod) => {
+      const root = mod.scramjetPath || mod.default;
+      if (!root) throw new Error("scramjetPath export missing");
+      return express.static(root, { fallthrough: false });
+    });
+  }
+  return scramjetStaticPromise;
+}
+
+app.use("/scramjet/", async (req, res, next) => {
+  try { (await getScramjetStatic())(req, res, next); }
+  catch (error) { next(error); }
+});
+app.use("/controller/", express.static(controllerDir, { fallthrough: false }));
+app.use("/libcurl/", express.static(libcurlDir, { fallthrough: false }));
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {
@@ -67,12 +92,12 @@ function sendScramjetStatus(req, res) {
     mode: "client-http-asset-check",
     note: "Static assets are verified from the browser because Vercel may serve public files outside the function filesystem.",
     urls: {
-      controllerApi: "/vendor/controller/controller.api.js",
-      controllerSw: "/vendor/controller/controller.sw.js",
-      controllerInject: "/vendor/controller/controller.inject.js",
-      scramjetJs: "/vendor/scramjet/scramjet.js",
-      scramjetWasm: "/vendor/scramjet/scramjet.wasm",
-      libcurl: "/vendor/libcurl/index.mjs",
+      controllerApi: "/controller/controller.api.js",
+      controllerSw: "/controller/controller.sw.js",
+      controllerInject: "/controller/controller.inject.js",
+      scramjetJs: "/scramjet/scramjet.js",
+      scramjetWasm: "/scramjet/scramjet.wasm",
+      libcurl: "/libcurl/index.mjs",
       serviceWorker: "/sw.js",
       wisp: "/wisp/"
     }
@@ -92,7 +117,7 @@ app.get(/^\/~\/sj\/.*/, (req, res) => {
 });
 
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/")) {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/") || req.path.startsWith("/scramjet/") || req.path.startsWith("/controller/") || req.path.startsWith("/libcurl/")) {
     return next();
   }
   if (req.method !== "GET" && req.method !== "HEAD") return next();

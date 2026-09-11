@@ -302,7 +302,7 @@ function renderDashboard(b){
   b.innerHTML=`<div class="app-pad classic-dash">
     <div class="classic-dash-head">
       <div><div class="section-tag">NULL SEC OS</div><h1>SYSTEM // READY</h1></div>
-      <span class="classic-build">VERCEL // 7.5</span>
+      <span class="classic-build">VERCEL // 7.6</span>
     </div>
     <div class="ops-grid">
       <div class="metric"><label>GAMES</label><strong>${games}</strong><small>LOCAL</small></div>
@@ -311,7 +311,7 @@ function renderDashboard(b){
     </div>
     <div class="classic-section-label">QUICK LAUNCH</div>
     <div class="classic-launch">${['arcade','browser','youtube','media','nullcrypt','terminal'].map(id=>`<button class="panel btn" data-open="${id}"><span class="classic-launch-icon">${apps[id].icon}</span><span>${apps[id].title}</span></button>`).join('')}</div>
-    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.5</span></div>
+    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.6</span></div>
   </div>`;
   checkScramjetAssets().then(s=>{
     b.querySelector('#dash-relay').textContent=s.ok?'UP':'DOWN';
@@ -343,12 +343,12 @@ async function waitForExactServiceWorker(reg, expectedPath, timeoutMs=12000){
 }
 
 const SCRAMJET_ASSETS=[
-  '/vendor/controller/controller.api.js',
-  '/vendor/controller/controller.sw.js',
-  '/vendor/controller/controller.inject.js',
-  '/vendor/scramjet/scramjet.js',
-  '/vendor/scramjet/scramjet.wasm',
-  '/vendor/libcurl/index.mjs'
+  '/controller/controller.api.js',
+  '/controller/controller.sw.js',
+  '/controller/controller.inject.js',
+  '/scramjet/scramjet.js',
+  '/scramjet/scramjet.wasm',
+  '/libcurl/index.mjs'
 ];
 
 async function checkScramjetAssets(){
@@ -368,7 +368,7 @@ async function reloadClassicScript(src,test){
   if(test())return true;
   await new Promise((resolve,reject)=>{
     const script=document.createElement('script');
-    script.src=src+(src.includes('?')?'&':'?')+'v=7.5';
+    script.src=src+(src.includes('?')?'&':'?')+'v=7.6';
     script.async=false;
     script.onload=()=>resolve();
     script.onerror=()=>reject(new Error('Failed to load '+src));
@@ -379,6 +379,7 @@ async function reloadClassicScript(src,test){
 
 async function ensureScramjet(){
   if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
+  if(!self.crossOriginIsolated)throw new Error('Cross-origin isolation is OFF. Reload after deploying 7.6 so COOP/COEP headers take effect.');
 
   const assetState=await checkScramjetAssets();
   if(!assetState.ok){
@@ -386,10 +387,10 @@ async function ensureScramjet(){
   }
 
   if(!window.$scramjet){
-    await reloadClassicScript('/vendor/scramjet/scramjet.js',()=>Boolean(window.$scramjet));
+    await reloadClassicScript('/scramjet/scramjet.js',()=>Boolean(window.$scramjet));
   }
   if(!window.$scramjetController){
-    await reloadClassicScript('/vendor/controller/controller.api.js',()=>Boolean(window.$scramjetController));
+    await reloadClassicScript('/controller/controller.api.js',()=>Boolean(window.$scramjetController));
   }
   if(!window.$scramjetController){
     throw new Error('controller.api.js loaded but $scramjetController did not initialize');
@@ -409,7 +410,7 @@ async function ensureScramjet(){
 
   if(!nullSjController){
     const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
-    const mod=await import('/vendor/libcurl/index.mjs?v=7.5');
+    const mod=await import('/libcurl/index.mjs?v=7.6');
     const LibcurlClient=mod.default;
     nullSjTransport=new LibcurlClient({wisp});
     if(typeof nullSjTransport.init==='function')await nullSjTransport.init();
@@ -419,9 +420,9 @@ async function ensureScramjet(){
       transport:nullSjTransport,
       config:{
         prefix:'/~/sj/',
-        scramjetPath:'/vendor/scramjet/scramjet.js',
-        injectPath:'/vendor/controller/controller.inject.js',
-        wasmPath:'/vendor/scramjet/scramjet.wasm'
+        scramjetPath:'/scramjet/scramjet.js',
+        injectPath:'/controller/controller.inject.js',
+        wasmPath:'/scramjet/scramjet.wasm'
       }
     });
     await nullSjController.wait();
@@ -502,6 +503,7 @@ function renderBrowser(b){
         <span>ASSETS</span><b class="diag-sj">...</b>
         <span>WISP</span><b class="diag-wisp">...</b>
         <span>WORKER</span><b class="diag-worker">...</b>
+        <span>ISOLATION</span><b class="diag-isolation">...</b>
       </div>
       <button class="btn diag-run">RUN CHECK</button>
       <button class="btn diag-reset">RESET WORKER</button>
@@ -545,6 +547,8 @@ function renderBrowser(b){
       host.replaceChildren(iframe);
       host.style.display='block';
       installNullBrowserShield(iframe,href=>navigate(href));
+      iframe.addEventListener('load',()=>{state.textContent='LOADED';setBusy(false)});
+      iframe.addEventListener('error',()=>{state.textContent='FRAME ERROR';setBusy(false)});
       sjFrame=controller.createFrame(iframe);
     }
     return sjFrame;
@@ -568,19 +572,21 @@ function renderBrowser(b){
     current=target;url.value=target;home.style.display='none';host.style.display='block';err.style.display='none';setBusy(true);state.textContent='CONNECTING';
     try{
       const frame=await ensureFrame();
-      await Promise.resolve(frame.go(target));
-      state.textContent='LOADED';
+      frame.go(target);
+      state.textContent='WAITING FOR PAGE';
       if(!opts.noHistory)push(target);
+      setTimeout(()=>{if(busy){setBusy(false);state.textContent='PAGE STILL LOADING'}},12000);
     }catch(e){
+      setBusy(false);
       state.textContent='FAILED';
       err.style.display='grid';
       err.querySelector('span').textContent=e?.message||String(e);
-    }finally{setBusy(false)}
+    }
   }
 
   async function diagnostics(){
-    const sj=b.querySelector('.diag-sj'),wisp=b.querySelector('.diag-wisp'),worker=b.querySelector('.diag-worker'),summary=b.querySelector('.diag-summary');
-    sj.textContent=wisp.textContent=worker.textContent='CHECKING';summary.textContent='RUNNING';
+    const sj=b.querySelector('.diag-sj'),wisp=b.querySelector('.diag-wisp'),worker=b.querySelector('.diag-worker'),iso=b.querySelector('.diag-isolation'),summary=b.querySelector('.diag-summary');
+    sj.textContent=wisp.textContent=worker.textContent=iso.textContent='CHECKING';summary.textContent='RUNNING';
     let ok=0;
     try{
       const assets=await checkScramjetAssets();
@@ -598,6 +604,8 @@ function renderBrowser(b){
       worker.textContent=p==='/sw.js'?'OK':'FAIL';
       if(p==='/sw.js')ok++;
     }catch{worker.textContent='FAIL'}
+    iso.textContent=self.crossOriginIsolated?'OK':'FAIL';
+    if(self.crossOriginIsolated)ok++;
     try{
       const proto=location.protocol==='https:'?'wss:':'ws:';
       await new Promise((resolve,reject)=>{
@@ -608,7 +616,7 @@ function renderBrowser(b){
       });
       wisp.textContent='OK';ok++;
     }catch{wisp.textContent='FAIL'}
-    summary.textContent=ok===3?'ALL OK':ok+'/3 OK';
+    summary.textContent=ok===4?'ALL OK':ok+'/4 OK';
   }
 
   async function reset(){

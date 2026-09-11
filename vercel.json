@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "express",
-  "buildCommand": "npm run vercel-build"
+  "fluid": true,
+  "functions": {
+    "app.js": {
+      "includeFiles": "node_modules/@mercuryworkshop/**"
+    }
+  }
 }

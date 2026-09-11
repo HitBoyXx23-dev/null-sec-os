@@ -1,61 +1,9 @@
-importScripts("/vendor/controller/controller.sw.js");
+importScripts("/controller/controller.sw.js");
 
-const BLOCK_HOSTS = [
-  "doubleclick.net",
-  "googleadservices.com",
-  "googlesyndication.com",
-  "securepubads.g.doubleclick.net"
-];
-
-const BLOCK_HINTS = [
-  "/pagead/",
-  "/adsystem/",
-  "/pcs/activeview"
-];
-
-const YOUTUBE_CRITICAL = [
-  "youtube.com",
-  "youtube-nocookie.com",
-  "googlevideo.com",
-  "ytimg.com",
-  "ggpht.com",
-  "googleusercontent.com"
-];
-
-function decodedRequestText(url) {
-  try { return decodeURIComponent(url).toLowerCase(); }
-  catch { return String(url).toLowerCase(); }
-}
-
-function shouldBlockAdLikeRequest(request) {
-  if (request.destination === "document" || request.destination === "iframe" ||
-      request.destination === "video" || request.destination === "audio") return false;
-  const text = decodedRequestText(request.url);
-  if (YOUTUBE_CRITICAL.some(h => text.includes(h))) return false;
-  return BLOCK_HOSTS.some(h => text.includes(h)) || BLOCK_HINTS.some(h => text.includes(h));
-}
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-async function handleRequest(event) {
-  if (shouldBlockAdLikeRequest(event.request)) {
-    return new Response("", {
-      status: 204,
-      headers: {
-        "Cache-Control": "no-store",
-        "X-Null-Sec-Shield": "blocked"
-      }
-    });
-  }
-
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", event => {
   if ($scramjetController.shouldRoute(event)) {
-    return $scramjetController.route(event);
+    event.respondWith($scramjetController.route(event));
   }
-  return fetch(event.request);
-}
-
-self.addEventListener("fetch", (event) => {
-  event.respondWith(handleRequest(event));
 });
