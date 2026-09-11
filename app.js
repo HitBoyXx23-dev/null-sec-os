@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 });
 
 app.get("/api/health", health);
-app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.6.0",platform:"vercel",proxy:"scramjet"}));
+app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.7.0",platform:"vercel",proxy:"scramjet"}));
 app.get("/api/qr", qr);
 app.all("/api/proxy", proxy);
 app.get("/api/osint/dns", dns);
@@ -35,29 +35,6 @@ app.get("/api/osint/headers", headers);
 app.get("/api/osint/robots", robots);
 app.get("/api/osint/username", username);
 
-
-const dirOf = (specifier) => path.dirname(require.resolve(specifier));
-const controllerDir = dirOf("@mercuryworkshop/scramjet-controller");
-const libcurlDir = dirOf("@mercuryworkshop/libcurl-transport");
-
-let scramjetStaticPromise = null;
-function getScramjetStatic() {
-  if (!scramjetStaticPromise) {
-    scramjetStaticPromise = import("@mercuryworkshop/scramjet/path").then((mod) => {
-      const root = mod.scramjetPath || mod.default;
-      if (!root) throw new Error("scramjetPath export missing");
-      return express.static(root, { fallthrough: false });
-    });
-  }
-  return scramjetStaticPromise;
-}
-
-app.use("/scramjet/", async (req, res, next) => {
-  try { (await getScramjetStatic())(req, res, next); }
-  catch (error) { next(error); }
-});
-app.use("/controller/", express.static(controllerDir, { fallthrough: false }));
-app.use("/libcurl/", express.static(libcurlDir, { fallthrough: false }));
 
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir, {
@@ -89,21 +66,19 @@ function sendScramjetStatus(req, res) {
   res.json({
     ok: true,
     engine: "scramjet",
-    mode: "client-http-asset-check",
-    note: "Static assets are verified from the browser because Vercel may serve public files outside the function filesystem.",
-    urls: {
-      controllerApi: "/controller/controller.api.js",
-      controllerSw: "/controller/controller.sw.js",
-      controllerInject: "/controller/controller.inject.js",
-      scramjetJs: "/scramjet/scramjet.js",
-      scramjetWasm: "/scramjet/scramjet.wasm",
-      libcurl: "/libcurl/index.mjs",
-      serviceWorker: "/sw.js",
-      wisp: "/wisp/"
-    }
+    version: "7.7.0",
+    assets: [
+      "/vendor/controller/controller.api.js",
+      "/vendor/controller/controller.sw.js",
+      "/vendor/controller/controller.inject.js",
+      "/vendor/scramjet/scramjet.js",
+      "/vendor/scramjet/scramjet.wasm",
+      "/vendor/libcurl/index.mjs",
+      "/sw.js"
+    ],
+    wisp: "/wisp/"
   });
 }
-
 app.get("/api/scramjet-status", sendScramjetStatus);
 app.get("/api/proxy-status", sendScramjetStatus);
 
@@ -117,7 +92,7 @@ app.get(/^\/~\/sj\/.*/, (req, res) => {
 });
 
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/") || req.path.startsWith("/scramjet/") || req.path.startsWith("/controller/") || req.path.startsWith("/libcurl/")) {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/vendor/")) {
     return next();
   }
   if (req.method !== "GET" && req.method !== "HEAD") return next();

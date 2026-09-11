@@ -302,7 +302,7 @@ function renderDashboard(b){
   b.innerHTML=`<div class="app-pad classic-dash">
     <div class="classic-dash-head">
       <div><div class="section-tag">NULL SEC OS</div><h1>SYSTEM // READY</h1></div>
-      <span class="classic-build">VERCEL // 7.6</span>
+      <span class="classic-build">VERCEL // 7.7</span>
     </div>
     <div class="ops-grid">
       <div class="metric"><label>GAMES</label><strong>${games}</strong><small>LOCAL</small></div>
@@ -311,53 +311,53 @@ function renderDashboard(b){
     </div>
     <div class="classic-section-label">QUICK LAUNCH</div>
     <div class="classic-launch">${['arcade','browser','youtube','media','nullcrypt','terminal'].map(id=>`<button class="panel btn" data-open="${id}"><span class="classic-launch-icon">${apps[id].icon}</span><span>${apps[id].title}</span></button>`).join('')}</div>
-    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.6</span></div>
+    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.7</span></div>
   </div>`;
   checkScramjetAssets().then(s=>{
     b.querySelector('#dash-relay').textContent=s.ok?'UP':'DOWN';
   }).catch(()=>{b.querySelector('#dash-relay').textContent='DOWN'});
 }
 
-async function waitForExactServiceWorker(reg, expectedPath, timeoutMs=12000){
+async function waitForController(expectedPath='/sw.js', timeoutMs=15000){
   const expected=new URL(expectedPath,location.origin).pathname;
-  const workerPath=w=>{try{return new URL(w?.scriptURL||'',location.origin).pathname}catch{return ''}};
+  const currentPath=()=>{
+    try{return new URL(navigator.serviceWorker.controller?.scriptURL||'',location.origin).pathname}
+    catch{return ''}
+  };
+  if(currentPath()===expected)return navigator.serviceWorker.controller;
 
-  let worker=[reg.installing,reg.waiting,reg.active].find(w=>workerPath(w)===expected);
-  if(!worker)throw new Error('Expected service worker not found: '+expected);
-
-  if(worker.state!=='activated'){
-    await new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>reject(new Error('Service worker activation timed out: '+expected)),timeoutMs);
-      const finish=()=>{clearTimeout(timer);resolve()};
-      worker.addEventListener('statechange',()=>{
-        if(worker.state==='activated')finish();
-        else if(worker.state==='redundant'){
-          clearTimeout(timer);
-          reject(new Error('Service worker became redundant: '+expected));
-        }
-      });
-      if(worker.state==='activated')finish();
-    });
-  }
-  return worker;
+  await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(new Error('Service worker activated but did not control this page')),timeoutMs);
+    const onChange=()=>{
+      if(currentPath()===expected){
+        clearTimeout(timer);
+        navigator.serviceWorker.removeEventListener('controllerchange',onChange);
+        resolve();
+      }
+    };
+    navigator.serviceWorker.addEventListener('controllerchange',onChange);
+    onChange();
+  });
+  return navigator.serviceWorker.controller;
 }
 
 const SCRAMJET_ASSETS=[
-  '/controller/controller.api.js',
-  '/controller/controller.sw.js',
-  '/controller/controller.inject.js',
-  '/scramjet/scramjet.js',
-  '/scramjet/scramjet.wasm',
-  '/libcurl/index.mjs'
+  '/vendor/controller/controller.api.js',
+  '/vendor/controller/controller.sw.js',
+  '/vendor/controller/controller.inject.js',
+  '/vendor/scramjet/scramjet.js',
+  '/vendor/scramjet/scramjet.wasm',
+  '/vendor/libcurl/index.mjs',
+  '/sw.js'
 ];
 
 async function checkScramjetAssets(){
   const failed=[];
   for(const asset of SCRAMJET_ASSETS){
     try{
-      const r=await fetch(asset,{cache:'no-store'});
+      const r=await fetch(asset+'?check=7.7',{cache:'no-store'});
       if(!r.ok)failed.push(asset+' ['+r.status+']');
-    }catch{
+    }catch(e){
       failed.push(asset+' [network]');
     }
   }
@@ -368,61 +368,96 @@ async function reloadClassicScript(src,test){
   if(test())return true;
   await new Promise((resolve,reject)=>{
     const script=document.createElement('script');
-    script.src=src+(src.includes('?')?'&':'?')+'v=7.6';
+    script.src=src+(src.includes('?')?'&':'?')+'v=7.7';
     script.async=false;
-    script.onload=()=>resolve();
+    script.onload=resolve;
     script.onerror=()=>reject(new Error('Failed to load '+src));
     document.head.append(script);
   });
   return test();
 }
 
-async function ensureScramjet(){
+async function registerScramjetWorker(){
   if(!('serviceWorker' in navigator))throw new Error('Service workers are unavailable');
-  if(!self.crossOriginIsolated)throw new Error('Cross-origin isolation is OFF. Reload after deploying 7.6 so COOP/COEP headers take effect.');
 
-  const assetState=await checkScramjetAssets();
-  if(!assetState.ok){
-    throw new Error('Scramjet assets missing: '+assetState.failed.join(', '));
+  const registrations=await navigator.serviceWorker.getRegistrations();
+  for(const reg of registrations){
+    try{
+      const scopePath=new URL(reg.scope).pathname;
+      const scripts=[reg.active,reg.waiting,reg.installing]
+        .filter(Boolean)
+        .map(w=>new URL(w.scriptURL).pathname);
+      if(scopePath==='/' && !scripts.includes('/sw.js')){
+        await reg.unregister();
+      }
+    }catch{}
+  }
+
+  const reg=await navigator.serviceWorker.register('/sw.js?v=7.7',{
+    scope:'/',
+    updateViaCache:'none'
+  });
+  await reg.update().catch(()=>{});
+
+  const worker=reg.installing||reg.waiting||reg.active;
+  if(worker && worker.state!=='activated'){
+    await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error('Scramjet worker activation timed out')),15000);
+      const onState=()=>{
+        if(worker.state==='activated'){
+          clearTimeout(timer);
+          resolve();
+        }else if(worker.state==='redundant'){
+          clearTimeout(timer);
+          reject(new Error('Scramjet worker became redundant'));
+        }
+      };
+      worker.addEventListener('statechange',onState);
+      onState();
+    });
+  }
+
+  // controller.sw.js calls clients.claim(), so a controllerchange should occur.
+  return waitForController('/sw.js',15000);
+}
+
+async function ensureScramjet(){
+  if(!self.crossOriginIsolated){
+    throw new Error('Cross-origin isolation is OFF. Hard reload after deploying 7.7.');
+  }
+
+  const assets=await checkScramjetAssets();
+  if(!assets.ok){
+    throw new Error('Missing Scramjet asset: '+assets.failed.join(', '));
   }
 
   if(!window.$scramjet){
-    await reloadClassicScript('/scramjet/scramjet.js',()=>Boolean(window.$scramjet));
+    await reloadClassicScript('/vendor/scramjet/scramjet.js',()=>Boolean(window.$scramjet));
   }
   if(!window.$scramjetController){
-    await reloadClassicScript('/controller/controller.api.js',()=>Boolean(window.$scramjetController));
+    await reloadClassicScript('/vendor/controller/controller.api.js',()=>Boolean(window.$scramjetController));
   }
   if(!window.$scramjetController){
-    throw new Error('controller.api.js loaded but $scramjetController did not initialize');
+    throw new Error('Scramjet controller API did not initialize');
   }
 
-  let reg=await navigator.serviceWorker.getRegistration('/');
-  const pathOf=w=>{try{return new URL(w?.scriptURL||'',location.origin).pathname}catch{return ''}};
-  const hasExact=reg&&[reg.active,reg.waiting,reg.installing].some(w=>pathOf(w)==='/sw.js');
-
-  if(reg&&!hasExact){
-    await reg.unregister().catch(()=>{});
-    reg=null;
-  }
-  if(!reg)reg=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});
-  await reg.update().catch(()=>{});
-  const sw=await waitForExactServiceWorker(reg,'/sw.js');
+  const controllingWorker=await registerScramjetWorker();
 
   if(!nullSjController){
     const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
-    const mod=await import('/libcurl/index.mjs?v=7.6');
+    const mod=await import('/vendor/libcurl/index.mjs?v=7.7');
     const LibcurlClient=mod.default;
     nullSjTransport=new LibcurlClient({wisp});
     if(typeof nullSjTransport.init==='function')await nullSjTransport.init();
 
     nullSjController=new $scramjetController.Controller({
-      serviceworker:sw,
+      serviceworker:controllingWorker,
       transport:nullSjTransport,
       config:{
         prefix:'/~/sj/',
-        scramjetPath:'/scramjet/scramjet.js',
-        injectPath:'/controller/controller.inject.js',
-        wasmPath:'/scramjet/scramjet.wasm'
+        scramjetPath:'/vendor/scramjet/scramjet.js',
+        injectPath:'/vendor/controller/controller.inject.js',
+        wasmPath:'/vendor/scramjet/scramjet.wasm'
       }
     });
     await nullSjController.wait();
@@ -503,7 +538,6 @@ function renderBrowser(b){
         <span>ASSETS</span><b class="diag-sj">...</b>
         <span>WISP</span><b class="diag-wisp">...</b>
         <span>WORKER</span><b class="diag-worker">...</b>
-        <span>ISOLATION</span><b class="diag-isolation">...</b>
       </div>
       <button class="btn diag-run">RUN CHECK</button>
       <button class="btn diag-reset">RESET WORKER</button>
@@ -547,8 +581,6 @@ function renderBrowser(b){
       host.replaceChildren(iframe);
       host.style.display='block';
       installNullBrowserShield(iframe,href=>navigate(href));
-      iframe.addEventListener('load',()=>{state.textContent='LOADED';setBusy(false)});
-      iframe.addEventListener('error',()=>{state.textContent='FRAME ERROR';setBusy(false)});
       sjFrame=controller.createFrame(iframe);
     }
     return sjFrame;
@@ -572,21 +604,19 @@ function renderBrowser(b){
     current=target;url.value=target;home.style.display='none';host.style.display='block';err.style.display='none';setBusy(true);state.textContent='CONNECTING';
     try{
       const frame=await ensureFrame();
-      frame.go(target);
-      state.textContent='WAITING FOR PAGE';
+      await Promise.resolve(frame.go(target));
+      state.textContent='LOADED';
       if(!opts.noHistory)push(target);
-      setTimeout(()=>{if(busy){setBusy(false);state.textContent='PAGE STILL LOADING'}},12000);
     }catch(e){
-      setBusy(false);
       state.textContent='FAILED';
       err.style.display='grid';
       err.querySelector('span').textContent=e?.message||String(e);
-    }
+    }finally{setBusy(false)}
   }
 
   async function diagnostics(){
-    const sj=b.querySelector('.diag-sj'),wisp=b.querySelector('.diag-wisp'),worker=b.querySelector('.diag-worker'),iso=b.querySelector('.diag-isolation'),summary=b.querySelector('.diag-summary');
-    sj.textContent=wisp.textContent=worker.textContent=iso.textContent='CHECKING';summary.textContent='RUNNING';
+    const sj=b.querySelector('.diag-sj'),wisp=b.querySelector('.diag-wisp'),worker=b.querySelector('.diag-worker'),summary=b.querySelector('.diag-summary');
+    sj.textContent=wisp.textContent=worker.textContent='CHECKING';summary.textContent='RUNNING';
     let ok=0;
     try{
       const assets=await checkScramjetAssets();
@@ -599,13 +629,11 @@ function renderBrowser(b){
       sj.title=e?.message||String(e);
     }
     try{
-      const reg=await navigator.serviceWorker.getRegistration('/');
-      const p=reg?.active?new URL(reg.active.scriptURL).pathname:'';
+      const p=navigator.serviceWorker.controller?new URL(navigator.serviceWorker.controller.scriptURL).pathname:'';
       worker.textContent=p==='/sw.js'?'OK':'FAIL';
+      worker.title=p||'No controlling worker';
       if(p==='/sw.js')ok++;
     }catch{worker.textContent='FAIL'}
-    iso.textContent=self.crossOriginIsolated?'OK':'FAIL';
-    if(self.crossOriginIsolated)ok++;
     try{
       const proto=location.protocol==='https:'?'wss:':'ws:';
       await new Promise((resolve,reject)=>{
@@ -616,15 +644,17 @@ function renderBrowser(b){
       });
       wisp.textContent='OK';ok++;
     }catch{wisp.textContent='FAIL'}
-    summary.textContent=ok===4?'ALL OK':ok+'/4 OK';
+    summary.textContent=ok===3?'ALL OK':ok+'/3 OK';
   }
 
   async function reset(){
-    const reg=await navigator.serviceWorker.getRegistration('/');
-    if(reg)await reg.unregister();
+    const regs=await navigator.serviceWorker.getRegistrations();
+    for(const reg of regs){
+      try{if(new URL(reg.scope).pathname==='/')await reg.unregister()}catch{}
+    }
     nullSjController=null;nullSjTransport=null;sjFrame=null;host.replaceChildren();
-    b.querySelector('.diag-summary').textContent='RESET';
-    state.textContent='WORKER RESET';
+    b.querySelector('.diag-summary').textContent='RESET COMPLETE';
+    state.textContent='RELOAD PAGE';
   }
 
   b.querySelector('.go').onclick=()=>navigate();

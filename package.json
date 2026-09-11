@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "7.6.0",
+  "version": "7.7.0",
   "private": true,
-  "description": "Null Sec OS 7.6 canonical Scramjet mounts with Vercel Fluid compute and cross-origin isolation",
+  "description": "Null Sec OS 7.7 with canonical Scramjet 2 service worker flow for Vercel",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

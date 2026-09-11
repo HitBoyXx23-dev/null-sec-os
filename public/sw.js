@@ -1,9 +1,20 @@
-importScripts("/controller/controller.sw.js");
+importScripts("/vendor/controller/controller.sw.js");
 
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
-self.addEventListener("fetch", event => {
+async function handleRequest(event) {
   if ($scramjetController.shouldRoute(event)) {
-    event.respondWith($scramjetController.route(event));
+    return $scramjetController.route(event);
   }
+  return fetch(event.request);
+}
+
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(handleRequest(event));
 });

@@ -320,6 +320,3 @@ body{background:#010402}
 .browser-error{z-index:14}
 .browser-diagnostics{z-index:60}
 .diag-sj[title]{cursor:help}
-
-/* 7.6 Scramjet diagnostics */
-.diag-grid{grid-template-columns:1fr 70px!important}.diag-isolation{color:#7fff9d;text-align:right}.sj-frame{display:block;width:100%;height:100%;border:0;background:#fff}
