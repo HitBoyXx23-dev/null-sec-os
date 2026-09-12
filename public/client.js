@@ -302,7 +302,7 @@ function renderDashboard(b){
   b.innerHTML=`<div class="app-pad classic-dash">
     <div class="classic-dash-head">
       <div><div class="section-tag">NULL SEC OS</div><h1>SYSTEM // READY</h1></div>
-      <span class="classic-build">VERCEL // 7.7</span>
+      <span class="classic-build">VERCEL // 7.8</span>
     </div>
     <div class="ops-grid">
       <div class="metric"><label>GAMES</label><strong>${games}</strong><small>LOCAL</small></div>
@@ -311,7 +311,7 @@ function renderDashboard(b){
     </div>
     <div class="classic-section-label">QUICK LAUNCH</div>
     <div class="classic-launch">${['arcade','browser','youtube','media','nullcrypt','terminal'].map(id=>`<button class="panel btn" data-open="${id}"><span class="classic-launch-icon">${apps[id].icon}</span><span>${apps[id].title}</span></button>`).join('')}</div>
-    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.7</span></div>
+    <div class="classic-status-line"><span>HOST: VERCEL</span><span>ENGINE: SCRAMJET</span><span>BUILD: 7.8</span></div>
   </div>`;
   checkScramjetAssets().then(s=>{
     b.querySelector('#dash-relay').textContent=s.ok?'UP':'DOWN';
@@ -355,7 +355,7 @@ async function checkScramjetAssets(){
   const failed=[];
   for(const asset of SCRAMJET_ASSETS){
     try{
-      const r=await fetch(asset+'?check=7.7',{cache:'no-store'});
+      const r=await fetch(asset+'?check=7.8',{cache:'no-store'});
       if(!r.ok)failed.push(asset+' ['+r.status+']');
     }catch(e){
       failed.push(asset+' [network]');
@@ -368,7 +368,7 @@ async function reloadClassicScript(src,test){
   if(test())return true;
   await new Promise((resolve,reject)=>{
     const script=document.createElement('script');
-    script.src=src+(src.includes('?')?'&':'?')+'v=7.7';
+    script.src=src+(src.includes('?')?'&':'?')+'v=7.8';
     script.async=false;
     script.onload=resolve;
     script.onerror=()=>reject(new Error('Failed to load '+src));
@@ -393,7 +393,7 @@ async function registerScramjetWorker(){
     }catch{}
   }
 
-  const reg=await navigator.serviceWorker.register('/sw.js?v=7.7',{
+  const reg=await navigator.serviceWorker.register('/sw.js?v=7.8',{
     scope:'/',
     updateViaCache:'none'
   });
@@ -422,10 +422,6 @@ async function registerScramjetWorker(){
 }
 
 async function ensureScramjet(){
-  if(!self.crossOriginIsolated){
-    throw new Error('Cross-origin isolation is OFF. Hard reload after deploying 7.7.');
-  }
-
   const assets=await checkScramjetAssets();
   if(!assets.ok){
     throw new Error('Missing Scramjet asset: '+assets.failed.join(', '));
@@ -443,9 +439,13 @@ async function ensureScramjet(){
 
   const controllingWorker=await registerScramjetWorker();
 
+  if(!self.crossOriginIsolated){
+    throw new Error('Worker is active, but cross-origin isolation is OFF. Vercel edge headers did not apply. Check vercel.json headers and hard reload.');
+  }
+
   if(!nullSjController){
     const wisp=(location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/wisp/';
-    const mod=await import('/vendor/libcurl/index.mjs?v=7.7');
+    const mod=await import('/vendor/libcurl/index.mjs?v=7.8');
     const LibcurlClient=mod.default;
     nullSjTransport=new LibcurlClient({wisp});
     if(typeof nullSjTransport.init==='function')await nullSjTransport.init();
@@ -538,6 +538,7 @@ function renderBrowser(b){
         <span>ASSETS</span><b class="diag-sj">...</b>
         <span>WISP</span><b class="diag-wisp">...</b>
         <span>WORKER</span><b class="diag-worker">...</b>
+        <span>ISOLATION</span><b class="diag-iso">...</b>
       </div>
       <button class="btn diag-run">RUN CHECK</button>
       <button class="btn diag-reset">RESET WORKER</button>
@@ -629,11 +630,26 @@ function renderBrowser(b){
       sj.title=e?.message||String(e);
     }
     try{
-      const p=navigator.serviceWorker.controller?new URL(navigator.serviceWorker.controller.scriptURL).pathname:'';
+      let p=navigator.serviceWorker.controller?new URL(navigator.serviceWorker.controller.scriptURL).pathname:'';
+      if(p!=='/sw.js'){
+        try{await registerScramjetWorker()}catch(e){worker.title=e?.message||String(e)}
+        p=navigator.serviceWorker.controller?new URL(navigator.serviceWorker.controller.scriptURL).pathname:'';
+      }
       worker.textContent=p==='/sw.js'?'OK':'FAIL';
-      worker.title=p||'No controlling worker';
+      worker.title=p||worker.title||'No controlling worker';
       if(p==='/sw.js')ok++;
-    }catch{worker.textContent='FAIL'}
+    }catch(e){
+      worker.textContent='FAIL';
+      worker.title=e?.message||String(e);
+    }
+
+    const iso=b.querySelector('.diag-iso');
+    if(self.crossOriginIsolated){
+      iso.textContent='OK';ok++;
+    }else{
+      iso.textContent='FAIL';
+      iso.title='COOP/COEP are missing from the page response';
+    }
     try{
       const proto=location.protocol==='https:'?'wss:':'ws:';
       await new Promise((resolve,reject)=>{
@@ -644,7 +660,7 @@ function renderBrowser(b){
       });
       wisp.textContent='OK';ok++;
     }catch{wisp.textContent='FAIL'}
-    summary.textContent=ok===3?'ALL OK':ok+'/3 OK';
+    summary.textContent=ok===4?'ALL OK':ok+'/4 OK';
   }
 
   async function reset(){
@@ -671,6 +687,15 @@ function renderBrowser(b){
   b.querySelector('.show-diag').onclick=()=>{diag.classList.remove('hidden');diagnostics()};
   b.querySelector('.diag-run').onclick=diagnostics;
   b.querySelector('.diag-reset').onclick=reset;
+
+  // Start worker registration as soon as Null Browser opens so WORKER status
+  // is meaningful before the user presses GO.
+  registerScramjetWorker().then(()=>{
+    state.textContent=self.crossOriginIsolated?'READY':'HEADERS MISSING';
+  }).catch(e=>{
+    state.textContent='WORKER FAILED';
+    console.error('Null Browser worker bootstrap failed:',e);
+  });
 }
 function renderTerminal(b){
   b.innerHTML=`<div class="terminal-app"><div class="term-output"></div><div class="term-line"><span>null@sec:$</span><input class="term-input" autocomplete="off" spellcheck="false" placeholder="type help"></div></div>`;

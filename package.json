@@ -1,8 +1,8 @@
 {
   "name": "null-sec-os",
-  "version": "7.7.0",
+  "version": "7.8.0",
   "private": true,
-  "description": "Null Sec OS 7.7 with canonical Scramjet 2 service worker flow for Vercel",
+  "description": "Null Sec OS 7.8 with Vercel edge isolation headers and proactive Scramjet worker registration",
   "main": "app.js",
   "type": "commonjs",
   "engines": {

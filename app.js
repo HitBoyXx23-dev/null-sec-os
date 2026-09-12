@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 });
 
 app.get("/api/health", health);
-app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.7.0",platform:"vercel",proxy:"scramjet"}));
+app.get("/api/build-info", (req,res) => res.json({ok:true,name:"Null Sec OS",version:"7.8.0",platform:"vercel",proxy:"scramjet"}));
 app.get("/api/qr", qr);
 app.all("/api/proxy", proxy);
 app.get("/api/osint/dns", dns);
@@ -37,6 +37,13 @@ app.get("/api/osint/username", username);
 
 
 const publicDir = path.join(__dirname, "public");
+
+app.get("/sw.js", (req, res) => {
+  res.setHeader("Service-Worker-Allowed", "/");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.type("application/javascript");
+  res.sendFile(path.join(publicDir, "sw.js"));
+});
 app.use(express.static(publicDir, {
   extensions: ["html"],
   setHeaders(res, filePath) {

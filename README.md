@@ -1,31 +1,40 @@
-# Null Sec OS 7.7
+# Null Sec OS 7.8
 
-This build fixes the Scramjet worker flow for Vercel.
+## Vercel worker edge fix
 
-## What changed
+7.7 could show:
 
-- Returned Scramjet/controller/libcurl browser files to `public/vendor` build output.
-- The root worker imports `/vendor/controller/controller.sw.js`.
-- The worker uses the canonical Scramjet 2 fetch flow:
-  - route Scramjet requests through `$scramjetController`
-  - use normal `fetch()` for everything else
-- The client waits for `navigator.serviceWorker.controller`, not merely `registration.active`.
-- The Scramjet `Controller` receives the worker that actually controls the page.
-- Service worker registration is cache-busted with `?v=7.7`.
-- Asset checks include `/sw.js`.
-- Reset unregisters root workers and tells the user to reload.
-- COOP/COEP isolation is enabled for Scramjet 2.
+- ASSETS OK
+- WISP OK
+- WORKER FAIL
 
-## Vercel
+because the isolation headers were set in Express middleware, while Vercel may serve `public/index.html` directly as a static file. In that case the page never becomes cross-origin isolated and Scramjet initialization stops before the worker/controller flow completes.
 
-The build command remains:
+7.8 moves the required headers into `vercel.json`:
 
-`npm run vercel-build`
+- `Cross-Origin-Opener-Policy: same-origin`
+- `Cross-Origin-Embedder-Policy: require-corp`
+- `Origin-Agent-Cluster: ?1`
 
-which copies browser-only npm assets into `public/vendor`.
+`/sw.js` also gets:
 
-After deployment, hard reload once. Browser diagnostics should report:
+- `Service-Worker-Allowed: /`
+- `Cache-Control: no-store`
+- JavaScript content type
+
+## Browser changes
+
+- Worker registration starts immediately when Null Browser opens.
+- Diagnostics will attempt registration if there is no controlling worker.
+- Diagnostics now include `ISOLATION`.
+- Worker activation and cross-origin isolation are reported separately.
+- Scramjet controller creation only happens after the page has a controlling `/sw.js` worker.
+
+Expected result:
+
 - ASSETS OK
 - WISP OK
 - WORKER OK
 - ISOLATION OK
+
+If `WORKER OK` but `ISOLATION FAIL`, the deployed Vercel project is not applying the new `vercel.json` headers.
